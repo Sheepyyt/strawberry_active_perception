@@ -1,0 +1,8 @@
+# Desired pose of controlled_frame. header.frame_id is the reference frame.
+geometry_msgs/PoseStamped target_pose
+
+# Robot frame to place at target_pose. An empty value selects the controller's
+# configured default (link7 for the first-week NERO integration).
+string controlled_frame
+---
+strawberry_nero_interfaces/IKResult result

@@ -1,0 +1,40 @@
+# Desired pose of controlled_frame. header.frame_id is the reference frame.
+geometry_msgs/PoseStamped target_pose
+
+# Robot frame to place at target_pose. An empty value selects the controller's
+# configured default (link7 for the first-week NERO integration).
+string controlled_frame
+
+# Maximum duration for validation, IK, trajectory generation, and execution.
+# A zero duration selects the controller's configured default timeout.
+builtin_interfaces/Duration timeout
+---
+# IK result and rejection diagnostics. Execution failures retain the accepted IK
+# diagnostics while updating code and reason to the final action outcome.
+strawberry_nero_interfaces/IKResult ik_result
+
+# Final measured pose and residuals when feedback is available. These fields are
+# still populated on execution failure whenever the controller can compute them.
+geometry_msgs/PoseStamped achieved_pose
+float64 final_position_error_m
+float64 final_orientation_error_rad
+---
+# Feedback stages. UNKNOWN is the default-initialized value.
+uint8 STAGE_UNKNOWN=0
+uint8 STAGE_VALIDATING=1
+uint8 STAGE_SOLVING_IK=2
+uint8 STAGE_GENERATING_TRAJECTORY=3
+uint8 STAGE_EXECUTING=4
+uint8 STAGE_HOLDING=5
+
+uint8 stage
+string status_message
+
+# Latest measured joint state, ordered joint1 through joint7.
+sensor_msgs/JointState current_joint_state
+
+# Current tracking errors relative to the active trajectory point and goal pose.
+float64 max_joint_error_rad
+float64 current_position_error_m
+float64 current_orientation_error_rad
+builtin_interfaces/Duration elapsed

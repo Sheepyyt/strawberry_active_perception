@@ -1,0 +1,103 @@
+/**:
+  ros__parameters:
+    # Empty means: resolve the stock NERO URDF from agx_arm_description.
+    urdf_path: ""
+    base_frame: base_link
+    model_tip_frame: link7
+    default_controlled_frame: link7
+
+    # The camera is physically mounted, but its precise link7 -> optical-frame
+    # calibration is not part of week one. Camera-frame goals stay rejected.
+    camera_transform_valid: false
+
+    joint_names:
+      - joint1
+      - joint2
+      - joint3
+      - joint4
+      - joint5
+      - joint6
+      - joint7
+    ready_joint_positions:
+      - 0.0
+      - -1.2698666571660342
+      - 0.0
+      - 1.8844843532558375
+      - 0.0
+      - -0.00003490658503988659
+      - 0.0
+
+    # Raw pyAgxArm NERO limits in radians. The solver intersects these with
+    # the URDF and then removes one two-degree safety margin from both ends.
+    joint_lower_limits:
+      - -2.705261
+      - -1.745330
+      - -2.757621
+      - -1.012291
+      - -2.757621
+      - -0.733039
+      - -1.570797
+    joint_upper_limits:
+      - 2.705261
+      - 1.745330
+      - 2.757621
+      - 2.146755
+      - 2.757621
+      - 0.959932
+      - 1.570797
+
+    # Placo task balance. Orientation is deliberately softer than position;
+    # posture preference keeps a 7-DoF solution close to measured joints.
+    position_weight: 1.0
+    orientation_weight: 0.3
+    posture_weight: 0.001
+    regularization_weight: 0.000001
+    solver_dt: 0.020
+    max_iterations: 200
+    solve_timeout_sec: 0.020
+    default_action_timeout_sec: 30.0
+    ik_position_tolerance_m: 0.002
+    ik_orientation_tolerance_rad: 0.034906585
+    singularity_sigma_min: 0.03
+    singularity_condition_max: 100.0
+
+    # Continuity and target deadband.
+    position_deadband_m: 0.001
+    orientation_deadband_rad: 0.008726646
+    max_joint_delta_rad: 0.35
+
+    # Quintic trajectory limits, joint1 through joint7.
+    trajectory_velocity_limits: [0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30]
+    trajectory_acceleration_limits: [0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50]
+    trajectory_rate_hz: 50.0
+
+    # Measured-state tracking gates.
+    tracking_pause_error_rad: 0.08
+    tracking_abort_error_rad: 0.15
+    tracking_abort_duration_sec: 0.50
+    feedback_timeout_sec: 0.20
+    settle_joint_tolerance_rad: 0.020
+    settle_velocity_tolerance_rad_s: 0.020
+    settle_duration_sec: 0.25
+    final_position_tolerance_m: 0.010
+    final_orientation_tolerance_rad: 0.087266463
+
+    # The launch files override these two values explicitly for sim/real.
+    simulation_mode: true
+    execution_enabled_on_start: false
+    require_arm_status: true
+    tf_timeout_sec: 0.20
+
+    joint_feedback_topic: /feedback/joint_states
+    arm_status_topic: /feedback/arm_status
+    command_topic: /control/move_j
+    planned_trajectory_topic: /strawberry_nero/planned_trajectory
+    diagnostics_topic: /strawberry_nero/diagnostics
+    target_pose_topic: /strawberry_nero/target_pose
+    action_name: /strawberry_nero/move_to_pose
+    solve_service_name: /strawberry_nero/solve_ik
+    execution_enable_service_name: /strawberry_nero/enable_execution
+    emergency_stop_service: /emergency_stop
+
+    metrics_log_enabled: true
+    metrics_output_dir: "~/.ros/strawberry_nero_control/metrics"

@@ -13,7 +13,7 @@ cd strawberry_active_perception
 git submodule update --init --recursive
 ```
 
-如果已经普通 `git clone`，只需补执行最后一条 `git submodule update` 命令。`agx_arm_ros` 自带 MoveIt 包，但本项目不编译也不启动它；当前工作区用一个空的 `COLCON_IGNORE` 文件让 colcon 跳过该目录。
+如果已经普通 `git clone`，只需补执行最后一条 `git submodule update` 命令。`agx_arm_ros` 自带 MoveIt 包，但本项目不编译也不启动它；主仓库跟踪的 `nero_ws/colcon_defaults.yaml` 会让 colcon 跳过该包。
 
 ## 目录地图
 
@@ -27,6 +27,7 @@ strawberry_active_perception/
 │   │   ├── agx_arm_ros/           松灵官方驱动 Git 子模块
 │   │   ├── strawberry_nero_interfaces/  对外 ROS 2 接口合同
 │   │   └── strawberry_nero_control/     Placo 与安全执行的具体实现
+│   ├── colcon_defaults.yaml       固定忽略 MoveIt 包的工作区配置
 │   ├── build/                     colcon 编译中间文件（可再生成）
 │   ├── install/                   编译后的可运行文件（可再生成）
 │   └── log/                       构建日志（可删除）
@@ -36,6 +37,8 @@ strawberry_active_perception/
 ```
 
 `build/` 和 `install/` 目前保留，因为接下来马上要做真机检查；以后怀疑构建缓存损坏时可以删除并重新 `colcon build`。`log/`、`__pycache__/`、`.pytest_cache/` 和 VS Code 的 `browse.vc.db` 只是自动生成的记录或缓存，已从 Git 排除，可以安全删除。
+
+`colcon_defaults.yaml` 只有从 `nero_ws` 目录运行 `colcon` 时才会自动生效。本项目文档中的构建命令都遵守这个约定；它比放在第三方子模块内部、无法由主仓库上传的 `COLCON_IGNORE` 更容易复现。
 
 ## `interfaces` 与 `control` 有什么区别
 
@@ -92,4 +95,3 @@ from strawberry_nero_control.ik_core import PlacoIKSolver
 | `CMakeLists.txt`、`package.xml` | 让 ROS 2 生成上述接口代码 |
 
 更详细的仿真、构建和真机命令见 [`nero_ws/src/strawberry_nero_control/README.md`](nero_ws/src/strawberry_nero_control/README.md)。
-

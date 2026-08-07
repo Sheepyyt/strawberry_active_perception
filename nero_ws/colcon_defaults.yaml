@@ -1,0 +1,12 @@
+list:
+  packages-ignore:
+    - agx_arm_moveit
+build:
+  packages-ignore:
+    - agx_arm_moveit
+test:
+  packages-ignore:
+    - agx_arm_moveit
+graph:
+  packages-ignore:
+    - agx_arm_moveit

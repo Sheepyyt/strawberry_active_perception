@@ -123,18 +123,20 @@ ros2 launch strawberry_nero_control real.launch.py can_port:=can0
 真机启动默认值被安全锁定为：
 
 - 驱动 `auto_enable=false`、`control_enabled=false`、`fast_mode=false`；
-- `speed_percent=10`、`effector_type=none`；
+- `speed_percent=0`、`effector_type=none`；
 - Placo 执行开关 `execution_enabled_on_start=false`。
 
 因此刚启动时只能读取 `/feedback/joint_states` 和机械臂状态，任何运动请求都应被拒绝。先检查反馈中的 `joint1` 到 `joint7` 顺序、弧度值、安装方向、固件状态与机械臂网页限位；启动程序**不会自动移动到 ready 位姿**。
 
-确认无误后，需要分别打开原厂驱动的“允许收命令”开关、使能电机，以及本包的“允许执行”开关。先用下面命令确认服务的真实名称和类型，再按现场检查表操作，不要盲目复制使能命令：
+确认无误后，首次小范围运动才把 `speed_percent` 改为 `10`，并分别打开原厂驱动的“允许收命令”开关、使能电机，以及本包的“允许执行”开关。先用下面命令确认服务的真实名称和类型，再按现场检查表操作，不要盲目复制使能命令：
 
 ```bash
 ros2 service list -t | grep -E 'control_enable|enable_agx_arm|enable_execution|emergency'
 ros2 topic echo /feedback/joint_states --once
 ros2 topic echo /feedback/arm_status --once
 ```
+
+只读阶段绝对不要调用 `/move_home`、`/enable_agx_arm` 或 `/emergency_stop`：原厂的这些服务不会受 `control_enabled=false` 保护，其中 `/move_home` 会直接尝试前往全零姿态。软件 `/emergency_stop` 也只是发送当前位置保持，并不能代替手边的物理急停。
 
 停止时按相反顺序：先关闭本包执行开关，再关闭驱动控制门，最后失能电机。发生跟踪超差、反馈超时、奇异、越限、解跳变或取消时，控制器会拒绝或保持当前真实关节位置，并在 action 结果和诊断话题中说明原因。
 

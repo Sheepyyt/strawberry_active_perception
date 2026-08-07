@@ -168,17 +168,22 @@ class NeroExecutor:
         self._joint_names = tuple(joint_names)
         self._simulation_mode = simulation_mode
         self._last_command: Optional[np.ndarray] = None
+        self._command_count = 0
 
     @property
     def last_command(self) -> Optional[np.ndarray]:
         return None if self._last_command is None else self._last_command.copy()
+
+    @property
+    def command_count(self) -> int:
+        """Return the number of commands successfully handed to the backend."""
+        return self._command_count
 
     def send(self, positions: Sequence[float], velocities=None) -> None:
         """Send one complete and finite joint1..joint7 command."""
         values = np.asarray(positions, dtype=float)
         if values.shape != (len(self._joint_names),) or not np.all(np.isfinite(values)):
             raise ValueError("refusing to send an incomplete or non-finite command")
-        self._last_command = values.copy()
         if self._simulation_mode:
             velocity_values = (
                 np.zeros_like(values)
@@ -186,13 +191,15 @@ class NeroExecutor:
                 else np.asarray(velocities, dtype=float)
             )
             self._node.set_simulated_state(values, velocity_values)
-            return
-        message = joint_state_from_arrays(
-            self._joint_names,
-            values,
-            self._node.get_clock().now().to_msg(),
-        )
-        self._publisher.publish(message)
+        else:
+            message = joint_state_from_arrays(
+                self._joint_names,
+                values,
+                self._node.get_clock().now().to_msg(),
+            )
+            self._publisher.publish(message)
+        self._last_command = values.copy()
+        self._command_count += 1
 
     def hold(self, measured_positions: Sequence[float], reason: str) -> None:
         """Request a soft position hold; this is not a physical emergency stop."""
@@ -210,6 +217,21 @@ class NeroExecutor:
             self._node.get_logger().warning(
                 "Driver emergency_stop service is unavailable; move_j hold was sent"
             )
+
+    def hold_if_commanded_since(
+        self,
+        measured_positions: Sequence[float],
+        reason: str,
+        command_count_before: int,
+    ) -> bool:
+        """Hold only if this action already emitted a trajectory command."""
+        if self._command_count <= command_count_before:
+            self._node.get_logger().warning(
+                "Skipping soft hold because this action sent no motion command"
+            )
+            return False
+        self.hold(measured_positions, reason)
+        return True
 
 
 class NeroControlNode(Node):
@@ -814,6 +836,7 @@ class NeroControlNode(Node):
 
     def _execute_action(self, goal_handle):
         started = time.monotonic()
+        command_count_before = self._executor_backend.command_count
         run_id = str(uuid.uuid4())
         ik_message = IKResultMsg()
         context = None
@@ -854,7 +877,7 @@ class NeroControlNode(Node):
                 return self._action_result(ik_message, context, final_code, final_reason)
             if goal_handle.is_cancel_requested:
                 final_code, final_reason = IKResultMsg.CANCELED, "动作在规划前被取消"
-                self._soft_hold(final_reason)
+                self._soft_hold(final_reason, command_count_before)
                 goal_handle.canceled()
                 return self._action_result(ik_message, context, final_code, final_reason)
             if not self._execution_enabled:
@@ -891,7 +914,7 @@ class NeroControlNode(Node):
             )
             if execution_error is not None:
                 final_code, final_reason = execution_error
-                self._soft_hold(final_reason)
+                self._soft_hold(final_reason, command_count_before)
                 if final_code == IKResultMsg.CANCELED:
                     goal_handle.canceled()
                 else:
@@ -904,7 +927,7 @@ class NeroControlNode(Node):
         except Exception as error:
             final_code, final_reason = IKResultMsg.INTERNAL_ERROR, str(error)
             self.get_logger().exception(f"Unexpected action error: {error}")
-            self._soft_hold(final_reason)
+            self._soft_hold(final_reason, command_count_before)
             goal_handle.abort()
             return self._action_result(ik_message, context, final_code, final_reason)
         finally:
@@ -1059,10 +1082,14 @@ class NeroControlNode(Node):
             )
         return None
 
-    def _soft_hold(self, reason: str) -> None:
+    def _soft_hold(self, reason: str, command_count_before: int) -> None:
         snapshot, _, _ = self._snapshot(require_fresh=False)
         if snapshot is not None:
-            self._executor_backend.hold(snapshot.positions, reason)
+            self._executor_backend.hold_if_commanded_since(
+                snapshot.positions,
+                reason,
+                command_count_before,
+            )
 
     def _trajectory_message(self, trajectory: TrajectoryResult) -> JointTrajectory:
         message = JointTrajectory()

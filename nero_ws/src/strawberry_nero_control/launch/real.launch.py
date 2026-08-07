@@ -35,6 +35,14 @@ def generate_launch_description():
         default_value='can0',
         description='SocketCAN interface connected to this NERO.',
     )
+    speed_percent_arg = DeclareLaunchArgument(
+        'speed_percent',
+        default_value='0',
+        description=(
+            'Driver speed setting. Keep 0 during read-only checks; pass 10 '
+            'only after the hardware checklist is complete.'
+        ),
+    )
     launch_rviz_arg = DeclareLaunchArgument(
         'launch_rviz',
         default_value='false',
@@ -51,7 +59,7 @@ def generate_launch_description():
             'auto_enable': 'false',
             'control_enabled': 'false',
             'fast_mode': 'false',
-            'speed_percent': '10',
+            'speed_percent': LaunchConfiguration('speed_percent'),
         }.items(),
     )
 
@@ -86,5 +94,13 @@ def generate_launch_description():
     )
 
     return LaunchDescription(
-        [config_arg, can_port_arg, launch_rviz_arg, driver, controller, rviz]
+        [
+            config_arg,
+            can_port_arg,
+            speed_percent_arg,
+            launch_rviz_arg,
+            driver,
+            controller,
+            rviz,
+        ]
     )

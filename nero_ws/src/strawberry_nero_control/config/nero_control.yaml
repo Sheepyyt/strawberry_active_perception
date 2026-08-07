@@ -94,6 +94,9 @@
     planned_trajectory_topic: /strawberry_nero/planned_trajectory
     diagnostics_topic: /strawberry_nero/diagnostics
     target_pose_topic: /strawberry_nero/target_pose
+    # MeshCat defaults to robust solid STL meshes. Set false to try the
+    # official colored DAE appearance meshes instead.
+    viewer_use_collision_meshes: true
     action_name: /strawberry_nero/move_to_pose
     solve_service_name: /strawberry_nero/solve_ik
     execution_enable_service_name: /strawberry_nero/enable_execution

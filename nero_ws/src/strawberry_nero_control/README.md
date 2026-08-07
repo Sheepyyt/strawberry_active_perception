@@ -36,18 +36,67 @@ source .venv/bin/activate
 source nero_ws/install/setup.bash
 ```
 
+## 最简单的纯 Python Placo 运动演示
+
+如果想先把 ROS 2 完全放到一边，只确认“Placo 能否算出关节角并让 NERO 虚拟模型平滑运动”，运行下面的独立演示。它直接复用本项目的 `PlacoIKSolver` 和五次轨迹模块，但不启动 ROS 节点、不加载机械臂驱动、不连接 CAN，也不会发送任何真机命令。
+
+```bash
+cd /home/yyt/strawberry_active_perception
+source .venv/bin/activate
+cd nero_ws/src/strawberry_nero_control
+
+python -m strawberry_nero_control.standalone_demo
+```
+
+终端会先用 ready 姿态计算 `link7` 沿基座 Z 方向移动 `-20 mm` 的目标，打印 Placo 关节解、末端残差、奇异性、最大关节变化和轨迹峰值，然后给出 MeshCat 地址。打开网页后回到终端按 Enter，模型会按 50 Hz 五次轨迹在 ready 与目标之间往返两次。
+
+只计算、不打开网页：
+
+```bash
+python -m strawberry_nero_control.standalone_demo --dry-run
+```
+
+尝试另一个很小的相对位移（单位为米）：
+
+```bash
+python -m strawberry_nero_control.standalone_demo \
+  --dx 0.01 --dy 0.00 --dz -0.02 --cycles 1
+```
+
+目标不可达、接近奇异点、关节越限、关节跨度超过 `0.35 rad` 或轨迹超限时，程序会拒绝播放并说明原因。这个演示验证的是运动学、连续性、平滑轨迹和模型显示，不验证电机、CAN、动力学、真实碰撞或环境避障。
+
 ## 第一步：只在网页仿真中检查
 
 ```bash
 ros2 launch strawberry_nero_control sim.launch.py
 ```
 
-该启动文件只运行 Placo 控制节点和 MeshCat 可视化器，**不会加载机械臂驱动，也不会连接 CAN**。终端会打印应在浏览器中打开的 MeshCat 地址，以该地址为准；`meshcat_port` 表示 MeshCat 的 ZMQ 端口，也可以设为 `0` 自动选择空闲端口。先用只求解、不运动的服务检查接口：
+该启动文件只运行 Placo 控制节点和 MeshCat 可视化器，**不会加载机械臂驱动，也不会连接 CAN**。终端会打印应在浏览器中打开的 MeshCat 地址，以该地址为准；`meshcat_port` 表示 MeshCat 的 ZMQ 端口，默认为 `0`，即自动选择空闲端口。如果手动指定的端口已被占用，查看器也会报告警告并自动换用空闲端口。先用只求解、不运动的服务检查接口：
 
 ```bash
 ros2 interface show strawberry_nero_interfaces/srv/SolveIK
 ros2 service type /strawberry_nero/solve_ik
 ros2 action info /strawberry_nero/move_to_pose
+```
+
+MeshCat 在这里不是“带重力和碰撞的物理仿真器”，而是一块三维验算白板。它能显示当前关节姿态、目标坐标轴和规划出的末端轨迹；`sim` 控制节点还会真的运行 Placo IK、安全拒绝逻辑和五次关节轨迹，只是用“理想机械臂完全跟得上命令”来代替电机与 CAN。它不能验证重力、力矩、电机延迟、真实碰撞或环境避障。
+
+仅仅打开网页时，机械臂会静止在 ready 姿态。要让整条仿真链实际运行，在第二个已加载环境的终端发送下面这个离线验证过的目标：
+
+```bash
+ros2 action send_goal /strawberry_nero/move_to_pose \
+  strawberry_nero_interfaces/action/MoveToPose \
+  "{target_pose: {header: {frame_id: base_link}, pose: {position: \
+  {x: 0.14636685, y: -0.02563819, z: 0.41500512}, orientation: \
+  {x: -0.33552712, y: 0.64814599, z: -0.62260026, w: -0.28230699}}}, \
+  controlled_frame: link7, timeout: {sec: 10}}" --feedback
+```
+
+这时网页中的机械臂应平滑运动，并出现目标坐标轴与末端轨迹线；终端会依次报告检查目标、Placo 求解、生成轨迹、执行和稳定等待。默认采用完整的 STL 实体网格，以避开官方 `link4.dae` 在浏览器 Collada 渲染中的缺段问题。如果要对比官方彩色 DAE，可启动时覆盖参数：
+
+```bash
+ros2 launch strawberry_nero_control sim.launch.py \
+  viewer_use_collision_meshes:=false
 ```
 
 输入位姿的 `header.frame_id` 是参考坐标系，第一周应为 `base_link`；`controlled_frame` 应为 `link7`。相机虽然装在末端中心，但精确方向和毫米级偏移尚未标定，所以配置中的 `camera_transform_valid` 默认为 `false`，相机光学帧目标会被明确拒绝。

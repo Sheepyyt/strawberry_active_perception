@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import socket
 import threading
 from pathlib import Path
 
@@ -32,21 +33,26 @@ class NeroMeshcatViewer(Node):
         self.declare_parameter("target_pose_topic", "target_pose")
         self.declare_parameter("planned_trajectory_topic", "planned_joint_trajectory")
         self.declare_parameter("model_tip_frame", "link7")
-        self.declare_parameter("meshcat_port", 7000)
+        self.declare_parameter("meshcat_port", 0)
+        self.declare_parameter("viewer_use_collision_meshes", True)
 
         urdf_path = self._resolve_urdf(
             str(self.get_parameter("urdf_path").value)
         )
         port = int(self.get_parameter("meshcat_port").value)
-        if port > 0:
-            visualization.viewer = meshcat.Visualizer(
-                server_args=[f"--zmq-url=tcp://127.0.0.1:{port}"]
-            )
-        else:
-            visualization.viewer = meshcat.Visualizer()
+        visualization.viewer = self._start_viewer(port)
         viewer_url = visualization.viewer.url()
 
-        self._robot = placo.RobotWrapper(urdf_path, placo.Flags.ignore_collisions)
+        use_collision_meshes = bool(
+            self.get_parameter("viewer_use_collision_meshes").value
+        )
+        robot_flags = int(placo.Flags.ignore_collisions)
+        if use_collision_meshes:
+            # The official NERO link4 DAE is not rendered reliably by the
+            # browser-side Collada loader. The corresponding STL collision
+            # mesh is complete and has the same URDF link transform.
+            robot_flags |= int(placo.Flags.collision_as_visual)
+        self._robot = placo.RobotWrapper(urdf_path, robot_flags)
         self._visualizer = visualization.robot_viz(self._robot, "nero")
         self._tip_frame = str(self.get_parameter("model_tip_frame").value)
         self._lock = threading.RLock()
@@ -73,8 +79,48 @@ class NeroMeshcatViewer(Node):
         )
         self.get_logger().info(
             "MeshCat viewer started. It is a kinematic visualizer, not a physics "
-            f"or environment-collision simulator. Open {viewer_url}"
+            f"or environment-collision simulator. Meshes="
+            f"{'solid STL' if use_collision_meshes else 'colored DAE'}. "
+            f"Open {viewer_url}"
         )
+
+    def _start_viewer(self, requested_port: int):
+        """Start MeshCat, automatically recovering from a busy fixed port."""
+        if requested_port < 0 or requested_port > 65535:
+            raise ValueError("meshcat_port must be between 0 and 65535")
+        if requested_port == 0:
+            return meshcat.Visualizer()
+
+        if not self._tcp_port_available(requested_port):
+            self.get_logger().warning(
+                f"MeshCat ZMQ port {requested_port} is already in use; "
+                "selecting an available port automatically"
+            )
+            return meshcat.Visualizer()
+
+        try:
+            return meshcat.Visualizer(
+                server_args=[
+                    f"--zmq-url=tcp://127.0.0.1:{requested_port}"
+                ]
+            )
+        except RuntimeError as error:
+            # Another process can claim the port between the availability
+            # check and server startup. Recover instead of killing the viewer.
+            self.get_logger().warning(
+                f"MeshCat could not use ZMQ port {requested_port} "
+                f"({error}); selecting an available port automatically"
+            )
+            return meshcat.Visualizer()
+
+    @staticmethod
+    def _tcp_port_available(port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            try:
+                probe.bind(("127.0.0.1", port))
+            except OSError:
+                return False
+        return True
 
     @staticmethod
     def _resolve_urdf(configured_path: str) -> str:

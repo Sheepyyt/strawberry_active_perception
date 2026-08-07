@@ -26,8 +26,14 @@ def generate_launch_description():
     )
     meshcat_port_arg = DeclareLaunchArgument(
         'meshcat_port',
-        default_value='7000',
-        description='TCP port used by the MeshCat viewer.',
+        default_value='0',
+        description='MeshCat ZMQ port; 0 selects an available port automatically.',
+    )
+    collision_mesh_arg = DeclareLaunchArgument(
+        'viewer_use_collision_meshes',
+        default_value='true',
+        choices=['true', 'false'],
+        description='Use complete solid STL meshes instead of colored DAE.',
     )
 
     common_parameters = [
@@ -58,11 +64,21 @@ def generate_launch_description():
                 'meshcat_port': ParameterValue(
                     LaunchConfiguration('meshcat_port'), value_type=int
                 ),
+                'viewer_use_collision_meshes': ParameterValue(
+                    LaunchConfiguration('viewer_use_collision_meshes'),
+                    value_type=bool,
+                ),
             },
         ],
     )
 
     # No agx_arm_ctrl include is allowed here: sim must never touch CAN.
     return LaunchDescription(
-        [config_arg, meshcat_port_arg, controller, viewer]
+        [
+            config_arg,
+            meshcat_port_arg,
+            collision_mesh_arg,
+            controller,
+            viewer,
+        ]
     )

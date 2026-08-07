@@ -1,0 +1,8 @@
+[submodule "nero_ws/src/agx_arm_ros"]
+	path = nero_ws/src/agx_arm_ros
+	url = https://github.com/agilexrobotics/agx_arm_ros.git
+	branch = ros2
+[submodule "camera_ws/src/OrbbecSDK_ROS2"]
+	path = camera_ws/src/OrbbecSDK_ROS2
+	url = https://github.com/orbbec/OrbbecSDK_ROS2.git
+	branch = main

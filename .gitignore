@@ -24,7 +24,3 @@ rosbag2_*/
 .env
 .env.*
 !.env.example
-
-# 下载的第三方 Git 仓库
-/nero_ws/src/agx_arm_ros/
-/camera_ws/src/OrbbecSDK_ROS2/

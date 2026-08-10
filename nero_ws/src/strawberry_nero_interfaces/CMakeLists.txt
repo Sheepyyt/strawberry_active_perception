@@ -11,6 +11,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/IKResult.msg"
   "srv/SolveIK.srv"
   "action/MoveToPose.action"
+  "action/RecoverToSafe.action"
   DEPENDENCIES
     builtin_interfaces
     geometry_msgs

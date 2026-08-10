@@ -1,0 +1,64 @@
+# This action has no caller-supplied joint target. The controller derives the
+# smallest strictly inward target from the latest measured seven-joint state.
+# false performs a preview and sends no robot command; true requests execution.
+bool execute
+
+# Maximum duration for validation and both recovery phases. Zero selects the
+# controller default.
+builtin_interfaces/Duration timeout
+---
+# Values match the shared IKResult motion/error codes where meanings overlap.
+uint16 SUCCESS=0
+uint16 ALREADY_SAFE=1
+uint16 PREVIEW_READY=2
+uint16 INVALID_STATE=10
+uint16 FEEDBACK_STALE=12
+uint16 JOINT_LIMIT_VIOLATION=21
+uint16 NEAR_SINGULARITY=22
+uint16 DISCONTINUOUS_SOLUTION=23
+uint16 JOINT_DELTA_TOO_LARGE=24
+uint16 TRAJECTORY_LIMIT_VIOLATION=30
+uint16 TRACKING_ERROR=31
+uint16 TIMEOUT=32
+uint16 CANCELED=33
+uint16 DRIVER_FAULT=34
+uint16 INTERNAL_ERROR=255
+
+# True when planning/preview or execution completed as requested. Automation
+# must use executed and robot_is_safe before proceeding to ordinary motion.
+bool success
+uint16 code
+string reason
+
+# These fields prevent a successful preview from being mistaken for motion.
+bool executed
+bool robot_is_safe
+
+# All states are complete and ordered joint1 through joint7. Phase A enters the
+# raw URDF/SDK envelope; phase B enters the conservative two-degree safe range.
+sensor_msgs/JointState start_joint_state
+sensor_msgs/JointState ingress_joint_state
+sensor_msgs/JointState target_joint_state
+sensor_msgs/JointState achieved_joint_state
+
+float64 max_raw_violation_rad
+float64 max_safe_violation_rad
+float64 max_joint_delta_rad
+float64 min_sigma_min
+float64 max_condition_number
+builtin_interfaces/Duration phase_a_duration
+builtin_interfaces/Duration phase_b_duration
+builtin_interfaces/Duration elapsed
+---
+uint8 STAGE_UNKNOWN=0
+uint8 STAGE_VALIDATING=1
+uint8 STAGE_PREVIEW_READY=2
+uint8 STAGE_ENTERING_RAW_LIMITS=3
+uint8 STAGE_EXECUTING=4
+uint8 STAGE_HOLDING=5
+
+uint8 stage
+string status_message
+sensor_msgs/JointState current_joint_state
+float64 max_joint_error_rad
+builtin_interfaces/Duration elapsed

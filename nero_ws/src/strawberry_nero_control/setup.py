@@ -36,6 +36,10 @@ setup(
             'nero_control_node = strawberry_nero_control.control_node:main',
             'nero_meshcat_viewer = strawberry_nero_control.meshcat_viewer:main',
             'nero_offline_benchmark = strawberry_nero_control.offline_benchmark:main',
+            'nero_axis_suite_offline = strawberry_nero_control.axis_suite:main',
+            'nero_real_smoke_test = strawberry_nero_control.real_smoke_test:main',
+            'nero_week1_acceptance = strawberry_nero_control.week1_acceptance:main',
+            'nero_pose_demo = strawberry_nero_control.pose_demo:main',
         ],
     },
 )

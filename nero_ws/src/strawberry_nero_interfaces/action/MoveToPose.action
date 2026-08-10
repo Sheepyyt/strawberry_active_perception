@@ -5,6 +5,11 @@ geometry_msgs/PoseStamped target_pose
 # configured default (link7 for the first-week NERO integration).
 string controlled_frame
 
+# Optional soft posture reference for selecting one continuous solution of the
+# redundant 7-DoF arm. Leave name/position empty to prefer measured joints.
+# This is not an IK seed: the solver is always initialized from real feedback.
+sensor_msgs/JointState posture_reference
+
 # Maximum duration for validation, IK, trajectory generation, and execution.
 # A zero duration selects the controller's configured default timeout.
 builtin_interfaces/Duration timeout

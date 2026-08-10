@@ -14,23 +14,31 @@ from ament_index_python.packages import get_package_share_directory
 
 from .ik_core import PlacoIKSolver
 from .models import IKErrorCode, READY_JOINT_POSITIONS
+from .trajectory import TrajectoryGenerator
+from .validation_paths import week1_validation_directory
+
+
+FORMAL_OFFLINE_SAMPLES = 100
+FORMAL_SUCCESS_RATE = 0.99
+FORMAL_IK_P95_MS = 20.0
 
 
 def _default_urdf() -> Path:
-    share = Path(get_package_share_directory('agx_arm_description'))
+    share = Path(get_package_share_directory("agx_arm_description"))
     return (
         share
-        / 'agx_arm_urdf'
-        / 'nero'
-        / 'urdf'
-        / 'nero_description.urdf'
+        / "agx_arm_urdf"
+        / "nero"
+        / "urdf"
+        / "nero_description.urdf"
     )
 
 
 def _percentile(values, percentile):
-    if not values:
+    finite = [float(value) for value in values if math.isfinite(float(value))]
+    if not finite:
         return None
-    return float(np.percentile(np.asarray(values, dtype=float), percentile))
+    return float(np.percentile(np.asarray(finite, dtype=float), percentile))
 
 
 def _negative_checks(solver, ready):
@@ -39,26 +47,65 @@ def _negative_checks(solver, ready):
     malformed = np.eye(4)
     malformed[0, 0] = 2.0
     result = solver.solve(malformed, ready)
-    checks['invalid_target'] = int(result.error_code) == IKErrorCode.INVALID_TARGET
+    checks["invalid_target"] = (
+        int(result.error_code) == IKErrorCode.INVALID_TARGET
+    )
 
     unreachable = np.eye(4)
     unreachable[:3, 3] = (5.0, 5.0, 5.0)
     result = solver.solve(unreachable, ready)
-    checks['unreachable'] = int(result.error_code) == IKErrorCode.UNREACHABLE
+    checks["unreachable"] = (
+        int(result.error_code) == IKErrorCode.UNREACHABLE
+    )
 
     unsafe = ready.copy()
     unsafe[1] = solver.safe_joint_limits[1, 0] - 0.01
     result = solver.solve(solver.forward_kinematics(ready), unsafe)
-    checks['joint_limit'] = (
+    checks["joint_limit"] = (
         int(result.error_code) == IKErrorCode.JOINT_LIMIT_VIOLATION
     )
 
     zero = np.zeros(7)
     result = solver.solve(solver.forward_kinematics(zero), zero)
-    checks['zero_pose_singularity'] = (
+    checks["zero_pose_singularity"] = (
         int(result.error_code) == IKErrorCode.NEAR_SINGULARITY
     )
     return checks
+
+
+def _write_reports(
+    output_directory: Path,
+    samples: int,
+    rows: list[dict],
+    summary: dict,
+) -> tuple[Path, Path]:
+    """Atomically replace the one important offline evidence pair."""
+    output_directory.mkdir(parents=True, exist_ok=True)
+    stem = "offline_100" if samples == FORMAL_OFFLINE_SAMPLES else (
+        f"offline_{samples}"
+    )
+    csv_path = output_directory / f"{stem}.csv"
+    json_path = output_directory / f"{stem}.json"
+
+    temporary_csv = csv_path.with_suffix(".csv.tmp")
+    with temporary_csv.open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.DictWriter(stream, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    temporary_csv.replace(csv_path)
+
+    durable_summary = dict(summary)
+    durable_summary["artifacts"] = {
+        "details_csv": csv_path.name,
+        "summary_json": json_path.name,
+    }
+    temporary_json = json_path.with_suffix(".json.tmp")
+    temporary_json.write_text(
+        json.dumps(durable_summary, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temporary_json.replace(json_path)
+    return csv_path, json_path
 
 
 def run_benchmark(
@@ -68,111 +115,198 @@ def run_benchmark(
     seed: int,
     joint_range_rad: float,
 ) -> dict:
-    """Run known-reachable FK-to-IK cases and write CSV/JSON evidence."""
+    """Run known-reachable current-state-to-target IK and trajectory cases."""
     if samples <= 0:
-        raise ValueError('samples must be positive')
+        raise ValueError("samples must be positive")
     if not math.isfinite(joint_range_rad) or not 0.0 < joint_range_rad <= 0.30:
-        raise ValueError('joint-range must be in (0, 0.30] rad')
+        raise ValueError("joint-range must be in (0, 0.30] rad")
 
     solver = PlacoIKSolver(urdf_path)
+    trajectory_generator = TrajectoryGenerator(
+        joint_limits=solver.safe_joint_limits
+    )
     ready = np.asarray(READY_JOINT_POSITIONS, dtype=float)
     rng = np.random.default_rng(seed)
     safe_lower = solver.safe_joint_limits[:, 0] + 0.01
     safe_upper = solver.safe_joint_limits[:, 1] - 0.01
     rows = []
     for index in range(samples):
-        target_joints = np.clip(
-            ready + rng.uniform(-joint_range_rad, joint_range_rad, 7),
+        current_joints = np.clip(
+            ready + rng.uniform(
+                -0.5 * joint_range_rad,
+                0.5 * joint_range_rad,
+                7,
+            ),
             safe_lower,
             safe_upper,
         )
-        target = solver.forward_kinematics(target_joints)
-        result = solver.solve(target, ready)
-        row = {
-            'index': index,
-            'success': result.success,
-            'code': int(result.error_code),
-            'reason': result.message,
-            'solve_time_ms': result.solve_time_ms,
-            'position_error_m': result.position_error_m,
-            'orientation_error_rad': result.orientation_error_rad,
-            'sigma_min': result.sigma_min,
-            'condition_number': result.condition_number,
-            'max_joint_delta_rad': result.max_joint_delta_rad,
-            'target_joints_rad': json.dumps(target_joints.tolist()),
-            'solution_joints_rad': json.dumps(list(result.joint_positions)),
-        }
-        rows.append(row)
+        known_reachable_joints = np.clip(
+            current_joints + rng.uniform(
+                -joint_range_rad,
+                joint_range_rad,
+                7,
+            ),
+            safe_lower,
+            safe_upper,
+        )
+        target = solver.forward_kinematics(known_reachable_joints)
+        result = solver.solve(target, current_joints)
+        trajectory = None
+        if result.success and result.error_code == IKErrorCode.SUCCESS:
+            trajectory = trajectory_generator.generate(
+                current_joints,
+                result.joint_positions,
+            )
+        trajectory_success = bool(
+            trajectory is not None and trajectory.success
+        )
+        accepted = bool(
+            result.success
+            and result.error_code == IKErrorCode.SUCCESS
+            and trajectory_success
+        )
+        reason = result.message
+        if result.success and not trajectory_success:
+            reason = (
+                "trajectory was not generated"
+                if trajectory is None
+                else trajectory.message
+            )
+        rows.append({
+            "index": index,
+            "success": accepted,
+            "code": int(result.error_code),
+            "reason": reason,
+            "solve_time_ms": result.solve_time_ms,
+            "position_error_m": result.position_error_m,
+            "orientation_error_rad": result.orientation_error_rad,
+            "sigma_min": result.sigma_min,
+            "condition_number": result.condition_number,
+            "max_joint_delta_rad": result.max_joint_delta_rad,
+            "trajectory_success": trajectory_success,
+            "trajectory_duration_s": (
+                "" if trajectory is None else trajectory.duration_s
+            ),
+            "trajectory_peak_velocity_rad_s": (
+                "" if trajectory is None
+                else trajectory.peak_velocity_rad_s
+            ),
+            "trajectory_peak_acceleration_rad_s2": (
+                "" if trajectory is None
+                else trajectory.peak_acceleration_rad_s2
+            ),
+            "current_joints_rad": json.dumps(
+                current_joints.tolist(), separators=(",", ":")
+            ),
+            "known_reachable_joints_rad": json.dumps(
+                known_reachable_joints.tolist(), separators=(",", ":")
+            ),
+            "solution_joints_rad": json.dumps(
+                list(result.joint_positions), separators=(",", ":")
+            ),
+        })
 
-    solve_times = [row['solve_time_ms'] for row in rows]
-    successes = sum(bool(row['success']) for row in rows)
+    solve_times = [row["solve_time_ms"] for row in rows]
+    successes = sum(bool(row["success"]) for row in rows)
+    success_rate = successes / samples
+    ik_time_p95_ms = _percentile(solve_times, 95.0)
     negative_checks = _negative_checks(solver, ready)
-    summary = {
-        'samples': samples,
-        'successes': successes,
-        'success_rate': successes / samples,
-        'ik_time_p50_ms': _percentile(solve_times, 50.0),
-        'ik_time_p95_ms': _percentile(solve_times, 95.0),
-        'ik_time_max_ms': max(solve_times),
-        'position_error_p95_m': _percentile(
-            [row['position_error_m'] for row in rows], 95.0
+    acceptance = {
+        "at_least_100_targets": samples >= FORMAL_OFFLINE_SAMPLES,
+        "success_rate_at_least_99_percent": (
+            success_rate >= FORMAL_SUCCESS_RATE
         ),
-        'orientation_error_p95_rad': _percentile(
-            [row['orientation_error_rad'] for row in rows], 95.0
+        "ik_time_p95_at_most_20_ms": (
+            ik_time_p95_ms is not None
+            and ik_time_p95_ms <= FORMAL_IK_P95_MS
         ),
-        'negative_checks': negative_checks,
-        'acceptance': {
-            'success_rate_at_least_99_percent': successes / samples >= 0.99,
-            'ik_time_p95_at_most_20_ms': _percentile(solve_times, 95.0) <= 20.0,
-            'all_negative_checks_pass': all(negative_checks.values()),
-        },
-        'seed': seed,
-        'joint_range_rad': joint_range_rad,
-        'urdf_path': str(urdf_path),
+        "all_accepted_trajectories_safe": all(
+            bool(row["trajectory_success"])
+            for row in rows
+            if row["success"]
+        ),
+        "all_negative_checks_pass": all(negative_checks.values()),
     }
-    summary['passed'] = all(summary['acceptance'].values())
-
-    output_directory.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime('%Y%m%d_%H%M%S')
-    csv_path = output_directory / f'offline_ik_{stamp}.csv'
-    json_path = output_directory / f'offline_ik_{stamp}.json'
-    with csv_path.open('w', newline='', encoding='utf-8') as stream:
-        writer = csv.DictWriter(stream, fieldnames=rows[0].keys())
-        writer.writeheader()
-        writer.writerows(rows)
-    json_path.write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + '\n',
-        encoding='utf-8',
+    summary = {
+        "schema_version": 2,
+        "benchmark": "week1_offline_known_reachable_fk_to_placo_ik",
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "samples": samples,
+        "successes": successes,
+        "success_rate": success_rate,
+        "ik_time_p50_ms": _percentile(solve_times, 50.0),
+        "ik_time_p95_ms": ik_time_p95_ms,
+        "ik_time_max_ms": max(solve_times),
+        "position_error_p95_m": _percentile(
+            [row["position_error_m"] for row in rows], 95.0
+        ),
+        "orientation_error_p95_rad": _percentile(
+            [row["orientation_error_rad"] for row in rows], 95.0
+        ),
+        "max_joint_delta_rad": max(
+            float(row["max_joint_delta_rad"]) for row in rows
+        ),
+        "min_sigma": min(float(row["sigma_min"]) for row in rows),
+        "max_condition": max(
+            float(row["condition_number"]) for row in rows
+        ),
+        "negative_checks": negative_checks,
+        "acceptance": acceptance,
+        "seed": seed,
+        "joint_range_rad": joint_range_rad,
+        "urdf_path_at_run": str(Path(urdf_path).resolve()),
+        "passed": all(acceptance.values()),
+        "important_note": (
+            "Targets are known reachable because they are generated by FK "
+            "from safe joints. Errors are model based, not external physical "
+            "camera measurements."
+        ),
+    }
+    csv_path, json_path = _write_reports(
+        Path(output_directory).expanduser().resolve(),
+        samples,
+        rows,
+        summary,
     )
-    summary['csv_path'] = str(csv_path)
-    summary['json_path'] = str(json_path)
-    return summary
+    result = dict(summary)
+    result["csv_path"] = str(csv_path)
+    result["json_path"] = str(json_path)
+    return result
 
 
 def main(argv=None) -> None:
-    """Command-line entry point; exits nonzero when acceptance fails."""
+    """Run the formal offline benchmark and exit nonzero on refusal."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--samples', type=int, default=100)
-    parser.add_argument('--seed', type=int, default=20260806)
-    parser.add_argument('--joint-range', type=float, default=0.15)
-    parser.add_argument('--urdf', type=Path, default=None)
+    parser.add_argument("--samples", type=int, default=FORMAL_OFFLINE_SAMPLES)
+    parser.add_argument("--seed", type=int, default=20260806)
+    parser.add_argument("--joint-range", type=float, default=0.15)
+    parser.add_argument("--urdf", type=Path, default=None)
     parser.add_argument(
-        '--output-dir',
+        "--output-dir",
         type=Path,
-        default=Path.home() / '.ros' / 'strawberry_nero_control' / 'offline',
+        default=None,
+        help=(
+            "visible final-results directory; defaults to "
+            "<project>/validation/week1/offline"
+        ),
     )
     arguments = parser.parse_args(argv)
+    output_directory = (
+        arguments.output_dir
+        if arguments.output_dir is not None
+        else week1_validation_directory() / "offline"
+    )
     summary = run_benchmark(
         arguments.urdf or _default_urdf(),
-        arguments.output_dir,
+        output_directory,
         arguments.samples,
         arguments.seed,
         arguments.joint_range,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
-    if not summary['passed']:
+    if not summary["passed"]:
         raise SystemExit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

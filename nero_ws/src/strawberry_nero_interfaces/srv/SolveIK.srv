@@ -4,5 +4,10 @@ geometry_msgs/PoseStamped target_pose
 # Robot frame to place at target_pose. An empty value selects the controller's
 # configured default (link7 for the first-week NERO integration).
 string controlled_frame
+
+# Optional soft posture reference for selecting one continuous solution of the
+# redundant 7-DoF arm. Leave name/position empty to prefer measured joints.
+# This is not an IK seed: the solver is always initialized from real feedback.
+sensor_msgs/JointState posture_reference
 ---
 strawberry_nero_interfaces/IKResult result

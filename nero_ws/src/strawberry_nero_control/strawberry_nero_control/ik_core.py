@@ -147,9 +147,11 @@ class PlacoIKSolver:
             config.position_weight,
             config.orientation_weight,
             config.posture_weight,
+            config.posture_reference_tolerance_rad,
             config.regularization,
             config.timeout_s,
             config.position_tolerance_m,
+            config.position_convergence_target_m,
             config.orientation_tolerance_rad,
             config.position_deadband_m,
             config.orientation_deadband_rad,
@@ -167,6 +169,13 @@ class PlacoIKSolver:
             raise ValueError('max_iterations must be positive')
         if config.position_deadband_m > config.position_tolerance_m:
             raise ValueError('position deadband cannot exceed tolerance')
+        if (
+            config.position_convergence_target_m
+            > config.position_tolerance_m
+        ):
+            raise ValueError(
+                'position convergence target cannot exceed tolerance'
+            )
         if (
             config.orientation_deadband_rad
             > config.orientation_tolerance_rad
@@ -394,13 +403,16 @@ class PlacoIKSolver:
         target_transform: np.ndarray,
         current_joints: Sequence[float],
         controlled_frame: str = 'link7',
+        posture_reference_joints: Optional[Sequence[float]] = None,
     ) -> IKResult:
         """
         Solve one target from fresh, measured joint feedback.
 
         No previous virtual solution is used as an initial condition.  A soft
-        posture task anchors the redundant seven-DoF arm to the measured
-        branch, while joint/velocity limits and final continuity checks reject
+        posture task normally anchors the redundant seven-DoF arm to the
+        measured branch.  A guarded centering procedure may provide a nearby
+        posture reference while the solver is still initialized from measured
+        feedback.  Joint/velocity limits and final continuity checks reject
         unsafe alternatives.
         """
         with self._lock:
@@ -408,6 +420,11 @@ class PlacoIKSolver:
                 current = self._joint_vector(current_joints)
                 target = self._target_transform(target_transform)
                 self._validate_frame(controlled_frame)
+                posture_reference = (
+                    current.copy()
+                    if posture_reference_joints is None
+                    else self._joint_vector(posture_reference_joints)
+                )
             except (TypeError, ValueError) as error:
                 return self._result(
                     False,
@@ -424,6 +441,15 @@ class PlacoIKSolver:
                     False,
                     IKErrorCode.JOINT_LIMIT_VIOLATION,
                     f'current feedback is outside safe limits: {names}',
+                    current,
+                )
+            posture_below = posture_reference < self._safe_joint_limits[:, 0]
+            posture_above = posture_reference > self._safe_joint_limits[:, 1]
+            if np.any(posture_below | posture_above):
+                return self._result(
+                    False,
+                    IKErrorCode.JOINT_LIMIT_VIOLATION,
+                    'posture reference is outside conservative joint limits',
                     current,
                 )
 
@@ -475,7 +501,10 @@ class PlacoIKSolver:
                 self.config.orientation_weight,
             )
             posture_task = solver.add_joints_task()
-            posture_task.set_joints(dict(zip(self.joint_names, current)))
+            posture_task.set_joints(dict(zip(
+                self.joint_names,
+                posture_reference,
+            )))
             posture_task.configure(
                 'measured_posture_anchor',
                 'soft',
@@ -488,6 +517,9 @@ class PlacoIKSolver:
             timed_out = False
             position_error = initial_position_error
             orientation_error = initial_orientation_error
+            posture_error = float(np.max(np.abs(
+                current - posture_reference
+            )))
             try:
                 for iterations in range(1, self.config.max_iterations + 1):
                     if time.perf_counter() - start_time >= self.config.timeout_s:
@@ -499,14 +531,23 @@ class PlacoIKSolver:
                         controlled_frame,
                         target,
                     )
+                    posture_error = float(np.max(np.abs(
+                        self._get_joint_vector() - posture_reference
+                    )))
                     elapsed = time.perf_counter() - start_time
                     if elapsed > self.config.timeout_s:
                         timed_out = True
                         break
                     if (
-                        position_error <= self.config.position_tolerance_m
+                        position_error
+                        <= self.config.position_convergence_target_m
                         and orientation_error
                         <= self.config.orientation_tolerance_rad
+                        and (
+                            posture_reference_joints is None
+                            or posture_error
+                            <= self.config.posture_reference_tolerance_rad
+                        )
                     ):
                         break
             except Exception as error:  # Placo exposes C++ solver exceptions.
@@ -550,6 +591,23 @@ class PlacoIKSolver:
                     False,
                     IKErrorCode.UNREACHABLE,
                     'IK residual exceeds 2 mm or 2 degrees',
+                    candidate,
+                    position_error,
+                    orientation_error,
+                    elapsed_ms,
+                    iterations,
+                    final_metrics,
+                    max_delta,
+                )
+            if (
+                posture_reference_joints is not None
+                and posture_error
+                > self.config.posture_reference_tolerance_rad
+            ):
+                return self._result(
+                    False,
+                    IKErrorCode.DISCONTINUOUS_SOLUTION,
+                    'IK pose converged but posture preference did not',
                     candidate,
                     position_error,
                     orientation_error,

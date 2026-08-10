@@ -1,0 +1,5 @@
+# Python dependencies used by the Placo controller and MeshCat demo.
+placo==0.9.23
+meshcat==0.3.2
+numpy==2.3.5
+scipy==1.16.3

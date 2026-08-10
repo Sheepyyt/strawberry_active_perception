@@ -97,6 +97,35 @@ def test_reachable_nearby_target_converges_from_measured_state(solver):
     assert result.solve_time_ms <= solver.config.timeout_s * 1000.0
 
 
+def test_optional_posture_reference_selects_ready_redundant_branch(solver):
+    """Centering can prefer ready while still initializing from measurement."""
+    measured = np.array([
+        0.167761,
+        -1.695081,
+        -0.041015,
+        2.020620,
+        -0.023440,
+        0.033772,
+        0.003735,
+    ])
+    ready = np.asarray(READY_JOINT_POSITIONS)
+    predicted = measured.copy()
+
+    for index in range(1, 11):
+        reference = measured + (ready - measured) * index / 10.0
+        target = solver.forward_kinematics(reference)
+        result = solver.solve(
+            target,
+            predicted,
+            posture_reference_joints=reference,
+        )
+        assert result.success, result.message
+        assert result.max_joint_delta_rad <= 0.06
+        predicted = np.asarray(result.joint_positions)
+
+    assert np.max(np.abs(predicted - ready)) < 0.005
+
+
 def test_target_inside_deadband_does_not_create_motion(solver):
     """An unchanged target returns the measured joints without solving."""
     ready = np.asarray(READY_JOINT_POSITIONS)

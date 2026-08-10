@@ -1,156 +1,318 @@
-# NERO 单臂 Placo 控制
+# Strawberry NERO Control
 
-这个包完成第一周的目标：让 ROS 2 接收一个“末端 `link7` 要到达的位姿”，用 Placo 算出 NERO 的 7 个关节角，再生成平滑轨迹并交给机械臂执行。
+本包让 NERO 单臂按照给定的 `link7` 目标位姿运动：
 
-## 先弄清楚三个角色
+```text
+目标位置和姿态 → Placo IK → 安全检查 → 五次平滑轨迹 → move_j → NERO
+```
 
-- **Placo 是计算员**：它负责 IK，也就是把末端位置和方向换成 7 个关节角。每次都从真实关节角开始算，并尽量靠近当前姿态，避免七自由度机械臂突然换到另一组解。
-- **轨迹模块是路线绘制员**：它不会让关节从起点一下跳到终点，而是生成起止速度、加速度都为零的五次曲线。
-- **`move_j` 是送信员**：它只接收已经算好的 7 个关节角并传给电机，**不会做 IK**。所以使用 `/control/move_j` 不等于使用原厂 IK。
+Placo 是唯一的末端位姿反解器。系统不启动 MoveIt，也不调用原厂
+`move_p/move_l/move_c` 笛卡尔 IK；`move_j` 只发送 Placo 已经算好的 7 个关节角。
 
-本项目不启动 MoveIt，也不调用原厂笛卡尔接口 `/control/move_p`、`/control/move_l`、`/control/move_c`。同样禁用无平滑的 `/control/move_js` 和 MIT 控制。第一周没有环境避障，测试前必须由人清空工作空间。
+## 1. 首次安装和构建
 
-## 构建
+### 下载包含子模块的仓库
 
-项目使用根目录的 `.venv`（提示符名称为 `sap-core`）。一定要让 `colcon` 也由这个 Python 运行，否则安装后的 ROS 节点可能找不到只装在虚拟环境里的 Placo。
+```bash
+git clone --recurse-submodules \
+  https://github.com/Sheepyyt/strawberry_active_perception.git
+cd strawberry_active_perception
+git submodule update --init --recursive
+```
+
+### 创建 Python 环境
+
+ROS 2 使用系统 Python 包，因此虚拟环境必须带 `--system-site-packages`：
+
+```bash
+cd /home/yyt/strawberry_active_perception
+python3 -m venv --system-site-packages --prompt sap-core .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+### 构建 ROS 2 包
 
 ```bash
 cd /home/yyt/strawberry_active_perception
 source /opt/ros/jazzy/setup.bash
 source .venv/bin/activate
-python -c "import placo; print('Placo 可以导入')"
 
 cd nero_ws
 python -m colcon build --symlink-install \
-  --packages-up-to strawberry_nero_control \
-  --cmake-args -DPython3_EXECUTABLE="$VIRTUAL_ENV/bin/python"
+  --packages-select strawberry_nero_interfaces strawberry_nero_control
 source install/setup.bash
 ```
 
-每次打开新终端都要依次执行：
+必须使用 `python -m colcon`，让 ROS 2 可执行脚本使用装有 Placo 的 `.venv`。工作区的
+`colcon_defaults.yaml` 会跳过 `agx_arm_moveit`。
+
+## 2. 每个新终端的公共环境
 
 ```bash
 cd /home/yyt/strawberry_active_perception
 source /opt/ros/jazzy/setup.bash
 source .venv/bin/activate
 source nero_ws/install/setup.bash
+
+unset ROS_LOCALHOST_ONLY
+export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+export ROS_DOMAIN_ID=77
 ```
 
-## 最简单的纯 Python Placo 运动演示
+## 3. 无 CAN 的 MeshCat 演示
 
-如果想先把 ROS 2 完全放到一边，只确认“Placo 能否算出关节角并让 NERO 虚拟模型平滑运动”，运行下面的独立演示。它直接复用本项目的 `PlacoIKSolver` 和五次轨迹模块，但不启动 ROS 节点、不加载机械臂驱动、不连接 CAN，也不会发送任何真机命令。
-
-```bash
-cd /home/yyt/strawberry_active_perception
-source .venv/bin/activate
-cd nero_ws/src/strawberry_nero_control
-
-python -m strawberry_nero_control.standalone_demo
-```
-
-终端会先用 ready 姿态计算 `link7` 沿基座 Z 方向移动 `-20 mm` 的目标，打印 Placo 关节解、末端残差、奇异性、最大关节变化和轨迹峰值，然后给出 MeshCat 地址。打开网页后回到终端按 Enter，模型会按 50 Hz 五次轨迹在 ready 与目标之间往返两次。
-
-只计算、不打开网页：
-
-```bash
-python -m strawberry_nero_control.standalone_demo --dry-run
-```
-
-尝试另一个很小的相对位移（单位为米）：
-
-```bash
-python -m strawberry_nero_control.standalone_demo \
-  --dx 0.01 --dy 0.00 --dz -0.02 --cycles 1
-```
-
-目标不可达、接近奇异点、关节越限、关节跨度超过 `0.35 rad` 或轨迹超限时，程序会拒绝播放并说明原因。这个演示验证的是运动学、连续性、平滑轨迹和模型显示，不验证电机、CAN、动力学、真实碰撞或环境避障。
-
-## 第一步：只在网页仿真中检查
-
-```bash
-ros2 launch strawberry_nero_control sim.launch.py
-```
-
-该启动文件只运行 Placo 控制节点和 MeshCat 可视化器，**不会加载机械臂驱动，也不会连接 CAN**。终端会打印应在浏览器中打开的 MeshCat 地址，以该地址为准；`meshcat_port` 表示 MeshCat 的 ZMQ 端口，默认为 `0`，即自动选择空闲端口。如果手动指定的端口已被占用，查看器也会报告警告并自动换用空闲端口。先用只求解、不运动的服务检查接口：
-
-```bash
-ros2 interface show strawberry_nero_interfaces/srv/SolveIK
-ros2 service type /strawberry_nero/solve_ik
-ros2 action info /strawberry_nero/move_to_pose
-```
-
-MeshCat 在这里不是“带重力和碰撞的物理仿真器”，而是一块三维验算白板。它能显示当前关节姿态、目标坐标轴和规划出的末端轨迹；`sim` 控制节点还会真的运行 Placo IK、安全拒绝逻辑和五次关节轨迹，只是用“理想机械臂完全跟得上命令”来代替电机与 CAN。它不能验证重力、力矩、电机延迟、真实碰撞或环境避障。
-
-仅仅打开网页时，机械臂会静止在 ready 姿态。要让整条仿真链实际运行，在第二个已加载环境的终端发送下面这个离线验证过的目标：
-
-```bash
-ros2 action send_goal /strawberry_nero/move_to_pose \
-  strawberry_nero_interfaces/action/MoveToPose \
-  "{target_pose: {header: {frame_id: base_link}, pose: {position: \
-  {x: 0.14636685, y: -0.02563819, z: 0.41500512}, orientation: \
-  {x: -0.33552712, y: 0.64814599, z: -0.62260026, w: -0.28230699}}}, \
-  controlled_frame: link7, timeout: {sec: 10}}" --feedback
-```
-
-这时网页中的机械臂应平滑运动，并出现目标坐标轴与末端轨迹线；终端会依次报告检查目标、Placo 求解、生成轨迹、执行和稳定等待。默认采用完整的 STL 实体网格，以避开官方 `link4.dae` 在浏览器 Collada 渲染中的缺段问题。如果要对比官方彩色 DAE，可启动时覆盖参数：
+终端 1 执行公共环境命令，然后启动：
 
 ```bash
 ros2 launch strawberry_nero_control sim.launch.py \
-  viewer_use_collision_meshes:=false
+  viewer_use_collision_meshes:=true
 ```
 
-输入位姿的 `header.frame_id` 是参考坐标系，第一周应为 `base_link`；`controlled_frame` 应为 `link7`。相机虽然装在末端中心，但精确方向和毫米级偏移尚未标定，所以配置中的 `camera_transform_valid` 默认为 `false`，相机光学帧目标会被明确拒绝。
+打开终端输出的 MeshCat 网页地址。终端 2 执行公共环境命令，然后：
 
-每次规划都会发布 `/strawberry_nero/planned_trajectory`（`trajectory_msgs/JointTrajectory`），便于记录、复查以及以后接入 VAMP。详细阈值见 `config/nero_control.yaml`。YAML 中的上下限是 pyAgxArm 提供的原始 SDK 限位；程序还会与 URDF 限位取交集，并只在最后统一向内缩进 2°，所得结果才是真正允许 IK 和轨迹使用的安全范围。
+```bash
+# 读取当前虚拟 link7 位姿
+ros2 run strawberry_nero_control nero_pose_demo current
 
-## 第二步：真机只读检查
+# 只预览，不运动
+ros2 run strawberry_nero_control nero_pose_demo relative \
+  --xyz-mm 30 0 15 \
+  --rpy-deg 0 0 8 \
+  --frame base
 
-只有网页验证和离线测试通过后，才连接电源与 CAN。先配置单个 CAN 适配器：
+# 执行同一个目标，只移动虚拟模型
+ros2 run strawberry_nero_control nero_pose_demo relative \
+  --xyz-mm 30 0 15 \
+  --rpy-deg 0 0 8 \
+  --frame base \
+  --execute
+```
+
+MeshCat 用于检查模型、IK、安全拒绝和轨迹连续性，不模拟重力、电机、CAN 或真实碰撞。
+
+## 4. 真机现场 Demo：从上电到结束
+
+至少两人配合：一人操作终端，一人观察机械臂并能接触实体急停。清空机械臂周围和下方；
+失能前如果没有支架，必须人工托稳并避开夹点。
+
+### 4.1 终端 1：激活 CAN
+
+先执行“每个新终端的公共环境”，再运行：
 
 ```bash
 cd /home/yyt/strawberry_active_perception/nero_ws/src/agx_arm_ros
 bash scripts/can_activate.sh can0 1000000
+ip -details -statistics link show can0
 ```
 
-保证工作区无人、无杂物且急停随手可按，然后启动：
+必须看到 `UP`、`LOWER_UP`、`ERROR-ACTIVE` 和 `bitrate 1000000`。出现 `BUS-OFF`、接口
+不存在或错误持续增长时停止操作。
+
+### 4.2 终端 1：启动驱动和 Placo 控制器
+
+本机失能时可能不持续发送完整反馈，因此使用已经实测成功的启动方式：
 
 ```bash
-ros2 launch strawberry_nero_control real.launch.py can_port:=can0
+cd /home/yyt/strawberry_active_perception
+ros2 launch strawberry_nero_control real.launch.py \
+  can_port:=can0 \
+  speed_percent:=10 \
+  allow_limit_recovery_execution:=true \
+  first_motion_test_mode:=false \
+  precision_test_mode:=true \
+  startup_enable:=true
 ```
 
-也可添加 `launch_rviz:=true` 打开只读 RViz；RViz 的控制滑条始终关闭。
-
-真机启动默认值被安全锁定为：
-
-- 驱动 `auto_enable=false`、`control_enabled=false`、`fast_mode=false`；
-- `speed_percent=0`、`effector_type=none`；
-- Placo 执行开关 `execution_enabled_on_start=false`。
-
-因此刚启动时只能读取 `/feedback/joint_states` 和机械臂状态，任何运动请求都应被拒绝。先检查反馈中的 `joint1` 到 `joint7` 顺序、弧度值、安装方向、固件状态与机械臂网页限位；启动程序**不会自动移动到 ready 位姿**。
-
-确认无误后，首次小范围运动才把 `speed_percent` 改为 `10`，并分别打开原厂驱动的“允许收命令”开关、使能电机，以及本包的“允许执行”开关。先用下面命令确认服务的真实名称和类型，再按现场检查表操作，不要盲目复制使能命令：
-
-```bash
-ros2 service list -t | grep -E 'control_enable|enable_agx_arm|enable_execution|emergency'
-ros2 topic echo /feedback/joint_states --once
-ros2 topic echo /feedback/arm_status --once
-```
-
-只读阶段绝对不要调用 `/move_home`、`/enable_agx_arm` 或 `/emergency_stop`：原厂的这些服务不会受 `control_enabled=false` 保护，其中 `/move_home` 会直接尝试前往全零姿态。软件 `/emergency_stop` 也只是发送当前位置保持，并不能代替手边的物理急停。
-
-停止时按相反顺序：先关闭本包执行开关，再关闭驱动控制门，最后失能电机。发生跟踪超差、反馈超时、奇异、越限、解跳变或取消时，控制器会拒绝或保持当前真实关节位置，并在 action 结果和诊断话题中说明原因。
-
-## 已配置的安全起点
-
-用户实测的 ready 关节角已写入 YAML，单位都是弧度：
+`startup_enable=true` 会使能电机并抱住当前姿态，现场应准备应对抱闸释放/结合时的轻微动作；
+它不会自动发送 ready 或 Placo 目标。日志应出现：
 
 ```text
-[0.0, -1.2698666571660342, 0.0, 1.8844843532558375,
- 0.0, -0.00003490658503988659, 0.0]
+All joints enable status is True
+Agx_arm feedback is ready, control is now enabled
+NERO Placo controller ready
 ```
 
-它只是“已知安全的参考姿态”，不是上电后自动执行的 home 命令。尤其不要调用 `/move_home`：原厂 home 是全零姿态，而全零姿态接近本项目要避开的奇异构型。
+终端 1 保持运行。若仍没有完整反馈，不要反复使能；停止并检查电源、急停、CAN 线和适配器。
 
-## 后续 Gradient-NBV 怎么接
+### 4.3 终端 2：检查状态
 
-Gradient-NBV 只需把下一观察位姿送到 `MoveToPose` action。将来完成 `link7 -> camera optical` 外参标定后，把 `controlled_frame` 改成相机光学帧即可；IK、连续性检查、轨迹和真机执行接口都不用重写。相机驱动、Next Best View 和 VAMP 不在第一周范围内。
+新开终端，先执行“每个新终端的公共环境”，再运行：
+
+```bash
+ros2 topic echo /feedback/arm_status --once
+ros2 topic echo /feedback/joint_states --once
+```
+
+确认 `arm_status: 0`，七关节反馈完整，限位/通信报警均为 `false`，关节速度接近零。
+
+### 4.4 检查并恢复到安全范围
+
+先预览：
+
+```bash
+ros2 run strawberry_nero_control nero_real_smoke_test recover
+```
+
+- `code=1, robot_is_safe=True`：已经安全，直接继续；
+- `code=2`：运行下面的恢复执行；
+- `code=12` 或其他错误：没有可靠反馈，停止排查，禁止执行。
+
+```bash
+ros2 run strawberry_nero_control nero_real_smoke_test recover --execute
+```
+
+输入 `RECOVER`，必须得到 `code=0, success=True, robot_is_safe=True`。
+
+### 4.5 回到统一 ready 起点
+
+先预览：
+
+```bash
+ros2 run strawberry_nero_control nero_real_smoke_test center-ready
+```
+
+预览通过后执行：
+
+```bash
+ros2 run strawberry_nero_control nero_real_smoke_test center-ready --execute
+```
+
+输入 `CENTER_READY`。该工具把路径分为 10 段，每段均使用最新真实反馈和 Placo 求解，
+不调用原厂 IK。
+
+### 4.6 读取当前位姿
+
+```bash
+ros2 run strawberry_nero_control nero_pose_demo current
+```
+
+输出使用 `base_link` 坐标系；位置单位为米，四元数顺序为 `x y z w`。
+
+### 4.7 展示一个明显的位置和姿态目标
+
+先预览，不运动：
+
+```bash
+ros2 run strawberry_nero_control nero_pose_demo relative \
+  --xyz-mm 30 0 15 \
+  --rpy-deg 0 0 8 \
+  --frame base
+```
+
+预览应显示 `code=0, success=True`。随后执行完全相同的目标：
+
+```bash
+ros2 run strawberry_nero_control nero_pose_demo relative \
+  --xyz-mm 30 0 15 \
+  --rpy-deg 0 0 8 \
+  --frame base \
+  --execute
+```
+
+输入 `MOVE_POSE`。成功标志是：
+
+```text
+Action status=4, code=0, success=True
+说明：目标已稳定到达
+```
+
+### 4.8 现场输入其他目标
+
+相对目标：
+
+```bash
+ros2 run strawberry_nero_control nero_pose_demo relative \
+  --xyz-mm DX DY DZ \
+  --rpy-deg DROLL DPITCH DYAW \
+  --frame base
+```
+
+绝对目标：
+
+```bash
+ros2 run strawberry_nero_control nero_pose_demo absolute \
+  --position-m X Y Z \
+  --quat-xyzw QX QY QZ QW
+```
+
+也可用 `--rpy-deg R P Y` 代替四元数。位置必须是 3 个数，四元数必须是 4 个数，不能把
+位置 Z 复制成 QX。目标命令默认仅预览；只有预览通过后，才给同一条命令添加 `--execute`。
+
+Demo 外层允许不超过 `80 mm / 30°` 的单步请求，但这不是“保证可达范围”。Placo 结果
+还必须同时满足：最大关节变化 `0.12 rad`、限位余量 `0.010 rad`、残差、奇异性和真实反馈
+检查。任意一项失败都应换目标，不能放宽阈值强行执行。
+
+### 4.9 回程
+
+最不容易抄错位姿的方法是重新使用 ready 工具：
+
+```bash
+ros2 run strawberry_nero_control nero_real_smoke_test center-ready
+ros2 run strawberry_nero_control nero_real_smoke_test center-ready --execute
+```
+
+第二条命令按提示输入 `CENTER_READY`。如果需要展示绝对目标回程，应在去程前保存
+`nero_pose_demo current` 的位置和四元数，回程先用 `absolute` 预览，再添加 `--execute`。
+
+### 4.10 安全结束
+
+确认机械臂静止。由另一人托稳机械臂并避开夹点后，才运行：
+
+```bash
+ros2 service call /enable_agx_arm \
+  std_srvs/srv/SetBool \
+  "{data: false}"
+```
+
+最后在终端 1 按 `Ctrl+C`。运动中发现异常时直接使用实体急停。
+
+## 5. 输入接口
+
+- `/strawberry_nero/solve_ik`（`SolveIK.srv`）：只计算，不运动；
+- `/strawberry_nero/move_to_pose`（`MoveToPose.action`）：计算并执行，支持反馈和取消；
+- `/strawberry_nero/recover_to_safe`（`RecoverToSafe.action`）：启动安全恢复；
+- `/strawberry_nero/planned_trajectory`：发布完整 7 关节规划轨迹；
+- `/strawberry_nero/diagnostics`：发布状态和拒绝原因。
+
+`nero_pose_demo` 是人工展示客户端。后续 Gradient-NBV 可直接调用 `MoveToPose`，不需要
+修改 IK、轨迹和安全执行模块。相机外参尚未标定，因此目前控制的是 `link7`，不是已经标定
+的相机光学中心。
+
+## 6. 代码结构
+
+| 文件 | 功能 |
+|---|---|
+| `control_node.py` | ROS 2 接口、反馈、安全门和真机执行 |
+| `ik_core.py` | Placo FK/IK、限位、连续性和奇异性检查 |
+| `trajectory.py` | 五次平滑关节轨迹 |
+| `pose_demo.py` | 人工相对/绝对目标 Demo |
+| `real_smoke_test.py` | 安全恢复、ready 和真机检查工具 |
+| `ros_utils.py` / `models.py` | 消息转换、关节顺序和结果结构 |
+| `meshcat_viewer.py` / `standalone_demo.py` | 可视化和纯 Python 演示 |
+| `offline_benchmark.py` / `axis_suite.py` | 离线与六方向测试 |
+| `acceptance_dataset.py` / `week1_acceptance.py` | 30×3 真机数据集与记录工具 |
+| `config/nero_control.yaml` | ready、IK、轨迹和安全参数 |
+| `test/` | 不连接 CAN 的自动回归测试 |
+
+`strawberry_nero_interfaces` 是独立的 ROS 2 消息/服务/Action 合同；本包是具体实现。外层
+`strawberry_nero_control/` 是 ROS 2 Python 工程，内层同名目录是可以被 Python 导入的
+源码模块，这是 `ament_python` 的标准结构，不是重复代码。
+
+## 7. 测试记录
+
+简明过程、数据和原始 CSV/JSON 说明见项目根目录：
+
+```text
+validation/week1/README.md
+```
+
+运行不连接 CAN 的自动测试：
+
+```bash
+cd /home/yyt/strawberry_active_perception
+source /opt/ros/jazzy/setup.bash
+source .venv/bin/activate
+source nero_ws/install/setup.bash
+python -m pytest -q nero_ws/src/strawberry_nero_control/test
+```

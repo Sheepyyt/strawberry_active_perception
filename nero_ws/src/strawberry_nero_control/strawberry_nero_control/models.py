@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 
 NERO_JOINT_NAMES: Tuple[str, ...] = tuple(
@@ -87,10 +87,12 @@ class IKConfig:
     position_weight: float = 1.0
     orientation_weight: float = 0.3
     posture_weight: float = 0.001
+    posture_reference_tolerance_rad: float = 0.005
     regularization: float = 1.0e-6
     max_iterations: int = 200
     timeout_s: float = 0.020
     position_tolerance_m: float = 0.002
+    position_convergence_target_m: float = 0.001
     orientation_tolerance_rad: float = math.radians(2.0)
     position_deadband_m: float = 0.001
     orientation_deadband_rad: float = math.radians(0.5)
@@ -159,3 +161,34 @@ class TrajectoryResult:
     duration_s: float = 0.0
     peak_velocity_rad_s: float = 0.0
     peak_acceleration_rad_s2: float = 0.0
+
+
+@dataclass(frozen=True)
+class JointLimitRecoveryConfig:
+    """Strict bounds for moving a slightly out-of-range arm inward."""
+
+    raw_interior_margin_rad: float = 0.005
+    safe_interior_margin_rad: float = 0.010
+    max_raw_start_violation_rad: float = 0.060
+    max_safe_start_violation_rad: float = 0.120
+    max_ingress_delta_rad: float = 0.080
+    max_total_delta_rad: float = 0.120
+
+
+@dataclass(frozen=True)
+class JointLimitRecoveryPlan:
+    """ROS-independent two-stage plan that only reduces limit violation."""
+
+    success: bool
+    error_code: IKErrorCode
+    message: str
+    already_safe: bool = False
+    start_positions: Tuple[float, ...] = field(default_factory=tuple)
+    ingress_positions: Tuple[float, ...] = field(default_factory=tuple)
+    target_positions: Tuple[float, ...] = field(default_factory=tuple)
+    recovering_joint_indices: Tuple[int, ...] = field(default_factory=tuple)
+    max_raw_violation_rad: float = 0.0
+    max_safe_violation_rad: float = 0.0
+    max_joint_delta_rad: float = 0.0
+    phase_a_trajectory: Optional[TrajectoryResult] = None
+    phase_b_trajectory: Optional[TrajectoryResult] = None

@@ -57,6 +57,8 @@
     solve_timeout_sec: 0.020
     default_action_timeout_sec: 30.0
     ik_position_tolerance_m: 0.002
+    # Continue refining toward 1 mm, while keeping 2 mm as the hard rejection.
+    ik_position_convergence_target_m: 0.001
     ik_orientation_tolerance_rad: 0.034906585
     singularity_sigma_min: 0.03
     singularity_condition_max: 100.0
@@ -65,11 +67,42 @@
     position_deadband_m: 0.001
     orientation_deadband_rad: 0.008726646
     max_joint_delta_rad: 0.35
+    # Formal 30-pose acceptance only; still far below the general 0.35 limit.
+    precision_max_joint_delta_rad: 0.12
 
     # Quintic trajectory limits, joint1 through joint7.
     trajectory_velocity_limits: [0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30]
     trajectory_acceleration_limits: [0.50, 0.50, 0.50, 0.50, 0.50, 0.50, 0.50]
     trajectory_rate_hz: 50.0
+
+    # Exceptional startup recovery. It never accepts a caller-supplied target:
+    # only slightly out-of-range joints may move, and only inward. Execution is
+    # separately locked; false still permits a no-command preview action.
+    allow_limit_recovery_execution: false
+    verified_driver_speed_percent: 0
+    recovery_raw_interior_margin_rad: 0.005
+    recovery_safe_interior_margin_rad: 0.010
+    recovery_max_raw_start_violation_rad: 0.060
+    recovery_max_safe_start_violation_rad: 0.120
+    recovery_max_ingress_delta_rad: 0.080
+    recovery_max_total_delta_rad: 0.120
+    recovery_velocity_limit_rad_s: 0.050
+    recovery_acceleration_limit_rad_s2: 0.100
+    recovery_stationary_velocity_rad_s: 0.020
+    recovery_stationary_duration_sec: 0.50
+    recovery_sigma_min: 0.10
+    recovery_condition_max: 20.0
+    recovery_phase_a_pause_error_rad: 0.030
+    recovery_phase_a_abort_error_rad: 0.060
+    recovery_tracking_pause_error_rad: 0.030
+    recovery_tracking_abort_error_rad: 0.060
+    recovery_tracking_abort_duration_sec: 0.30
+    recovery_final_joint_tolerance_rad: 0.003
+    recovery_final_safe_margin_rad: 0.005
+    recovery_fixed_joint_tolerance_rad: 0.003
+    recovery_progress_tolerance_rad: 0.001
+    recovery_plan_start_tolerance_rad: 0.001
+    recovery_timeout_max_sec: 15.0
 
     # Measured-state tracking gates.
     tracking_pause_error_rad: 0.08
@@ -81,6 +114,12 @@
     settle_duration_sec: 0.25
     final_position_tolerance_m: 0.010
     final_orientation_tolerance_rad: 0.087266463
+
+    # Supervised real-arm modes use tighter tracking/final-error gates. The
+    # first mode permits one fixed 15 mm move; precision mode supports guarded
+    # small repeatability tests. They are mutually exclusive.
+    first_motion_test_mode: false
+    precision_test_mode: false
 
     # The launch files override these two values explicitly for sim/real.
     simulation_mode: true
@@ -98,6 +137,7 @@
     # official colored DAE appearance meshes instead.
     viewer_use_collision_meshes: true
     action_name: /strawberry_nero/move_to_pose
+    recovery_action_name: /strawberry_nero/recover_to_safe
     solve_service_name: /strawberry_nero/solve_ik
     execution_enable_service_name: /strawberry_nero/enable_execution
     emergency_stop_service: /emergency_stop

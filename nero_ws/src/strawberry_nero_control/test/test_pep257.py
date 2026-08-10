@@ -13,11 +13,22 @@
 # limitations under the License.
 
 from ament_pep257.main import main
+from pathlib import Path
 import pytest
+
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.linter
 @pytest.mark.pep257
 def test_pep257():
-    rc = main(argv=['.', 'test'])
+    rc = main(
+        argv=[
+            str(PACKAGE_ROOT / 'launch'),
+            str(PACKAGE_ROOT / 'setup.py'),
+            str(PACKAGE_ROOT / 'strawberry_nero_control'),
+            str(PACKAGE_ROOT / 'test'),
+        ]
+    )
     assert rc == 0, 'Found code style errors / warnings'

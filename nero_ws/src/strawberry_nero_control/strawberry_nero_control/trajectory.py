@@ -9,6 +9,9 @@ from typing import Optional
 import numpy as np
 
 from .models import (
+    IKErrorCode,
+    JointLimitRecoveryConfig,
+    JointLimitRecoveryPlan,
     NERO_SDK_JOINT_LIMITS,
     NERO_URDF_JOINT_LIMITS,
     TrajectoryConfig,
@@ -168,6 +171,19 @@ class TrajectoryGenerator:
                     f'{label} violates safe joint limits at joints {indices}',
                 )
 
+        return self._generate_validated_vectors(
+            start_vector,
+            goal_vector,
+            duration_s,
+        )
+
+    def _generate_validated_vectors(
+        self,
+        start_vector: np.ndarray,
+        goal_vector: np.ndarray,
+        duration_s: Optional[float],
+    ) -> TrajectoryResult:
+        """Generate samples after the caller has validated both endpoints."""
         displacement = goal_vector - start_vector
         required_duration = self._required_duration(displacement)
         if duration_s is None:
@@ -273,3 +289,362 @@ class TrajectoryGenerator:
             peak_velocity_rad_s=peak_velocity,
             peak_acceleration_rad_s2=peak_acceleration,
         )
+
+    def generate_limit_recovery(
+        self,
+        start: Sequence[float],
+        raw_joint_limits: Sequence[Sequence[float]],
+        config: Optional[JointLimitRecoveryConfig] = None,
+    ) -> JointLimitRecoveryPlan:
+        """
+        Plan a strictly inward recovery from a small joint-limit violation.
+
+        The caller cannot supply a target.  Only joints outside the conservative
+        safe interval may move, and every sample must reduce (or preserve) its
+        violation.  Phase A is a single small target inside the raw URDF/SDK
+        envelope; Phase B is the normal minimum-jerk trajectory into the
+        conservative safe interval.
+        """
+        settings = config or JointLimitRecoveryConfig()
+        try:
+            start_vector = self._vector(start)
+            raw_limits = np.asarray(raw_joint_limits, dtype=float)
+            if raw_limits.shape != (7, 2) or not np.all(np.isfinite(raw_limits)):
+                raise ValueError('raw_joint_limits must be a finite 7 by 2 array')
+            if np.any(raw_limits[:, 0] >= raw_limits[:, 1]):
+                raise ValueError('raw joint lower limits must be below upper limits')
+            values = (
+                settings.raw_interior_margin_rad,
+                settings.safe_interior_margin_rad,
+                settings.max_raw_start_violation_rad,
+                settings.max_safe_start_violation_rad,
+                settings.max_ingress_delta_rad,
+                settings.max_total_delta_rad,
+            )
+            if not all(np.isfinite(value) and value > 0.0 for value in values):
+                raise ValueError('joint-limit recovery settings must be positive')
+            if np.any(self._joint_limits[:, 0] < raw_limits[:, 0]):
+                raise ValueError('safe lower limits must lie inside raw limits')
+            if np.any(self._joint_limits[:, 1] > raw_limits[:, 1]):
+                raise ValueError('safe upper limits must lie inside raw limits')
+            if np.any(
+                raw_limits[:, 0] + settings.raw_interior_margin_rad
+                >= raw_limits[:, 1] - settings.raw_interior_margin_rad
+            ):
+                raise ValueError('raw recovery margin leaves an empty interval')
+            if np.any(
+                self._joint_limits[:, 0] + settings.safe_interior_margin_rad
+                >= self._joint_limits[:, 1] - settings.safe_interior_margin_rad
+            ):
+                raise ValueError('safe recovery margin leaves an empty interval')
+        except (TypeError, ValueError) as error:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.INVALID_TARGET,
+                str(error),
+            )
+
+        safe_lower = self._joint_limits[:, 0]
+        safe_upper = self._joint_limits[:, 1]
+        raw_lower = raw_limits[:, 0]
+        raw_upper = raw_limits[:, 1]
+        below_safe = start_vector < safe_lower
+        above_safe = start_vector > safe_upper
+        recovering = below_safe | above_safe
+
+        safe_violation = np.maximum(
+            np.maximum(safe_lower - start_vector, start_vector - safe_upper),
+            0.0,
+        )
+        raw_violation = np.maximum(
+            np.maximum(raw_lower - start_vector, start_vector - raw_upper),
+            0.0,
+        )
+        max_safe_violation = float(np.max(safe_violation))
+        max_raw_violation = float(np.max(raw_violation))
+        start_tuple = tuple(float(value) for value in start_vector)
+        recovering_indices = tuple(
+            int(index + 1) for index in np.flatnonzero(recovering)
+        )
+
+        if not np.any(recovering):
+            return JointLimitRecoveryPlan(
+                True,
+                IKErrorCode.ALREADY_AT_TARGET,
+                'all joints are already inside conservative safe limits',
+                already_safe=True,
+                start_positions=start_tuple,
+                ingress_positions=start_tuple,
+                target_positions=start_tuple,
+            )
+        if max_raw_violation > settings.max_raw_start_violation_rad + 1.0e-12:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.JOINT_LIMIT_VIOLATION,
+                'raw-limit violation is too large for automatic recovery: '
+                f'{max_raw_violation:.4f}rad > '
+                f'{settings.max_raw_start_violation_rad:.4f}rad',
+                start_positions=start_tuple,
+                recovering_joint_indices=recovering_indices,
+                max_raw_violation_rad=max_raw_violation,
+                max_safe_violation_rad=max_safe_violation,
+            )
+        if max_safe_violation > settings.max_safe_start_violation_rad + 1.0e-12:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.JOINT_LIMIT_VIOLATION,
+                'safe-limit violation is too large for automatic recovery: '
+                f'{max_safe_violation:.4f}rad > '
+                f'{settings.max_safe_start_violation_rad:.4f}rad',
+                start_positions=start_tuple,
+                recovering_joint_indices=recovering_indices,
+                max_raw_violation_rad=max_raw_violation,
+                max_safe_violation_rad=max_safe_violation,
+            )
+
+        ingress = start_vector.copy()
+        target = start_vector.copy()
+        ingress[below_safe] = np.maximum(
+            start_vector[below_safe],
+            raw_lower[below_safe] + settings.raw_interior_margin_rad,
+        )
+        ingress[above_safe] = np.minimum(
+            start_vector[above_safe],
+            raw_upper[above_safe] - settings.raw_interior_margin_rad,
+        )
+        target[below_safe] = (
+            safe_lower[below_safe] + settings.safe_interior_margin_rad
+        )
+        target[above_safe] = (
+            safe_upper[above_safe] - settings.safe_interior_margin_rad
+        )
+
+        ingress_delta = float(np.max(np.abs(ingress - start_vector)))
+        total_delta = float(np.max(np.abs(target - start_vector)))
+        common = dict(
+            start_positions=start_tuple,
+            ingress_positions=tuple(float(value) for value in ingress),
+            target_positions=tuple(float(value) for value in target),
+            recovering_joint_indices=recovering_indices,
+            max_raw_violation_rad=max_raw_violation,
+            max_safe_violation_rad=max_safe_violation,
+            max_joint_delta_rad=total_delta,
+        )
+        if ingress_delta > settings.max_ingress_delta_rad + 1.0e-12:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.JOINT_DELTA_TOO_LARGE,
+                'phase-A ingress delta is too large: '
+                f'{ingress_delta:.4f}rad > '
+                f'{settings.max_ingress_delta_rad:.4f}rad',
+                **common,
+            )
+        if total_delta > settings.max_total_delta_rad + 1.0e-12:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.JOINT_DELTA_TOO_LARGE,
+                'total recovery delta is too large: '
+                f'{total_delta:.4f}rad > '
+                f'{settings.max_total_delta_rad:.4f}rad',
+                **common,
+            )
+
+        phase_a = None
+        if ingress_delta > 1.0e-12:
+            phase_a = self._generate_validated_vectors(
+                start_vector,
+                ingress,
+                None,
+            )
+            if not phase_a.success:
+                return JointLimitRecoveryPlan(
+                    False,
+                    IKErrorCode.TRAJECTORY_LIMIT_VIOLATION,
+                    f'cannot generate phase-A recovery: {phase_a.message}',
+                    phase_a_trajectory=phase_a,
+                    **common,
+                )
+        common['phase_a_trajectory'] = phase_a
+
+        phase_b = self._generate_validated_vectors(ingress, target, None)
+        if not phase_b.success:
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.TRAJECTORY_LIMIT_VIOLATION,
+                f'cannot generate phase-B recovery: {phase_b.message}',
+                phase_b_trajectory=phase_b,
+                **common,
+            )
+
+        samples_list = [start_vector]
+        if phase_a is None:
+            samples_list.append(ingress)
+        else:
+            samples_list.extend(
+                np.asarray(point.positions) for point in phase_a.points[1:]
+            )
+        samples_list.extend(
+            np.asarray(point.positions) for point in phase_b.points[1:]
+        )
+        samples = np.asarray(samples_list)
+        for index in np.flatnonzero(recovering):
+            differences = np.diff(samples[:, index])
+            if below_safe[index] and np.any(differences < -1.0e-12):
+                return JointLimitRecoveryPlan(
+                    False,
+                    IKErrorCode.DISCONTINUOUS_SOLUTION,
+                    f'joint{index + 1} recovery is not monotonically inward',
+                    phase_b_trajectory=phase_b,
+                    **common,
+                )
+            if above_safe[index] and np.any(differences > 1.0e-12):
+                return JointLimitRecoveryPlan(
+                    False,
+                    IKErrorCode.DISCONTINUOUS_SOLUTION,
+                    f'joint{index + 1} recovery is not monotonically inward',
+                    phase_b_trajectory=phase_b,
+                    **common,
+                )
+        fixed = np.flatnonzero(~recovering)
+        if fixed.size and not np.allclose(
+            samples[:, fixed],
+            start_vector[fixed],
+            atol=1.0e-12,
+            rtol=0.0,
+        ):
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.DISCONTINUOUS_SOLUTION,
+                'a joint that was already safe would move during recovery',
+                phase_b_trajectory=phase_b,
+                **common,
+            )
+
+        violation_history = np.maximum(
+            np.maximum(safe_lower - samples, samples - safe_upper),
+            0.0,
+        )
+        if np.any(np.diff(violation_history, axis=0) > 1.0e-12):
+            return JointLimitRecoveryPlan(
+                False,
+                IKErrorCode.DISCONTINUOUS_SOLUTION,
+                'a recovery sample would increase a joint-limit violation',
+                phase_b_trajectory=phase_b,
+                **common,
+            )
+
+        return JointLimitRecoveryPlan(
+            True,
+            IKErrorCode.SUCCESS,
+            'two-stage joint-limit recovery accepted',
+            phase_b_trajectory=phase_b,
+            **common,
+        )
+
+
+class JointLimitRecoveryMonitor:
+    """Reject measured motion that violates an accepted inward-only plan."""
+
+    def __init__(
+        self,
+        plan: JointLimitRecoveryPlan,
+        safe_joint_limits: Sequence[Sequence[float]],
+        *,
+        fixed_joint_tolerance_rad: float,
+        progress_tolerance_rad: float,
+    ) -> None:
+        """Store the measured start and permitted direction for every joint."""
+        limits = np.asarray(safe_joint_limits, dtype=float)
+        start = np.asarray(plan.start_positions, dtype=float)
+        recovering = np.asarray(plan.recovering_joint_indices, dtype=int) - 1
+        if limits.shape != (7, 2) or start.shape != (7,):
+            raise ValueError('recovery monitor requires seven-joint inputs')
+        if recovering.size == 0 or np.any((recovering < 0) | (recovering >= 7)):
+            raise ValueError('recovery monitor requires valid recovering joints')
+        if len({int(index) for index in recovering}) != len(recovering):
+            raise ValueError('recovering joint indices must be unique')
+        tolerances = (fixed_joint_tolerance_rad, progress_tolerance_rad)
+        if not all(np.isfinite(value) and value > 0.0 for value in tolerances):
+            raise ValueError('recovery monitor tolerances must be positive')
+
+        self._limits = limits.copy()
+        self._start = start.copy()
+        self._recovering = recovering
+        self._fixed = np.asarray(
+            [index for index in range(7) if index not in recovering],
+            dtype=int,
+        )
+        self._below = start < limits[:, 0]
+        self._above = start > limits[:, 1]
+        if np.any(~(self._below[recovering] | self._above[recovering])):
+            raise ValueError('every recovering joint must start outside safe limits')
+        self._fixed_tolerance = float(fixed_joint_tolerance_rad)
+        self._progress_tolerance = float(progress_tolerance_rad)
+        self._best_inward = start.copy()
+        self._minimum_violation = self._violation(start)
+
+    def _violation(self, positions: np.ndarray) -> np.ndarray:
+        return np.maximum(
+            np.maximum(
+                self._limits[:, 0] - positions,
+                positions - self._limits[:, 1],
+            ),
+            0.0,
+        )
+
+    def validate(self, positions: Sequence[float]) -> Optional[str]:
+        """Return a refusal reason, or None after accepting this feedback."""
+        measured = np.asarray(positions, dtype=float)
+        if measured.shape != (7,) or not np.all(np.isfinite(measured)):
+            return '恢复期间收到不完整或非有限的关节反馈'
+
+        if self._fixed.size:
+            fixed_error = float(
+                np.max(np.abs(measured[self._fixed] - self._start[self._fixed]))
+            )
+            if fixed_error > self._fixed_tolerance:
+                return (
+                    '恢复期间原本安全的关节发生非预期移动：'
+                    f'{fixed_error:.4f}rad'
+                )
+            fixed_below = measured[self._fixed] < self._limits[self._fixed, 0]
+            fixed_above = measured[self._fixed] > self._limits[self._fixed, 1]
+            if np.any(fixed_below | fixed_above):
+                return '恢复期间原本安全的关节离开了安全范围'
+
+        for index in self._recovering:
+            if (
+                self._below[index]
+                and measured[index]
+                < self._best_inward[index] - self._progress_tolerance
+            ):
+                return f'joint{index + 1} 在恢复期间向错误方向移动'
+            if (
+                self._above[index]
+                and measured[index]
+                > self._best_inward[index] + self._progress_tolerance
+            ):
+                return f'joint{index + 1} 在恢复期间向错误方向移动'
+
+        violation = self._violation(measured)
+        if np.any(
+            violation[self._recovering]
+            > self._minimum_violation[self._recovering]
+            + self._progress_tolerance
+        ):
+            return '恢复期间真实关节的安全限位越界量增大'
+
+        for index in self._recovering:
+            if self._below[index]:
+                self._best_inward[index] = max(
+                    self._best_inward[index], measured[index]
+                )
+            else:
+                self._best_inward[index] = min(
+                    self._best_inward[index], measured[index]
+                )
+        self._minimum_violation = np.minimum(
+            self._minimum_violation,
+            violation,
+        )
+        return None

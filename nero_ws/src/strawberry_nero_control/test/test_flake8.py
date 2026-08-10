@@ -13,13 +13,26 @@
 # limitations under the License.
 
 from ament_flake8.main import main_with_errors
+from pathlib import Path
 import pytest
+
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.flake8
 @pytest.mark.linter
 def test_flake8():
-    rc, errors = main_with_errors(argv=['--config', 'setup.cfg'])
+    rc, errors = main_with_errors(
+        argv=[
+            '--config',
+            str(PACKAGE_ROOT / 'setup.cfg'),
+            str(PACKAGE_ROOT / 'launch'),
+            str(PACKAGE_ROOT / 'setup.py'),
+            str(PACKAGE_ROOT / 'strawberry_nero_control'),
+            str(PACKAGE_ROOT / 'test'),
+        ]
+    )
     assert rc == 0, \
         'Found %d code style errors / warnings:\n' % len(errors) + \
         '\n'.join(errors)

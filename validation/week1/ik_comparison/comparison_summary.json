@@ -1,0 +1,325 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-08-11T16:06:26+08:00",
+  "purpose": "Placo 与 NERO 原生 IK 的一次性性能对比；后续开发仍使用 Placo",
+  "selected_target_ids": [
+    "P28",
+    "P20",
+    "P01",
+    "P21",
+    "P03"
+  ],
+  "repetitions_per_target": 3,
+  "segments_per_solver": 30,
+  "measurement_note": "两侧末端误差都用真实关节编码器与同一 URDF FK 计算。Placo 行是 Placo IK + 五次关节轨迹；NERO 行是原生 move_p（原生 IK + 原生轨迹）。",
+  "native_ik_timing_note": "NERO 固件 1.11 没有受支持的原生 IK 关节解/纯计算计时接口，因此 NERO 的 ik_solve_time_ms 为 null；不能把 move_p 总时长冒充 IK 时间。",
+  "native_move_j_reset_note": "NERO 原生 move_p 回程无解时，失败会保留；随后仅用已知锚点关节角 move_j 复位，该复位不属于 IK 样本，也不改变无解统计。reset_count 只统计 CSV 内自动记录的复位。",
+  "native_move_j_reset_count": 13,
+  "native_return_breakdown": {
+    "planned_returns": 15,
+    "move_p_commands_sent": 12,
+    "successful_returns": 0,
+    "failure_categories": {
+      "native_ik_no_solution": 11,
+      "no_meaningful_motion_timeout": 1,
+      "return_skipped_after_outbound_rejection": 3
+    }
+  },
+  "results": {
+    "placo": {
+      "outbound": {
+        "attempts": 15,
+        "successes": 15,
+        "success_rate": 1.0,
+        "failure_categories": {},
+        "successful_only": {
+          "ik_solve_time_ms": {
+            "count": 15,
+            "p50": 0.4138279764447361,
+            "p95": 0.6570521945832296,
+            "max": 0.7460530032403767
+          },
+          "command_to_motion_ms": {
+            "count": 15,
+            "p50": 123.60809399979189,
+            "p95": 248.78566451370705,
+            "max": 330.82321798428893
+          },
+          "total_duration_s": {
+            "count": 15,
+            "p50": 1.24119749100646,
+            "p95": 1.2927350381127325,
+            "max": 1.2970315730199218
+          },
+          "model_position_error_mm": {
+            "count": 15,
+            "p50": 0.4244362258712444,
+            "p95": 0.665772450807508,
+            "max": 0.7312842778837811
+          },
+          "model_orientation_error_deg": {
+            "count": 15,
+            "p50": 0.023238393176245653,
+            "p95": 0.04669237984038506,
+            "max": 0.05109554810416498
+          },
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.06562632381693582,
+            "p95": 0.08400000000000003,
+            "max": 0.08400000000000005
+          },
+          "return_anchor_joint_error_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        },
+        "all_attempts_branch_metrics": {
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.06562632381693582,
+            "p95": 0.08400000000000003,
+            "max": 0.08400000000000005
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      },
+      "return": {
+        "attempts": 15,
+        "successes": 15,
+        "success_rate": 1.0,
+        "failure_categories": {},
+        "successful_only": {
+          "ik_solve_time_ms": {
+            "count": 15,
+            "p50": 0.4738680145237595,
+            "p95": 1.0933465207926925,
+            "max": 1.3129330181982368
+          },
+          "command_to_motion_ms": {
+            "count": 15,
+            "p50": 131.83744199341163,
+            "p95": 160.2777162159327,
+            "max": 187.4580190051347
+          },
+          "total_duration_s": {
+            "count": 15,
+            "p50": 1.1746247879927978,
+            "p95": 1.4627722502104001,
+            "max": 1.808763381006429
+          },
+          "model_position_error_mm": {
+            "count": 15,
+            "p50": 0.13426453660027513,
+            "p95": 0.6085556050891355,
+            "max": 0.7140756124236315
+          },
+          "model_orientation_error_deg": {
+            "count": 15,
+            "p50": 0.028594334660523853,
+            "p95": 0.04168286545366127,
+            "max": 0.04743562857794195
+          },
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.0656534760050886,
+            "p95": 0.084,
+            "max": 0.08400000000000002
+          },
+          "return_anchor_joint_error_rad": {
+            "count": 15,
+            "p50": 0.0016929693744344998,
+            "p95": 0.004628613176288962,
+            "max": 0.004677482395344803
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        },
+        "all_attempts_branch_metrics": {
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.0656534760050886,
+            "p95": 0.084,
+            "max": 0.08400000000000002
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        }
+      }
+    },
+    "nero_native_v111": {
+      "outbound": {
+        "attempts": 15,
+        "successes": 12,
+        "success_rate": 0.8,
+        "failure_categories": {
+          "continuity_guard_rejection": 3
+        },
+        "successful_only": {
+          "ik_solve_time_ms": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "command_to_motion_ms": {
+            "count": 12,
+            "p50": 53.32085699774325,
+            "p95": 58.99790682888124,
+            "max": 59.565960022155195
+          },
+          "total_duration_s": {
+            "count": 12,
+            "p50": 0.5662546779785771,
+            "p95": 0.8009782848879695,
+            "max": 0.8039209900307469
+          },
+          "model_position_error_mm": {
+            "count": 12,
+            "p50": 0.07849245172358987,
+            "p95": 0.12819218712995092,
+            "max": 0.12852665846242592
+          },
+          "model_orientation_error_deg": {
+            "count": 12,
+            "p50": 0.026763534874951367,
+            "p95": 0.06434997930178865,
+            "max": 0.07381947782824752
+          },
+          "max_joint_delta_rad": {
+            "count": 12,
+            "p50": 0.09099274055272438,
+            "p95": 0.17411840950208432,
+            "max": 0.17416640605651415
+          },
+          "return_anchor_joint_error_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 12,
+            "p50": 0.06007443870967278,
+            "p95": 0.13268742275966422,
+            "max": 0.13275551081442233
+          }
+        },
+        "all_attempts_branch_metrics": {
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.10044369845227366,
+            "p95": 0.20217544989251918,
+            "max": 0.20273744591166135
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 15,
+            "p50": 0.066456278009115,
+            "p95": 0.1326688532901847,
+            "max": 0.13275551081442233
+          }
+        }
+      },
+      "return": {
+        "attempts": 15,
+        "successes": 0,
+        "success_rate": 0.0,
+        "failure_categories": {
+          "native_ik_no_solution": 11,
+          "no_meaningful_motion_timeout": 1,
+          "return_skipped_after_outbound_rejection": 3
+        },
+        "successful_only": {
+          "ik_solve_time_ms": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "command_to_motion_ms": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "total_duration_s": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "model_position_error_mm": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "model_orientation_error_deg": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "max_joint_delta_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "return_anchor_joint_error_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 0,
+            "p50": null,
+            "p95": null,
+            "max": null
+          }
+        },
+        "all_attempts_branch_metrics": {
+          "max_joint_delta_rad": {
+            "count": 15,
+            "p50": 0.00022689280275926121,
+            "p95": 0.0010943214410004311,
+            "max": 0.0013264502315156745
+          },
+          "max_joint_solution_difference_rad": {
+            "count": 12,
+            "p50": 0.05791810556046658,
+            "p95": 0.07781586776391461,
+            "max": 0.07782546707480043
+          }
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "comparison_csv": "comparison_results.csv",
+    "native_csv": "native_results.csv",
+    "placo_source_csv": "real/real_30x3.csv"
+  }
+}

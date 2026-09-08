@@ -1,0 +1,44 @@
+{
+  "schema_version": "strawberry_handeye_live_repeatability/v1",
+  "status": "passed",
+  "scope": "Twenty new stationary observations captured after fixing adapter-owned RGB rectification; no robot motion.",
+  "calibration_report": {
+    "path": "artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json",
+    "sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
+  },
+  "new_observations": {
+    "path": "artifacts/week3/handeye_session_001/corrected_adapter_checkerboard_20.npz",
+    "sha256": "5dff526e555a339fbdde53ea78da425c048abb9b2dfa9d0649cd7745f155cd2a",
+    "frame_count": 20,
+    "all_88_corners_detected": true,
+    "reprojection_rms_px": {
+      "median": 0.1190376672285256,
+      "maximum": 0.12842046335357762
+    }
+  },
+  "robot_pose_source": "pose_030 T_base_link7; live joint feedback confirmed the arm remained stationary",
+  "checkerboard_symmetry_resolution": {
+    "reason": "The 11x8 internal-corner grid has a 180 degree indexing ambiguity.",
+    "T_original_grid_flipped_grid": [
+      [-1.0, 0.0, 0.0, 0.3],
+      [0.0, -1.0, 0.0, 0.21],
+      [0.0, 0.0, 1.0, 0.0],
+      [0.0, 0.0, 0.0, 1.0]
+    ],
+    "selected_flipped_grid_for_all_20_frames": true
+  },
+  "new_live_vs_original_fixed_checkerboard": {
+    "translation_mm": {
+      "median": 3.3550135773251943,
+      "p95": 3.4159465353525613,
+      "maximum": 3.46028066653373
+    },
+    "rotation_deg": {
+      "median": 0.23213731691102316,
+      "p95": 0.301309712496367,
+      "maximum": 0.311052017589093
+    }
+  },
+  "motion_commands_sent": 0,
+  "safe_for_robot_use_authority": "Only the referenced 20-split stability report promotes the transform; this artifact is an independent repeatability check."
+}

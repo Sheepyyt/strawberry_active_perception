@@ -1,0 +1,35 @@
+# Applying a valid configuration atomically resets the map for scene_id.
+string scene_id
+string world_frame
+
+# World-frame geometry, in metres. map_size and target_roi_size are full extents.
+geometry_msgs/Point target_center
+geometry_msgs/Vector3 map_size
+geometry_msgs/Vector3 target_roi_size
+geometry_msgs/Point observation_min
+geometry_msgs/Point observation_max
+
+# Depth and map resolution are metres. max_step caps the final candidate
+# translation relative to the current observation pose. Counts must be positive.
+float32 voxel_size
+float32 depth_min
+float32 depth_max
+uint32 samples_per_ray
+uint32 optimization_steps
+float32 max_step
+uint32 random_seed
+---
+uint16 SUCCESS=0
+uint16 INVALID_SCENE_ID=10
+uint16 INVALID_WORLD_FRAME=11
+uint16 INVALID_MAP_BOUNDS=12
+uint16 INVALID_TARGET_ROI=13
+uint16 INVALID_OBSERVATION_BOUNDS=14
+uint16 INVALID_VOXEL_SIZE=15
+uint16 INVALID_DEPTH_RANGE=16
+uint16 INVALID_OPTIMIZER_CONFIG=17
+uint16 INTERNAL_ERROR=255
+
+bool success
+uint16 code
+string reason

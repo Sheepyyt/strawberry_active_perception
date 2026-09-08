@@ -1,0 +1,2832 @@
+{
+  "bootstrap_batch": {
+    "aggregate_counts": {
+      "finite_depth_sample_count": 873283,
+      "foreground_mask_sample_count": 23266,
+      "input_frame_count": 5,
+      "output_finite_depth_pixel_count": 174224,
+      "output_foreground_mask_pixel_count": 4659,
+      "output_nan_depth_pixel_count": 81776,
+      "pixel_count": 256000
+    },
+    "aggregate_identity_contract": "ordered compact sort_keys canonical JSON of five scene_id/observation_id/stamp_ns records",
+    "aggregate_identity_sha256": "d90cb37625a1b28db2fe1bc8268da0b08712fe2edac78bf89d0649b367ece026",
+    "aggregate_observation_id": "agg5_d90cb37625a1b28db2fe1bc8",
+    "aggregate_payload_sha256": "1bb2d9e104414f9e37090f4ed2da53218810c363d4828d4a3664360f18489320",
+    "aggregate_scene_id": "real_nbv_once_20260814T032716Z_bootstrap_aggregate",
+    "aggregate_source_name": "gemini2xl_AYML241003A|fixed5_median_majority|d90cb37625a1",
+    "aggregate_stamp_ns": 1786678040081862912,
+    "aggregate_valid_depth_fraction": 0.6805625,
+    "camera_info_exactly_equal": true,
+    "camera_info_signature_sha256": "5748217dd4f51040bb6c30f73f8eb68eca509db702202bb48011a9566a3d73e7",
+    "capture_count": 5,
+    "contract": "fixed five-frame finite-median depth and 3-of-5 mask",
+    "depth_support": {
+      "insufficient_output_pixels": 81776,
+      "minimum_finite_votes": 3,
+      "support_histogram_0_to_5": [
+        75949,
+        3471,
+        2356,
+        1896,
+        2228,
+        170100
+      ],
+      "valid_output_pixels": 174224
+    },
+    "mask_votes": {
+      "foreground_output_pixels": 4659,
+      "majority_votes_required": 3,
+      "vote_histogram_0_to_5": [
+        251267,
+        49,
+        25,
+        48,
+        32,
+        4579
+      ]
+    },
+    "member_captures": [
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678038011075425,
+        "observation_id": "obs_1786678038_577968896",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_01",
+        "stamp_ns": 1786678038577968896
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678038906396169,
+        "observation_id": "obs_1786678039_380046080",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_02",
+        "stamp_ns": 1786678039380046080
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678039700395149,
+        "observation_id": "obs_1786678040_081862912",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_03",
+        "stamp_ns": 1786678040081862912
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678040394953114,
+        "observation_id": "obs_1786678040_783681024",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_04",
+        "stamp_ns": 1786678040783681024
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678041092947701,
+        "observation_id": "obs_1786678041_585757952",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_05",
+        "stamp_ns": 1786678041585757952
+      }
+    ],
+    "member_exact_tfs": [
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996678730331543,
+            -0.7067040883484589,
+            0.1050437954228422,
+            0.26413603834799254
+          ],
+          [
+            -0.3035074231554044,
+            0.16089170686387996,
+            -0.9391470080620996,
+            0.04460932419471164
+          ],
+          [
+            0.6467983546166676,
+            -0.6889725612635103,
+            -0.32706069511815455,
+            0.3384880378210187
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10548267214608531,
+            -0.6990554856353,
+            0.7072445361260251,
+            0.25881483446365955
+          ],
+          [
+            -0.9404031151084431,
+            0.16109269349622646,
+            0.2994847662176944,
+            0.10487926346094176
+          ],
+          [
+            -0.32328839597371517,
+            -0.696685418324028,
+            -0.6404014685518893,
+            0.36110730701167226
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678038577968896,
+        "returned_stamp_ns": 1786678038577968896,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996470315610546,
+            -0.7067206719908049,
+            0.10507103791564519,
+            0.2641372764651007
+          ],
+          [
+            -0.30353851007058336,
+            0.1608746130089706,
+            -0.9391398893633177,
+            0.0446104844075528
+          ],
+          [
+            0.6468063111410839,
+            -0.6889595421141071,
+            -0.32707238525743015,
+            0.33848711948418636
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10551001841429408,
+            -0.6990721996075171,
+            0.7072239360698447,
+            0.25881435036232914
+          ],
+          [
+            -0.9403960214383229,
+            0.16107594632281586,
+            0.2995160469477104,
+            0.10487999855809672
+          ],
+          [
+            -0.3233001065220813,
+            -0.6966725193748622,
+            -0.6404095891464263,
+            0.3611071161777047
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678039380046080,
+        "returned_stamp_ns": 1786678039380046080,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996716064730452,
+            -0.7066841195367528,
+            0.10515321340783117,
+            0.2641432342018001
+          ],
+          [
+            -0.30363635539560274,
+            0.16088615861880126,
+            -0.9391062813371878,
+            0.0446149829856355
+          ],
+          [
+            0.6467337990065956,
+            -0.6889943389894077,
+            -0.32714246753218384,
+            0.3384842338032981
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10559201774126192,
+            -0.6990351358979148,
+            0.70724833302703,
+            0.2588149236907428
+          ],
+          [
+            -0.9403626955941411,
+            0.1610886143917103,
+            0.29961384989395906,
+            0.10488229692732974
+          ],
+          [
+            -0.3233702622756922,
+            -0.6967067798532915,
+            -0.640336892879215,
+            0.361108824540016
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678040081862912,
+        "returned_stamp_ns": 1786678040081862912,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996558999838832,
+            -0.7067071684315155,
+            0.10510280541095038,
+            0.2641366886418964
+          ],
+          [
+            -0.30359753932997263,
+            0.16090123672625875,
+            -0.9391162474011119,
+            0.04461008387796409
+          ],
+          [
+            0.6467690126548494,
+            -0.6889671763643536,
+            -0.327130056952891,
+            0.33848264700521097
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10554172134632955,
+            -0.699058504940657,
+            0.7072327422605568,
+            0.25881168240009067
+          ],
+          [
+            -0.9403726109033468,
+            0.1611032566116979,
+            0.29957485437187215,
+            0.10487801151555583
+          ],
+          [
+            -0.32335784777561327,
+            -0.6966799461583768,
+            -0.640372356447938,
+            0.36110638090233094
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678040783681024,
+        "returned_stamp_ns": 1786678040783681024,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996482592952078,
+            -0.7067192072028442,
+            0.10507271499190361,
+            0.26413454160732913
+          ],
+          [
+            -0.3035738456785498,
+            0.16091084829151525,
+            -0.9391222599438485,
+            0.04460915524182466
+          ],
+          [
+            0.6467883993124199,
+            -0.6889525826010736,
+            -0.32712246245433707,
+            0.3384827084687625
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10551168783316345,
+            -0.6990707168747434,
+            0.7072251526485959,
+            0.25881150404423
+          ],
+          [
+            -0.9403785937342009,
+            0.1611126023057291,
+            0.29955104711010955,
+            0.10487745204490534
+          ],
+          [
+            -0.3233502500031261,
+            -0.6966655310739212,
+            -0.6403918750549602,
+            0.3611059222150579
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678041585757952,
+        "returned_stamp_ns": 1786678041585757952,
+        "stamp_difference_ns": 0
+      }
+    ],
+    "member_observation_ids": [
+      "obs_1786678038_577968896",
+      "obs_1786678039_380046080",
+      "obs_1786678040_081862912",
+      "obs_1786678040_783681024",
+      "obs_1786678041_585757952"
+    ],
+    "member_stamps_ns": [
+      1786678038577968896,
+      1786678039380046080,
+      1786678040081862912,
+      1786678040783681024,
+      1786678041585757952
+    ],
+    "member_target_centres_m": [
+      [
+        0.2055434040547608,
+        -0.5726442599745877,
+        0.2453465851795802
+      ],
+      [
+        0.2055644959800494,
+        -0.5726441327052234,
+        0.24534002504407906
+      ],
+      [
+        0.20550368777491645,
+        -0.5716949429043164,
+        0.24560237858860395
+      ],
+      [
+        0.20547658820192177,
+        -0.5717009048278436,
+        0.24562152724914676
+      ],
+      [
+        0.20540794129144246,
+        -0.572707621818921,
+        0.24544535273967466
+      ]
+    ],
+    "member_target_max_deviation_m": 0.0009620906378183795,
+    "member_target_median_m": [
+      0.20550368777491645,
+      -0.5726441327052234,
+      0.24544535273967466
+    ],
+    "member_targets": [
+      {
+        "base_xyz_m": [
+          0.2055434040547608,
+          -0.5726442599745877,
+          0.2453465851795802
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6039999723434448
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4625,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4523,
+        "valid_mask_pixels": 4581
+      },
+      {
+        "base_xyz_m": [
+          0.2055644959800494,
+          -0.5726441327052234,
+          0.24534002504407906
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6039999723434448
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4645,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4527,
+        "valid_mask_pixels": 4607
+      },
+      {
+        "base_xyz_m": [
+          0.20550368777491645,
+          -0.5716949429043164,
+          0.24560237858860395
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.006278972179402439,
+          0.6029999852180481
+        ],
+        "depth_mad_m": 0.0040000081062316895,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4661,
+        "median_depth_m": 0.6029999852180481,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4526,
+        "valid_mask_pixels": 4608
+      },
+      {
+        "base_xyz_m": [
+          0.20547658820192177,
+          -0.5717009048278436,
+          0.24562152724914676
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6029999852180481
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4663,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4528,
+        "valid_mask_pixels": 4607
+      },
+      {
+        "base_xyz_m": [
+          0.20540794129144246,
+          -0.572707621818921,
+          0.24544535273967466
+        ],
+        "camera_xyz_m": [
+          0.16831370931127695,
+          0.0062685766634626525,
+          0.6039999723434448
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4672,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4547,
+        "valid_mask_pixels": 4612
+      }
+    ],
+    "pose_span": {
+      "max_rotation_deg": 0.008305554622284588,
+      "max_rotation_pair_zero_based": [
+        0,
+        2
+      ],
+      "max_translation_m": 1.0575936932807374e-05,
+      "max_translation_pair_zero_based": [
+        2,
+        4
+      ],
+      "rotation_limit_deg": 0.1,
+      "translation_limit_m": 0.00025
+    },
+    "raw_scenes": [
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_01",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_02",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_03",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_04",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_05"
+    ],
+    "reference_member_index_zero_based": 2,
+    "reference_observation_id": "obs_1786678040_081862912",
+    "selection_performed": false
+  },
+  "bootstrap_target": {
+    "base_xyz_m": [
+      0.2055110341209455,
+      -0.5716966153989429,
+      0.24560954104023736
+    ],
+    "camera_xyz_m": [
+      0.1680926902609277,
+      0.0062685766634626525,
+      0.6029999852180481
+    ],
+    "depth_mad_m": 0.003999948501586914,
+    "depth_range_m": [
+      0.2,
+      2.5
+    ],
+    "depth_range_source": "runtime_preview_parameters",
+    "mask_pixels": 4659,
+    "median_depth_m": 0.6039999723434448,
+    "method": "masked depth median/MAD trim then component-wise 3-D median",
+    "retained_pixels": 4538,
+    "valid_mask_pixels": 4606
+  },
+  "bootstrap_tf": {
+    "T_base_camera_optical": [
+      [
+        -0.6996716064730452,
+        -0.7066841195367528,
+        0.10515321340783117,
+        0.2641432342018001
+      ],
+      [
+        -0.30363635539560274,
+        0.16088615861880126,
+        -0.9391062813371878,
+        0.0446149829856355
+      ],
+      [
+        0.6467337990065956,
+        -0.6889943389894077,
+        -0.32714246753218384,
+        0.3384842338032981
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_base_link7": [
+      [
+        0.10559201774126192,
+        -0.6990351358979148,
+        0.70724833302703,
+        0.2588149236907428
+      ],
+      [
+        -0.9403626955941411,
+        0.1610886143917103,
+        0.29961384989395906,
+        0.10488229692732974
+      ],
+      [
+        -0.3233702622756922,
+        -0.6967067798532915,
+        -0.640336892879215,
+        0.361108824540016
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_link7_camera_optical": [
+      [
+        0.002514086749112965,
+        -0.0031112637846833525,
+        0.9999919996707374,
+        0.06455188069285712
+      ],
+      [
+        -0.010401145783000108,
+        0.9999409851584371,
+        0.0031372546558028984,
+        0.0023296513994964236
+      ],
+      [
+        -0.9999427461281065,
+        -0.010408949900767883,
+        0.002481577672487967,
+        0.0001988769089705917
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "requested_stamp_ns": 1786678040081862912,
+    "returned_stamp_ns": 1786678040081862912,
+    "stamp_difference_ns": 0
+  },
+  "bootstrap_to_final_camera_motion": {
+    "rotation_deg": 0.005485681380191714,
+    "translation_m": 3.756732695049734e-05
+  },
+  "capture_session_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645",
+  "command_publisher_owned": false,
+  "configuration": {
+    "configuration_source": "preview_from_aggregate",
+    "derived_voxel_grid": {
+      "dimensions": [
+        100,
+        100,
+        100
+      ],
+      "origin_m": [
+        0.05551103281709391,
+        -0.7216966167027945,
+        0.09560953973638575
+      ]
+    },
+    "ordering_note": "configured before final capture; configure clears NBV cache",
+    "request_semantics": {
+      "depth_max_m": 2.5,
+      "depth_min_m": 0.20000000298023224,
+      "map_size_m": [
+        0.3,
+        0.3,
+        0.3
+      ],
+      "max_step_m": 0.004999999888241291,
+      "observation_max_m": [
+        0.2701432342018001,
+        0.0506149829856355,
+        0.3444842338032981
+      ],
+      "observation_min_m": [
+        0.2581432342018001,
+        0.0386149829856355,
+        0.3324842338032981
+      ],
+      "optimization_steps": 10,
+      "random_seed": 0,
+      "samples_per_ray": 128,
+      "scene_id": "real_nbv_once_20260814T032716Z",
+      "target_center_m": [
+        0.2055110341209455,
+        -0.5716966153989429,
+        0.24560954104023736
+      ],
+      "target_roi_size_m": [
+        0.15,
+        0.15,
+        0.15
+      ],
+      "voxel_size_m": 0.003000000026077032,
+      "world_frame": "base_link"
+    },
+    "request_sha256": "5352cb505cf9a1c278c6e067d456d53a255b95c145dce09705c74a810370697b",
+    "response_code": 0,
+    "response_reason": "configuration applied atomically and map reset"
+  },
+  "corrected_observation": {
+    "T_base_camera_optical": [
+      [
+        -0.6996929799390967,
+        -0.706676134388539,
+        0.10506462254069576,
+        0.26411790335695534
+      ],
+      [
+        -0.30359097247182637,
+        0.1609699068318204,
+        -0.9391066023238076,
+        0.04459046860482068
+      ],
+      [
+        0.646731981007247,
+        -0.6889829679899403,
+        -0.3271700086533228,
+        0.3384712454436279
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "observation_id": "agg5_73c6d0cd9429f8b7f2cc478d",
+    "optical_frame": "camera_color_optical_frame",
+    "pose_valid": true,
+    "scene_id": "real_nbv_once_20260814T032716Z",
+    "source_name": "gemini2xl_AYML241003A|fixed5_median_majority|73c6d0cd9429",
+    "source_type": 1,
+    "stamp_ns": 1786678044197303040,
+    "world_frame": "base_link"
+  },
+  "diagnostic_note": "Preview evidence is not execution authorization. Run execute=true only with the exact accepted artifact SHA, onsite clearance, and the one-shot authorization token.",
+  "execute_requested": false,
+  "execution_plan_candidate": {
+    "aggregation": {
+      "bootstrap_aggregate_identity_sha256": "d90cb37625a1b28db2fe1bc8268da0b08712fe2edac78bf89d0649b367ece026",
+      "bootstrap_aggregate_observation_id": "agg5_d90cb37625a1b28db2fe1bc8",
+      "bootstrap_member_ids": [
+        "obs_1786678038_577968896",
+        "obs_1786678039_380046080",
+        "obs_1786678040_081862912",
+        "obs_1786678040_783681024",
+        "obs_1786678041_585757952"
+      ],
+      "bootstrap_member_stamps_ns": [
+        1786678038577968896,
+        1786678039380046080,
+        1786678040081862912,
+        1786678040783681024,
+        1786678041585757952
+      ],
+      "bootstrap_pose_span": {
+        "max_rotation_deg": 0.008305554622284588,
+        "max_rotation_pair_zero_based": [
+          0,
+          2
+        ],
+        "max_translation_m": 1.0575936932807374e-05,
+        "max_translation_pair_zero_based": [
+          2,
+          4
+        ],
+        "rotation_limit_deg": 0.1,
+        "translation_limit_m": 0.00025
+      },
+      "bootstrap_raw_scenes": [
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_01",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_02",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_03",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_04",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_bootstrap_raw_05"
+      ],
+      "capture_count_per_batch": 5,
+      "contract": "fixed five-frame finite-median depth and 3-of-5 mask",
+      "planning_aggregate_identity_sha256": "73c6d0cd9429f8b7f2cc478d856fe17f1925322f2e2d67e66c52ed970c5ad346",
+      "planning_aggregate_observation_id": "agg5_73c6d0cd9429f8b7f2cc478d",
+      "planning_member_ids": [
+        "obs_1786678042_291448064",
+        "obs_1786678043_194221056",
+        "obs_1786678044_197303040",
+        "obs_1786678044_899460096",
+        "obs_1786678045_802234880"
+      ],
+      "planning_member_stamps_ns": [
+        1786678042291448064,
+        1786678043194221056,
+        1786678044197303040,
+        1786678044899460096,
+        1786678045802234880
+      ],
+      "planning_pose_span": {
+        "max_rotation_deg": 0.011344171643836769,
+        "max_rotation_pair_zero_based": [
+          2,
+          4
+        ],
+        "max_translation_m": 4.002250652047898e-05,
+        "max_translation_pair_zero_based": [
+          2,
+          4
+        ],
+        "rotation_limit_deg": 0.1,
+        "translation_limit_m": 0.00025
+      },
+      "planning_raw_scenes": [
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_01",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_02",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_03",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_04",
+        "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_05"
+      ],
+      "selection_performed": false
+    },
+    "derived_voxel_grid": {
+      "dimensions": [
+        100,
+        100,
+        100
+      ],
+      "origin_m": [
+        0.05551103281709391,
+        -0.7216966167027945,
+        0.09560953973638575
+      ]
+    },
+    "exact_tf": {
+      "T_base_camera_optical": [
+        [
+          -0.6996929799390967,
+          -0.706676134388539,
+          0.10506462254069576,
+          0.26411790335695534
+        ],
+        [
+          -0.30359097247182637,
+          0.1609699068318204,
+          -0.9391066023238076,
+          0.04459046860482068
+        ],
+        [
+          0.646731981007247,
+          -0.6889829679899403,
+          -0.3271700086533228,
+          0.3384712454436279
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "requested_exposure_stamp_ns": 1786678044197303040,
+      "returned_tf_stamp_ns": 1786678044197303040
+    },
+    "handeye_report": {
+      "T_link7_camera_optical": [
+        [
+          0.002514086749112965,
+          -0.0031112637846833525,
+          0.9999919996707374,
+          0.06455188069285712
+        ],
+        [
+          -0.010401145783000108,
+          0.9999409851584371,
+          0.0031372546558028984,
+          0.0023296513994964236
+        ],
+        [
+          -0.9999427461281065,
+          -0.010408949900767883,
+          0.002481577672487967,
+          0.0001988769089705917
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json",
+      "sample_count": 30,
+      "session_id": "handeye_session_001",
+      "sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
+    },
+    "ik": {
+      "code": 0,
+      "condition_number": 10.110444727619916,
+      "max_joint_delta_rad": 0.06353772206884395,
+      "orientation_error_rad": 0.00023268653420043875,
+      "position_error_m": 0.0004094464042930421,
+      "reason": "IK solution accepted",
+      "sigma_min": 0.17367282817517013,
+      "solution_joint_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_joint_positions": [
+        0.9910154490616102,
+        -1.4782453100704176,
+        0.6252947571683687,
+        1.8263447846448777,
+        0.42662054506124353,
+        -0.41202313726889883,
+        1.133808390076752
+      ],
+      "success": true
+    },
+    "nbv": {
+      "coverage": 0.30612799525260925,
+      "planned_gain": 0.026981359347701073,
+      "raw_rotation_deg": 15.661933393788898,
+      "raw_translation_m": 0.0037796997307715323,
+      "strict_gain_evidence": "core_invariant_nonzero_translation"
+    },
+    "nbv_configuration": {
+      "depth_max_m": 2.5,
+      "depth_min_m": 0.20000000298023224,
+      "map_size_m": [
+        0.3,
+        0.3,
+        0.3
+      ],
+      "max_step_m": 0.004999999888241291,
+      "observation_max_m": [
+        0.2701432342018001,
+        0.0506149829856355,
+        0.3444842338032981
+      ],
+      "observation_min_m": [
+        0.2581432342018001,
+        0.0386149829856355,
+        0.3324842338032981
+      ],
+      "optimization_steps": 10,
+      "random_seed": 0,
+      "samples_per_ray": 128,
+      "scene_id": "real_nbv_once_20260814T032716Z",
+      "target_center_m": [
+        0.2055110341209455,
+        -0.5716966153989429,
+        0.24560954104023736
+      ],
+      "target_roi_size_m": [
+        0.15,
+        0.15,
+        0.15
+      ],
+      "voxel_size_m": 0.003000000026077032,
+      "world_frame": "base_link"
+    },
+    "nbv_configuration_sha256": "5352cb505cf9a1c278c6e067d456d53a255b95c145dce09705c74a810370697b",
+    "observation": {
+      "aggregation_contract": "fixed five-frame finite-median depth and 3-of-5 mask",
+      "exposure_stamp_ns": 1786678044197303040,
+      "member_observation_ids": [
+        "obs_1786678042_291448064",
+        "obs_1786678043_194221056",
+        "obs_1786678044_197303040",
+        "obs_1786678044_899460096",
+        "obs_1786678045_802234880"
+      ],
+      "observation_id": "agg5_73c6d0cd9429f8b7f2cc478d",
+      "scene_id": "real_nbv_once_20260814T032716Z",
+      "source_name": "gemini2xl_AYML241003A|fixed5_median_majority|73c6d0cd9429"
+    },
+    "safety": {
+      "arm_health_passed": true,
+      "command_publishers_created": false,
+      "controller_diagnostic_fresh_after_solve": true,
+      "controller_execution_enabled": false,
+      "gate_clients_created": false,
+      "motion_action_clients_created": false,
+      "motion_command_count_observed": 0,
+      "passed": true,
+      "stationary_passed": true
+    },
+    "scene_id": "real_nbv_once_20260814T032716Z",
+    "schema_version": "strawberry_real_nbv_frozen_config_plan/v3",
+    "selected_candidate": {
+      "T_base_camera": [
+        [
+          -0.7077418924452517,
+          -0.7064532079062086,
+          0.005027794451000489,
+          0.26442908090611594
+        ],
+        [
+          -0.17284848012739729,
+          0.16625453473880858,
+          -0.9708155502444484,
+          0.04276634337974475
+        ],
+        [
+          0.6849998661282082,
+          -0.6879558813745323,
+          -0.23977466231136169,
+          0.3380874900399673
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.005446391994732616,
+          -0.699034416610463,
+          0.7150672843923918,
+          0.2655638021955922
+        ],
+        [
+          -0.9717596011868581,
+          0.1649968498890266,
+          0.16869889456619663,
+          0.10507731776074268
+        ],
+        [
+          -0.2359101827293568,
+          -0.6957922994118055,
+          -0.6783947683788798,
+          0.3550718065684234
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "alpha": 0.5,
+      "rotation_deg": 7.830966696894209,
+      "translation_m": 0.0018898498653857731
+    },
+    "status": "passed",
+    "target": {
+      "center_base_link_m": [
+        0.2055110341209455,
+        -0.5716966153989429,
+        0.24560954104023736
+      ],
+      "planning_batch_center_base_link_m": [
+        0.20546683854463055,
+        -0.5716966393101504,
+        0.24554449656675698
+      ]
+    }
+  },
+  "final_target": {
+    "base_xyz_m": [
+      0.20546683854463055,
+      -0.5716966393101504,
+      0.24554449656675698
+    ],
+    "camera_xyz_m": [
+      0.16803824033919024,
+      0.0062685766634626525,
+      0.6029999852180481
+    ],
+    "depth_mad_m": 0.003999948501586914,
+    "depth_range_m": [
+      0.2,
+      2.5
+    ],
+    "depth_range_source": "runtime_preview_parameters",
+    "mask_pixels": 4656,
+    "median_depth_m": 0.6039999723434448,
+    "method": "masked depth median/MAD trim then component-wise 3-D median",
+    "retained_pixels": 4532,
+    "valid_mask_pixels": 4596
+  },
+  "final_tf": {
+    "T_base_camera_optical": [
+      [
+        -0.6996929799390967,
+        -0.706676134388539,
+        0.10506462254069576,
+        0.26411790335695534
+      ],
+      [
+        -0.30359097247182637,
+        0.1609699068318204,
+        -0.9391066023238076,
+        0.04459046860482068
+      ],
+      [
+        0.646731981007247,
+        -0.6889829679899403,
+        -0.3271700086533228,
+        0.3384712454436279
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_base_link7": [
+      [
+        0.10550334900423242,
+        -0.6990272068445174,
+        0.7072694023072423,
+        0.25879529391750833
+      ],
+      [
+        -0.9403631630443678,
+        0.16117188462091891,
+        0.299567597041024,
+        0.1048576279293246
+      ],
+      [
+        -0.32339784312528,
+        -0.6966954770191162,
+        -0.640335261689549,
+        0.3610975899199884
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_link7_camera_optical": [
+      [
+        0.002514086749112965,
+        -0.0031112637846833525,
+        0.9999919996707374,
+        0.06455188069285712
+      ],
+      [
+        -0.010401145783000108,
+        0.9999409851584371,
+        0.0031372546558028984,
+        0.0023296513994964236
+      ],
+      [
+        -0.9999427461281065,
+        -0.010408949900767883,
+        0.002481577672487967,
+        0.0001988769089705917
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "requested_stamp_ns": 1786678044197303040,
+    "returned_stamp_ns": 1786678044197303040,
+    "stamp_difference_ns": 0
+  },
+  "finished_utc": "2026-08-14T03:27:28.478990+00:00",
+  "formal_handeye": {
+    "T_link7_camera_optical": [
+      [
+        0.002514086749112965,
+        -0.0031112637846833525,
+        0.9999919996707374,
+        0.06455188069285712
+      ],
+      [
+        -0.010401145783000108,
+        0.9999409851584371,
+        0.0031372546558028984,
+        0.0023296513994964236
+      ],
+      [
+        -0.9999427461281065,
+        -0.010408949900767883,
+        0.002481577672487967,
+        0.0001988769089705917
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json",
+    "sample_count": 30,
+    "session_id": "handeye_session_001",
+    "sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
+  },
+  "freeze_candidate_safety": {
+    "arm_health": {
+      "arm_status": 0,
+      "communication_status_joint": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "ctrl_mode": 1,
+      "err_status": 0,
+      "joint_angle_limit": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "motion_status": 0
+    },
+    "command_publishers": {
+      "command_topic": "/control/move_j",
+      "forbidden_publisher_counts": {
+        "/control/joint_states": 0,
+        "/control/move_c": 0,
+        "/control/move_js": 0,
+        "/control/move_l": 0,
+        "/control/move_mit": 0,
+        "/control/move_p": 0
+      },
+      "publisher": "/nero_control",
+      "publisher_count": 1
+    },
+    "controller_diagnostic": {
+      "level": 1,
+      "message": "IK 可用，执行门关闭",
+      "name": "/nero_control: safety",
+      "values": {
+        "command_interface": "/control/move_j",
+        "environment_collision_checking": false,
+        "execution_enabled": false,
+        "feedback_fresh": true,
+        "mode": "real",
+        "precision_test_mode": true
+      }
+    },
+    "motion_command_count": 0,
+    "stationary_joint_positions_rad": [
+      1.0354863919157158,
+      -1.430628934567232,
+      0.6536956180419562,
+      1.8371335706492313,
+      0.49026298688520714,
+      -0.4359308872706237,
+      1.1395778285046576
+    ]
+  },
+  "freeze_instruction": "Freeze the complete output JSON bytes with sha256sum; execution must receive that path and digest, and will use a new independent two-batch five-frame corroboration run with the exact same ConfigureNBV request and derived map origin.",
+  "ik_candidates": [
+    {
+      "T_base_camera": [
+        [
+          -0.702096072451917,
+          -0.7056937240766226,
+          -0.09517075625663712,
+          0.2647402584552765
+        ],
+        [
+          -0.03900436658226791,
+          0.1715630582832648,
+          -0.984400719432899,
+          0.04094221815466881
+        ],
+        [
+          0.7110131956828287,
+          -0.6874318037677343,
+          -0.14797888610721,
+          0.33770373463630676
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          -0.09473952596480864,
+          -0.6986480489682223,
+          0.7091652317287274,
+          0.2723424428480533
+        ],
+        [
+          -0.9850246821942256,
+          0.16887030787934124,
+          0.03477347530664156,
+          0.1041270893288223
+        ],
+        [
+          -0.14405137169818444,
+          -0.6952508344400836,
+          -0.7041842653185588,
+          0.34876225966529706
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": false,
+      "alpha": 1.0,
+      "camera_rotation_deg": 15.661933393788946,
+      "camera_translation_m": 0.0037796997307715323,
+      "condition_number": 10.12105821021174,
+      "ik_code": 0,
+      "ik_reason": "IK solution accepted",
+      "ik_success": true,
+      "orientation_error_rad": 0.0005206847681765414,
+      "position_error_m": 0.0001747550836624733,
+      "rejection": "candidate single-step camera rotation exceeds 10.000 degrees",
+      "reported_max_joint_delta_rad": 0.12529754083385763,
+      "sigma_min": 0.17373816691752322,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        0.9435528597792505,
+        -1.527119710799457,
+        0.594119849728144,
+        1.819547874495834,
+        0.36486072629622984,
+        -0.39201858913707976,
+        1.126113384633235
+      ]
+    },
+    {
+      "T_base_camera": [
+        [
+          -0.7077418924452517,
+          -0.7064532079062086,
+          0.005027794451000489,
+          0.26442908090611594
+        ],
+        [
+          -0.17284848012739729,
+          0.16625453473880858,
+          -0.9708155502444484,
+          0.04276634337974475
+        ],
+        [
+          0.6849998661282082,
+          -0.6879558813745323,
+          -0.23977466231136169,
+          0.3380874900399673
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.005446391994732616,
+          -0.699034416610463,
+          0.7150672843923918,
+          0.2655638021955922
+        ],
+        [
+          -0.9717596011868581,
+          0.1649968498890266,
+          0.16869889456619663,
+          0.10507731776074268
+        ],
+        [
+          -0.2359101827293568,
+          -0.6957922994118055,
+          -0.6783947683788798,
+          0.3550718065684234
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": true,
+      "alpha": 0.5,
+      "camera_rotation_deg": 7.830966696894209,
+      "camera_translation_m": 0.0018898498653857731,
+      "condition_number": 10.110444727619916,
+      "ik_code": 0,
+      "ik_reason": "IK solution accepted",
+      "ik_success": true,
+      "independent_max_joint_delta_rad": 0.06353772206884395,
+      "orientation_error_rad": 0.00023268653420043875,
+      "position_error_m": 0.0004094464042930421,
+      "rejection": "",
+      "reported_max_joint_delta_rad": 0.06353772206884395,
+      "sigma_min": 0.17367282817517013,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        0.9910154490616102,
+        -1.4782453100704176,
+        0.6252947571683687,
+        1.8263447846448777,
+        0.42662054506124353,
+        -0.41202313726889883,
+        1.133808390076752
+      ]
+    },
+    {
+      "T_base_camera": [
+        [
+          -0.7054258720152635,
+          -0.7066322370608666,
+          0.055183517809760996,
+          0.2642734921315356
+        ],
+        [
+          -0.23876173256370442,
+          0.16360304138990123,
+          -0.9571974090599871,
+          0.04367840599228271
+        ],
+        [
+          0.6673583551246536,
+          -0.6884075292981109,
+          -0.28412655534283915,
+          0.3382793677417976
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.055608093774390854,
+          -0.6990801731892501,
+          0.7128777253922768,
+          0.2621707232819845
+        ],
+        [
+          -0.9582990310913195,
+          0.1630738099420352,
+          0.23466976695012778,
+          0.10511183518793757
+        ],
+        [
+          -0.28030466802430687,
+          -0.6961995719365797,
+          -0.6608596289070063,
+          0.35812689325710495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": false,
+      "alpha": 0.25,
+      "camera_rotation_deg": 3.9154833484469878,
+      "camera_translation_m": 0.0009449249326928797,
+      "condition_number": 10.109100347680858,
+      "ik_code": 0,
+      "ik_reason": "IK solution accepted",
+      "ik_success": true,
+      "orientation_error_rad": 0.00016997674843427526,
+      "position_error_m": 0.00038922601352129585,
+      "rejection": "candidate translation is in the <=1 mm deadband",
+      "reported_max_joint_delta_rad": 0.028240025044140527,
+      "sigma_min": 0.17356449845311145,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        1.0106426814756688,
+        -1.4564540976474276,
+        0.6366933096300474,
+        1.8308826320112332,
+        0.46191824208594695,
+        -0.4270986506354946,
+        1.139457710589852
+      ]
+    },
+    {
+      "T_base_camera": [
+        [
+          -0.7029852350106072,
+          -0.7066711048216318,
+          0.08017299400207056,
+          0.2641956977442455
+        ],
+        [
+          -0.27133090442337593,
+          0.16228340831590993,
+          -0.9487062957997932,
+          0.044134437298551696
+        ],
+        [
+          0.6574125794825305,
+          -0.6886799292817718,
+          -0.3058245499344021,
+          0.33837530659271275
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.08060362694367205,
+          -0.6990660257269987,
+          0.7104996460222793,
+          0.26047986020611574
+        ],
+        [
+          -0.9498857617596372,
+          0.16211965023513322,
+          0.2672718814502416,
+          0.10502051318780978
+        ],
+        [
+          -0.3020266460593162,
+          -0.6964365805167739,
+          -0.650965432560181,
+          0.3596236110627332
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": false,
+      "alpha": 0.125,
+      "camera_rotation_deg": 1.957741674222672,
+      "camera_translation_m": 0.0004724624663464444,
+      "condition_number": 10.09897738205766,
+      "ik_code": 0,
+      "ik_reason": "IK solution accepted",
+      "ik_success": true,
+      "orientation_error_rad": 0.0019706004050095843,
+      "position_error_m": 0.0008285178685066409,
+      "rejection": "candidate translation is in the <=1 mm deadband",
+      "reported_max_joint_delta_rad": 0.01200000000000001,
+      "sigma_min": 0.17368029479254082,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        1.0234863919157158,
+        -1.442628934567232,
+        0.6464916514348426,
+        1.831547931374324,
+        0.47815826713008747,
+        -0.4292843359866273,
+        1.1415417092422484
+      ]
+    },
+    {
+      "T_base_camera": [
+        [
+          -0.7014453427744125,
+          -0.7066778506724484,
+          0.0926328584739553,
+          0.2641568005506004
+        ],
+        [
+          -0.28750193919337286,
+          0.16162579509919794,
+          -0.9440443513514618,
+          0.04436245295168619
+        ],
+        [
+          0.6521633737493522,
+          -0.6888276400722615,
+          -0.3165429136978777,
+          0.3384232760181703
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.09306728414332587,
+          -0.6990496980555237,
+          0.7089908322895764,
+          0.2596366725303506
+        ],
+        [
+          -0.9452624639844457,
+          0.16164489882439134,
+          0.28346040440616566,
+          0.10494797275643472
+        ],
+        [
+          -0.3127576614636966,
+          -0.6965633110726784,
+          -0.6457415883023384,
+          0.36036354405030546
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": false,
+      "alpha": 0.0625,
+      "camera_rotation_deg": 0.9788708371098841,
+      "camera_translation_m": 0.0002362312331732245,
+      "condition_number": 10.09502731415583,
+      "ik_code": 0,
+      "ik_reason": "IK solution accepted",
+      "ik_success": true,
+      "orientation_error_rad": 0.000954595540841365,
+      "position_error_m": 0.00040826623797755255,
+      "rejection": "candidate translation is in the <=1 mm deadband",
+      "reported_max_joint_delta_rad": 0.006000000000000005,
+      "sigma_min": 0.1737031029125799,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        1.0294863919157158,
+        -1.436628934567232,
+        0.6500967842676421,
+        1.8344025302187628,
+        0.48415826713008747,
+        -0.432564938969709,
+        1.1404994582165735
+      ]
+    },
+    {
+      "T_base_camera": [
+        [
+          -0.7005956896666623,
+          -0.7066780503239154,
+          0.09885248004417574,
+          0.26413735195377785
+        ],
+        [
+          -0.29555700009394115,
+          0.16129762336960352,
+          -0.9416098642170163,
+          0.044476460778253436
+        ],
+        [
+          0.649470352915331,
+          -0.6889043546717553,
+          -0.3218680642721927,
+          0.3384472607308991
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_base_link7": [
+        [
+          0.09928899267731377,
+          -0.6990392225243186,
+          0.7081566643799385,
+          0.2592157424389358
+        ],
+        [
+          -0.9428472264197549,
+          0.16140816593061433,
+          0.291524461415318,
+          0.10490502020626669
+        ],
+        [
+          -0.3180893012436924,
+          -0.6966287169960133,
+          -0.643061137910532,
+          0.36073131543132214
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "accepted": false,
+      "alpha": 0.03125,
+      "camera_rotation_deg": 0.48943541855212774,
+      "camera_translation_m": 0.00011811561658660768,
+      "condition_number": 10.091380126543402,
+      "ik_code": 1,
+      "ik_reason": "目标变化处于 1 mm / 0.5° 死区内，不发送运动命令",
+      "ik_success": true,
+      "orientation_error_rad": 0.008432681233838432,
+      "position_error_m": 0.0005567668345024762,
+      "rejection": "SolveIK did not return exact SUCCESS",
+      "reported_max_joint_delta_rad": 0.0,
+      "sigma_min": 0.1737208264479947,
+      "solution_names": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "solution_positions_rad": [
+        1.0354863919157158,
+        -1.430628934567232,
+        0.6536083515793565,
+        1.8371335706492313,
+        0.4901582671300875,
+        -0.4358610741005439,
+        1.1396127350896974
+      ]
+    }
+  ],
+  "interfaces": {
+    "corrected_observation_topic": "/strawberry/perception/real_nbv_observation",
+    "gradient_runtime": "separate .venv-nbv ROS process; this node imports no Torch/core",
+    "raw_observation_topic": "/strawberry/perception/observation"
+  },
+  "motion_api_owned": false,
+  "planning_batch": {
+    "aggregate_counts": {
+      "finite_depth_sample_count": 875656,
+      "foreground_mask_sample_count": 23267,
+      "input_frame_count": 5,
+      "output_finite_depth_pixel_count": 174482,
+      "output_foreground_mask_pixel_count": 4656,
+      "output_nan_depth_pixel_count": 81518,
+      "pixel_count": 256000
+    },
+    "aggregate_identity_contract": "ordered compact sort_keys canonical JSON of five scene_id/observation_id/stamp_ns records",
+    "aggregate_identity_sha256": "73c6d0cd9429f8b7f2cc478d856fe17f1925322f2e2d67e66c52ed970c5ad346",
+    "aggregate_observation_id": "agg5_73c6d0cd9429f8b7f2cc478d",
+    "aggregate_payload_sha256": "3963d2bab6f41a6d5a99ae624487d6267f91310458cd0a319dedbcf4062e85ce",
+    "aggregate_scene_id": "real_nbv_once_20260814T032716Z",
+    "aggregate_source_name": "gemini2xl_AYML241003A|fixed5_median_majority|73c6d0cd9429",
+    "aggregate_stamp_ns": 1786678044197303040,
+    "aggregate_valid_depth_fraction": 0.6815703125,
+    "camera_info_exactly_equal": true,
+    "camera_info_signature_sha256": "5748217dd4f51040bb6c30f73f8eb68eca509db702202bb48011a9566a3d73e7",
+    "capture_count": 5,
+    "contract": "fixed five-frame finite-median depth and 3-of-5 mask",
+    "depth_support": {
+      "insufficient_output_pixels": 81518,
+      "minimum_finite_votes": 3,
+      "support_histogram_0_to_5": [
+        74650,
+        4305,
+        2563,
+        1823,
+        2539,
+        170120
+      ],
+      "valid_output_pixels": 174482
+    },
+    "mask_votes": {
+      "foreground_output_pixels": 4656,
+      "majority_votes_required": 3,
+      "vote_histogram_0_to_5": [
+        251273,
+        48,
+        23,
+        26,
+        55,
+        4575
+      ]
+    },
+    "member_captures": [
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678041946719119,
+        "observation_id": "obs_1786678042_291448064",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_01",
+        "stamp_ns": 1786678042291448064
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678042598552024,
+        "observation_id": "obs_1786678043_194221056",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_02",
+        "stamp_ns": 1786678043194221056
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678043519834745,
+        "observation_id": "obs_1786678044_197303040",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_03",
+        "stamp_ns": 1786678044197303040
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678044514136859,
+        "observation_id": "obs_1786678044_899460096",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_04",
+        "stamp_ns": 1786678044899460096
+      },
+      {
+        "discard_frames": 3,
+        "not_before_ns": 1786678045207857783,
+        "observation_id": "obs_1786678045_802234880",
+        "require_color": true,
+        "require_mask": true,
+        "require_pose": false,
+        "response_code": 0,
+        "response_reason": "captured and published canonical observation",
+        "scene_id": "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_05",
+        "stamp_ns": 1786678045802234880
+      }
+    ],
+    "member_exact_tfs": [
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996898222348753,
+            -0.7066763564236684,
+            0.10508415643044117,
+            0.2641190907760833
+          ],
+          [
+            -0.30357811526885264,
+            0.16092812810493634,
+            -0.9391179188549501,
+            0.044589355822891474
+          ],
+          [
+            0.6467414325607574,
+            -0.6889924998549767,
+            -0.32713124973449126,
+            0.3384735093349803
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10552289136725246,
+            -0.6990274004274987,
+            0.707266295569829,
+            0.2587952209091894
+          ],
+          [
+            -0.9403743171762108,
+            0.16112993912711726,
+            0.2995551473639989,
+            0.10485733536191497
+          ],
+          [
+            -0.3233590310983607,
+            -0.6967049850320185,
+            -0.6403445173019482,
+            0.36109737241309287
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678042291448064,
+        "returned_stamp_ns": 1786678042291448064,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6997032515743856,
+            -0.7066522834424528,
+            0.10515659770932145,
+            0.264124133442446
+          ],
+          [
+            -0.3036313063838076,
+            0.16089755490556726,
+            -0.939105961331879,
+            0.044591324103369724
+          ],
+          [
+            0.6467019325159735,
+            -0.6890243298541628,
+            -0.3271422983185262,
+            0.3384736660991903
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.1055952234066595,
+            -0.6990029619196887,
+            0.7072796533346624,
+            0.2587955348166191
+          ],
+          [
+            -0.940362398354593,
+            0.16109995849435665,
+            0.29960868334197943,
+            0.1048585934573954
+          ],
+          [
+            -0.32337007986901883,
+            -0.6967364369692597,
+            -0.6403047156197474,
+            0.3610983077526422
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678043194221056,
+        "returned_stamp_ns": 1786678043194221056,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996929799390967,
+            -0.706676134388539,
+            0.10506462254069576,
+            0.26411790335695534
+          ],
+          [
+            -0.30359097247182637,
+            0.1609699068318204,
+            -0.9391066023238076,
+            0.04459046860482068
+          ],
+          [
+            0.646731981007247,
+            -0.6889829679899403,
+            -0.3271700086533228,
+            0.3384712454436279
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10550334900423242,
+            -0.6990272068445174,
+            0.7072694023072423,
+            0.25879529391750833
+          ],
+          [
+            -0.9403631630443678,
+            0.16117188462091891,
+            0.299567597041024,
+            0.1048576279293246
+          ],
+          [
+            -0.32339784312528,
+            -0.6966954770191162,
+            -0.640335261689549,
+            0.3610975899199884
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678044197303040,
+        "returned_stamp_ns": 1786678044197303040,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.6996712691189413,
+            -0.7067047783838312,
+            0.1050165290749527,
+            0.2641370862550092
+          ],
+          [
+            -0.3035206565010287,
+            0.16094431960172503,
+            -0.9391337162859835,
+            0.04461815586031915
+          ],
+          [
+            0.6467884710217667,
+            -0.6889595649944911,
+            -0.3271076146406978,
+            0.3384675426176663
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10545539962516337,
+            -0.6990562258482435,
+            0.7072478715363566,
+            0.25881764392429496
+          ],
+          [
+            -0.9403900204005503,
+            0.16114548247078264,
+            0.2994974841468809,
+            0.10488712432931677
+          ],
+          [
+            -0.32333538040392296,
+            -0.6966724672197606,
+            -0.6403918372348152,
+            0.36108981265464835
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678044899460096,
+        "returned_stamp_ns": 1786678044899460096,
+        "stamp_difference_ns": 0
+      },
+      {
+        "T_base_camera_optical": [
+          [
+            -0.699733334171552,
+            -0.7066319582490223,
+            0.10509299039572198,
+            0.26412381773675414
+          ],
+          [
+            -0.30347539347185815,
+            0.16083619348524741,
+            -0.9391668671872304,
+            0.044623798202831695
+          ],
+          [
+            0.6467425659458824,
+            -0.689059499931848,
+            -0.3269878574923047,
+            0.3384925986409576
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_base_link7": [
+          [
+            0.10553147773464233,
+            -0.6989825245846084,
+            0.7073093647990742,
+            0.2587992804931515
+          ],
+          [
+            -0.9404227208325269,
+            0.1610367879451664,
+            0.299453266921987,
+            0.1048951395603516
+          ],
+          [
+            -0.32321542869901804,
+            -0.6967715430854153,
+            -0.6403445973827524,
+            0.361107346987109
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "T_link7_camera_optical": [
+          [
+            0.002514086749112965,
+            -0.0031112637846833525,
+            0.9999919996707374,
+            0.06455188069285712
+          ],
+          [
+            -0.010401145783000108,
+            0.9999409851584371,
+            0.0031372546558028984,
+            0.0023296513994964236
+          ],
+          [
+            -0.9999427461281065,
+            -0.010408949900767883,
+            0.002481577672487967,
+            0.0001988769089705917
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "requested_stamp_ns": 1786678045802234880,
+        "returned_stamp_ns": 1786678045802234880,
+        "stamp_difference_ns": 0
+      }
+    ],
+    "member_observation_ids": [
+      "obs_1786678042_291448064",
+      "obs_1786678043_194221056",
+      "obs_1786678044_197303040",
+      "obs_1786678044_899460096",
+      "obs_1786678045_802234880"
+    ],
+    "member_stamps_ns": [
+      1786678042291448064,
+      1786678043194221056,
+      1786678044197303040,
+      1786678044899460096,
+      1786678045802234880
+    ],
+    "member_target_centres_m": [
+      [
+        0.20554731886965533,
+        -0.5726583129842819,
+        0.24527974853912343
+      ],
+      [
+        0.2055940095959798,
+        -0.5726582550482542,
+        0.24526639276129858
+      ],
+      [
+        0.20545949228161126,
+        -0.571694965944918,
+        0.24553733423333102
+      ],
+      [
+        0.20542239272864157,
+        -0.5716901730729481,
+        0.24562327409722157
+      ],
+      [
+        0.20544525418261328,
+        -0.5716975901359053,
+        0.24571220092170543
+      ]
+    ],
+    "member_target_max_deviation_m": 0.0010071649631268862,
+    "member_target_median_m": [
+      0.20545949228161126,
+      -0.5716975901359053,
+      0.24553733423333102
+    ],
+    "member_targets": [
+      {
+        "base_xyz_m": [
+          0.20554731886965533,
+          -0.5726583129842819,
+          0.24527974853912343
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6039999723434448
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4633,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4529,
+        "valid_mask_pixels": 4592
+      },
+      {
+        "base_xyz_m": [
+          0.2055940095959798,
+          -0.5726582550482542,
+          0.24526639276129858
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6039999723434448
+        ],
+        "depth_mad_m": 0.003999948501586914,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4666,
+        "median_depth_m": 0.6039999723434448,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4527,
+        "valid_mask_pixels": 4611
+      },
+      {
+        "base_xyz_m": [
+          0.20545949228161126,
+          -0.571694965944918,
+          0.24553733423333102
+        ],
+        "camera_xyz_m": [
+          0.16803824033919024,
+          0.006278972179402439,
+          0.6029999852180481
+        ],
+        "depth_mad_m": 0.0040000081062316895,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4670,
+        "median_depth_m": 0.6029999852180481,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4524,
+        "valid_mask_pixels": 4598
+      },
+      {
+        "base_xyz_m": [
+          0.20542239272864157,
+          -0.5716901730729481,
+          0.24562327409722157
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6029999852180481
+        ],
+        "depth_mad_m": 0.0040000081062316895,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4636,
+        "median_depth_m": 0.6029999852180481,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4509,
+        "valid_mask_pixels": 4583
+      },
+      {
+        "base_xyz_m": [
+          0.20544525418261328,
+          -0.5716975901359053,
+          0.24571220092170543
+        ],
+        "camera_xyz_m": [
+          0.1680926902609277,
+          0.0062685766634626525,
+          0.6029999852180481
+        ],
+        "depth_mad_m": 0.0040000081062316895,
+        "depth_range_m": [
+          0.2,
+          2.5
+        ],
+        "depth_range_source": "runtime_preview_parameters",
+        "mask_pixels": 4662,
+        "median_depth_m": 0.6029999852180481,
+        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "retained_pixels": 4523,
+        "valid_mask_pixels": 4607
+      }
+    ],
+    "pose_span": {
+      "max_rotation_deg": 0.011344171643836769,
+      "max_rotation_pair_zero_based": [
+        2,
+        4
+      ],
+      "max_translation_m": 4.002250652047898e-05,
+      "max_translation_pair_zero_based": [
+        2,
+        4
+      ],
+      "rotation_limit_deg": 0.1,
+      "translation_limit_m": 0.00025
+    },
+    "raw_scenes": [
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_01",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_02",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_03",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_04",
+      "real_nbv_once_20260814T032716Z_capture_1786678036499719287_725645_planning_raw_05"
+    ],
+    "reference_member_index_zero_based": 2,
+    "reference_observation_id": "obs_1786678044_197303040",
+    "selection_performed": false
+  },
+  "preview_motion_commands_observed": 0,
+  "raw_next_view": {
+    "T_base_camera_raw": [
+      [
+        -0.702096072451917,
+        -0.7056937240766226,
+        -0.09517075625663707,
+        0.2647402584552765
+      ],
+      [
+        -0.03900436658226797,
+        0.1715630582832648,
+        -0.984400719432899,
+        0.04094221815466881
+      ],
+      [
+        0.7110131956828288,
+        -0.6874318037677343,
+        -0.14797888610721,
+        0.33770373463630676
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "action_status": 4,
+    "code": 0,
+    "compute_time_ms": 1574.424964026548,
+    "coverage": 0.30612799525260925,
+    "gain_improvement_evidence": {
+      "conditions": [
+        "NextView planned_gain is finite and positive",
+        "raw camera translation exceeds 1 mm deadband",
+        "GradientNBVCore changes position only for strict gain improvement"
+      ],
+      "kind": "core_invariant_inference",
+      "note": "The public v1 NextView interface exposes planned gain but not current gain; this is not a measured numerical difference.",
+      "numerical_gain_difference_available": false
+    },
+    "observation_id": "agg5_73c6d0cd9429f8b7f2cc478d",
+    "optimization_iterations": 10,
+    "planned_gain": 0.026981359347701073,
+    "reason": "next view computed after one idempotent map update",
+    "rotation_deg": 15.661933393788898,
+    "scene_id": "real_nbv_once_20260814T032716Z",
+    "success": true,
+    "translation_m": 0.0037796997307715323,
+    "voxel_counts": {
+      "observed": 268100,
+      "occupied": 5057,
+      "total": 1000000,
+      "unknown": 731900
+    }
+  },
+  "reason": "real Observation, exact exposure TF, formal hand-eye, Gradient-NBV, frozen ConfigureNBV v3 semantics, segmented pose conversion, and SolveIK passed; no motion was requested",
+  "safe_to_execute": false,
+  "scene_id": "real_nbv_once_20260814T032716Z",
+  "schema": "strawberry_real_nbv_once_supervisor/v1",
+  "selected_candidate": {
+    "T_base_camera": [
+      [
+        -0.7077418924452517,
+        -0.7064532079062086,
+        0.005027794451000489,
+        0.26442908090611594
+      ],
+      [
+        -0.17284848012739729,
+        0.16625453473880858,
+        -0.9708155502444484,
+        0.04276634337974475
+      ],
+      [
+        0.6849998661282082,
+        -0.6879558813745323,
+        -0.23977466231136169,
+        0.3380874900399673
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_base_link7": [
+      [
+        0.005446391994732616,
+        -0.699034416610463,
+        0.7150672843923918,
+        0.2655638021955922
+      ],
+      [
+        -0.9717596011868581,
+        0.1649968498890266,
+        0.16869889456619663,
+        0.10507731776074268
+      ],
+      [
+        -0.2359101827293568,
+        -0.6957922994118055,
+        -0.6783947683788798,
+        0.3550718065684234
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "accepted": true,
+    "alpha": 0.5,
+    "camera_rotation_deg": 7.830966696894209,
+    "camera_translation_m": 0.0018898498653857731,
+    "condition_number": 10.110444727619916,
+    "ik_code": 0,
+    "ik_reason": "IK solution accepted",
+    "ik_success": true,
+    "independent_max_joint_delta_rad": 0.06353772206884395,
+    "orientation_error_rad": 0.00023268653420043875,
+    "position_error_m": 0.0004094464042930421,
+    "rejection": "",
+    "reported_max_joint_delta_rad": 0.06353772206884395,
+    "sigma_min": 0.17367282817517013,
+    "solution_names": [
+      "joint1",
+      "joint2",
+      "joint3",
+      "joint4",
+      "joint5",
+      "joint6",
+      "joint7"
+    ],
+    "solution_positions_rad": [
+      0.9910154490616102,
+      -1.4782453100704176,
+      0.6252947571683687,
+      1.8263447846448777,
+      0.42662054506124353,
+      -0.41202313726889883,
+      1.133808390076752
+    ]
+  },
+  "started_utc": "2026-08-14T03:27:16.510357+00:00",
+  "status": "passed_preview_only",
+  "target_center_drift_m": 7.863862325789788e-05
+}

@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "artifact": "g3_camera_runtime_summary",
+  "generated_utc": "2026-08-13T07:00:00Z",
+  "gate": "G3",
+  "status": "passed_for_stationary_camera_stage",
+  "scope": "Gemini 2 XL runtime while physically mounted on the disabled robot end, stationary red-target NBV smoke test, measured checkerboard metric scale and twenty-frame four-side physical RGB-D edge alignment; no CAN, synchronized robot pose, hand-eye calibration, or software-commanded physical motion",
+  "overall_interpretation": "Cold-start, exact-profile transport, canonical adapter, raw rosbag, replay, target mask, real depth projection, stationary single-view NBV, measured checkerboard metric scale and four-side physical RGB-D edge alignment passed. G3 is complete for the stationary-camera 640x400@10 Hz stage. USB acceptance remains conditional on this exact low-bandwidth profile and does not validate hand-eye or moving-camera operation.",
+  "hardware_transport": {
+    "product": "Orbbec(R) XL 3D Camera",
+    "vendor_id": "2bc5",
+    "product_id": "0671",
+    "serial_sha256_12": "769400a4a313",
+    "negotiated_speed_mbps": 480.0,
+    "usb_spec_version": "2.00",
+    "classification": "USB_2_0_high_speed_conditional",
+    "superspeed": false,
+    "assessment": "Conditionally usable only for the exact validated 640x400@10 Hz low-bandwidth profile; this is not USB 3 or evidence for any higher-bandwidth profile."
+  },
+  "software_environment": {
+    "ros_distro": "jazzy",
+    "camera_rosdep_check": "passed",
+    "missing_system_dependencies": [],
+    "note": "libgoogle-glog-dev was installed on 2026-08-13; joint rosdep check and clean camera three-package build passed."
+  },
+  "validated_profile": {
+    "color": {
+      "width": 640,
+      "height": 400,
+      "fps": 10,
+      "encoding": "rgb8",
+      "frame_id": "camera_color_optical_frame"
+    },
+    "registered_depth": {
+      "width": 640,
+      "height": 400,
+      "fps": 10,
+      "raw_encoding": "16UC1",
+      "canonical_encoding": "32FC1",
+      "canonical_unit": "m",
+      "canonical_invalid": "NaN",
+      "accepted_range_m": [
+        0.2,
+        2.5
+      ],
+      "frame_id": "camera_color_optical_frame"
+    },
+    "align_mode": "HW",
+    "frame_sync": true,
+    "time_domain": "global",
+    "infrared_enabled": false,
+    "imu_enabled": false,
+    "vendor_point_clouds_enabled": false
+  },
+  "cold_starts": {
+    "independent_driver_launches": 3,
+    "successful_launches": 3,
+    "successful_capture_requests": 3,
+    "capture_contract": {
+      "discard_frames": 3,
+      "require_color": true,
+      "require_mask": false,
+      "require_pose": true
+    },
+    "all_verified": {
+      "device_present": true,
+      "usb_480_mbps": true,
+      "profile_640x400_at_10_hz": true,
+      "hardware_d2c": true,
+      "frame_sync": true,
+      "time_domain_global": true,
+      "topics_and_types_present": true,
+      "canonical_capture_success": true
+    },
+    "evidence_prefixes": [
+      "artifacts/week2/g3_cold_start_1_",
+      "artifacts/week2/g3_cold_start_2_",
+      "artifacts/week2/g3_cold_start_3_"
+    ]
+  },
+  "corrected_long_run": {
+    "authority": "C++ ros2 bag record transport counts plus offline rosbag2_py SequentialReader analysis",
+    "bag_path": "artifacts/week2/g3_corrected_30min_raw",
+    "bag_size_bytes": 9017203489,
+    "bag_receive_span_sec": 1848.751159404,
+    "message_counts": {
+      "color": 18427,
+      "depth": 18433,
+      "depth_camera_info": 18433,
+      "total": 55293
+    },
+    "sensor_stamp_metrics": {
+      "color_rate_hz": 9.969990335065008,
+      "depth_rate_hz": 9.969990598319637,
+      "depth_camera_info_rate_hz": 9.969990598319637,
+      "color_estimated_dropped_frames": 8,
+      "depth_estimated_dropped_frames": 8,
+      "color_estimated_drop_fraction": 0.0004339571467317602,
+      "depth_estimated_drop_fraction": 0.000433815953581693,
+      "color_gap_p99_ms": 100.728064,
+      "depth_gap_p99_ms": 100.728064,
+      "color_gap_max_ms": 188.306176,
+      "depth_gap_max_ms": 187.190016,
+      "color_stamp_monotonic": true,
+      "depth_stamp_monotonic": true,
+      "camera_info_stamp_monotonic": true
+    },
+    "contract_stability": {
+      "dimensions_stable": true,
+      "encodings_stable": true,
+      "registered_frame_stable": true,
+      "camera_info_K_stable": true,
+      "unique_K_count": 1,
+      "K": [
+        304.120666503906,
+        0.0,
+        313.223114013672,
+        0.0,
+        304.189422607422,
+        197.837753295898,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "rgb_depth_pairing_within_5ms": {
+      "matched_pairs": 18360,
+      "unmatched_color_endpoints": 67,
+      "unmatched_depth_endpoints": 73,
+      "unmatched_endpoint_fraction": 0.0037981551817688553,
+      "absolute_skew_median_ms": 0.112128,
+      "absolute_skew_p99_ms": 0.17588991999999898,
+      "absolute_skew_max_ms": 4.236032,
+      "interpretation": "All reported matched pairs are inside the 5 ms contract. The 140 unmatched endpoints were outside the pairing window and are not counted as source-stream drops; source continuity is evaluated independently from sensor stamps."
+    },
+    "health_polling": {
+      "sample_count": 31,
+      "all_camera_node_alive": true,
+      "all_adapter_node_alive": true,
+      "all_recorder_node_alive": true,
+      "all_depth_probes_received": true,
+      "disconnect_or_node_death_observed": false
+    },
+    "depth_quality_diagnostic": {
+      "sampled_frames": 598,
+      "worker_queue_drops": 0,
+      "decode_errors": 0,
+      "weighted_valid_fraction": 0.9170075120192308
+    },
+    "gate_result": "passed_for_exact_profile",
+    "timing_note": "Sensor-header stamp gap/rate is the G3 stream gate. Recorder receive-gap statistics describe host scheduling and are diagnostic only; they are not substituted for the sensor-stamp gate."
+  },
+  "observer_effect": {
+    "realtime_rclpy_color_count": 4485,
+    "realtime_rclpy_depth_count": 17921,
+    "requested_duration_sec": 1800.0,
+    "explanation": "Even after moving depth pixel analysis to a bounded worker, Python deserialization and scheduling of large Image messages starved the realtime color callback. The simultaneous C++ recorder captured both streams at about 9.97 Hz, so the rclpy color count is not evidence of camera frame loss.",
+    "policy": "Use realtime rclpy metrics for lightweight diagnostics and sampled depth quality; use recorder counts and offline sequential parsing as transport authority."
+  },
+  "record_and_replay": {
+    "short_raw_bag_path": "artifacts/week2/g3_raw_rgbd_35sec",
+    "duration_sec": 33.603491263,
+    "raw_topic_counts": {
+      "color": 336,
+      "depth": 336,
+      "depth_camera_info": 336
+    },
+    "replay_capture_success": true,
+    "canonical_depth_check": {
+      "encoding": "32FC1",
+      "unit": "m",
+      "invalid_representation": "NaN",
+      "pixel_count": 256000,
+      "finite_pixel_count": 235217,
+      "valid_depth_fraction": 0.9188164,
+      "nan_pixel_count": 20783,
+      "inf_pixel_count": 0,
+      "finite_min_m": 1.307,
+      "finite_max_m": 2.498,
+      "color_depth_skew_ms": 0.1118
+    },
+    "canonical_npz_manifest": "artifacts/week2/g3_canonical_npz_manifest.json",
+    "canonical_npz_directory": "artifacts/week2/g3_canonical_npz",
+    "canonical_npz_sample_count": 5,
+    "canonical_npz_integrity_passed": true,
+    "gate_result": "passed"
+  },
+  "capture_adapter_contract": {
+    "topic": "/strawberry/perception/observation",
+    "topic_qos": "Reliable + TransientLocal + KeepLast(1)",
+    "service": "/strawberry/perception/capture_observation",
+    "camera_info_stamp_normalized_to_depth_stamp": true,
+    "registered_optical_frame_preserved": true,
+    "not_before_and_timeout_nanosec_strictly_validated": true,
+    "package_test_result": {
+      "tests": 32,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 4
+    }
+  },
+  "mask_probe": {
+    "require_mask": true,
+    "capture_success": false,
+    "response_code": 32,
+    "last_frame_rejection_code": 15,
+    "last_frame_rejection": "MISSING_MASK",
+    "reason": "No red connected component reached 200 pixels in the unchanged current view.",
+    "failed_capture_published_observations": 0,
+    "interpretation": "This is an unmet scene/target prerequisite, not a camera transport failure. A real-target NBV smoke test remains blocked until an eligible target mask exists."
+  },
+  "real_single_view_nbv_smoke": {
+    "status": "passed",
+    "evidence": "g3_real_single_view_nbv.json",
+    "mask_pixels": 4539,
+    "mask_valid_depth_fraction": 0.9828155981493721,
+    "median_target_depth_m": 0.5680000185966492,
+    "map_updated": true,
+    "next_view_finite": true,
+    "translation_step_m": 0.001656183255070264,
+    "look_at_error_deg": 0.0,
+    "compute_time_ms": 1713.9304479351267,
+    "duplicate_observation_idempotent": true,
+    "motion_executed": false,
+    "interpretation": "The earlier no-target probe remains valid historical negative-path evidence. After an eligible red object was placed in view, the stationary real-camera Observation and Gradient-NBV smoke test passed."
+  },
+  "checkerboard_geometry": {
+    "status": "metric_scale_passed_edge_not_testable",
+    "evidence": "g3_checkerboard_geometry.json",
+    "measured_printed_board_mm": [
+      360.0,
+      270.0
+    ],
+    "checker_squares": [
+      12,
+      9
+    ],
+    "square_size_mm": 30.0,
+    "detected_internal_corners": 88,
+    "depth_plane_residual_p90_mm": 0.7803984272247713,
+    "measured_square_median_mm": 30.238943005005535,
+    "median_square_scale_error_percent": 0.7964766833517878,
+    "rgb_pnp_vs_depth_plane_centre_difference_mm": 2.2251295854336997,
+    "rgb_pnp_vs_depth_plane_normal_difference_deg": 0.4498856808257495,
+    "physical_edge_accepted_profiles": 125,
+    "physical_edge_median_alignment_error_px": 1.668541794568081,
+    "physical_edge_gate_limit_px": 3.0,
+    "physical_edge_result": "not_testable",
+    "physical_edge_median_depth_step_mm": 2.164985775947571,
+    "physical_edge_minimum_required_depth_step_mm": 20.0,
+    "captured_frame_count": 1,
+    "minimum_required_frame_count_for_edge_gate": 10,
+    "motion_executed": false,
+    "interpretation": "The operator measured the printed 12x9 checker region as 360x270 mm, fixing each square at 30 mm. RGB corner PnP and registered-depth plane fitting agree in metric 3-D, so scale and planar pose consistency pass for this approximately 0.49 m view. Edge alignment is not testable: the board was nearly flush with the table, the local depth step was only about 1-4 mm, and only one synchronized frame was captured. The reported 1.67 px value is retained as a diagnostic only and is not a passing gate."
+  },
+  "checkerboard_multiframe_edge_alignment": {
+    "status": "passed",
+    "evidence": "g3_checkerboard_multiframe_geometry.json",
+    "raw_sequence_path": "artifacts/week2/g3_checkerboard_suspended_sequence.npz",
+    "raw_sequence_sha256": "0f32fa602fdb8121286868def391a03fc6c046ee4e9fca0f61cbe5fd7d174b34",
+    "synchronized_frames": 20,
+    "frames_with_all_88_corners": 20,
+    "unique_observation_ids": 20,
+    "maximum_color_depth_skew_ms": 0.49203199999999997,
+    "side_names": [
+      "top",
+      "right",
+      "bottom",
+      "left"
+    ],
+    "side_reliable_profile_fractions": [
+      1.0,
+      0.813953488372093,
+      0.7586206896551724,
+      0.7954545454545454
+    ],
+    "side_along_edge_span_fractions": [
+      1.0,
+      1.0,
+      1.0,
+      0.8372093023255814
+    ],
+    "side_median_absolute_error_px": [
+      1.6508025575325624,
+      0.8105692042116157,
+      2.0009430971665596,
+      0.12499999066210954
+    ],
+    "side_p95_absolute_error_px": [
+      2.101686020249282,
+      1.0807830212366711,
+      2.874999049383872,
+      0.5296736677132367
+    ],
+    "side_median_background_separation_m": [
+      1.0624172687530518,
+      1.0824171304702759,
+      0.05436120182275772,
+      1.7324278354644775
+    ],
+    "global_accepted_profiles": 172,
+    "global_median_absolute_error_px": 1.0063996075300627,
+    "global_p95_absolute_error_px": 2.7930384341532384,
+    "accepted_profiles_within_3px_fraction": 1.0,
+    "motion_executed": false,
+    "interpretation": "Every side exceeded the predeclared 30% reliable-profile and 50% along-edge-span requirements; every side median was <=3 px and global P95 was <=5 px. The bottom support box changed part of the edge, but profiles without independent >=20 mm background separation were excluded and the remaining bottom span still passed."
+  },
+  "gate_items": {
+    "passed": [
+      "three_independent_cold_starts",
+      "exact_profile_30_minute_transport_stability",
+      "timestamp_frame_encoding_and_K_stability",
+      "raw_rosbag_record_and_replay",
+      "canonical_metre_and_NaN_conversion",
+      "five_canonical_payload_archives",
+      "ineligible_mask_capture_does_not_publish",
+      "eligible_red_target_mask_and_depth_projection",
+      "stationary_real_single_view_gradient_nbv",
+      "checkerboard_metric_scale_accuracy",
+      "rgb_pnp_registered_depth_plane_consistency",
+      "twenty_frame_four_side_physical_color_depth_edge_alignment"
+    ],
+    "not_tested": [
+      "hand_eye_or_world_pose_calibration"
+    ],
+    "next_stage_prerequisites": [
+      "calibrated_link7_to_camera_optical_transform",
+      "synchronized_robot_pose_for_each_observation",
+      "mount_cable_and_stream_validation_during_supervised_low_speed_motion"
+    ],
+    "recommended_but_not_blocking_for_validated_profile": [
+      "USB_3_SuperSpeed_for_higher_bandwidth_profiles"
+    ]
+  },
+  "final_gate_decision": {
+    "full_G3": "passed_for_stationary_camera_stage",
+    "transport_subgate": "passed_conditionally_for_exact_profile_on_USB2_480M",
+    "reason": "All approved G3 stationary-camera checks pass, including measured checkerboard scale and twenty-frame four-side physical RGB-D edge alignment. USB2 acceptance remains limited to the exact 640x400@10 Hz profile; hand-eye calibration and moving-camera world poses remain later-stage prerequisites."
+  },
+  "runtime_evidence": [
+    "artifacts/week2/g3_corrected_30min_bag_info.txt",
+    "artifacts/week2/g3_corrected_30min_offline_analysis.json",
+    "artifacts/week2/g3_corrected_30min_health.jsonl",
+    "artifacts/week2/g3_corrected_30min_metrics.json",
+    "artifacts/week2/g3_replay_canonical_depth_analysis.json",
+    "artifacts/week2/g3_require_mask_probe_capture.txt",
+    "artifacts/week2/g3_require_mask_no_publish_monitor.json",
+    "artifacts/week2/g3_canonical_npz_manifest.json",
+    "validation/week2/artifacts/g3_real_single_view_nbv.json",
+    "validation/week2/artifacts/g3_checkerboard_geometry.json",
+    "validation/week2/artifacts/g3_checkerboard_alignment.png",
+    "validation/week2/artifacts/g3_checkerboard_multiframe_geometry.json",
+    "validation/week2/artifacts/g3_checkerboard_multiframe_alignment.png"
+  ]
+}

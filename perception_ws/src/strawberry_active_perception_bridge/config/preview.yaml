@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+    observation_topic: /strawberry/perception/observation
+    next_view_topic: /strawberry/nbv/next_view
+    solve_ik_service: /strawberry_nero/solve_ik
+    diagnostics_topic: /strawberry/active_perception/ik_preview
+    base_frame: base_link
+    expected_camera_frame: camera_sim_optical_frame
+    preview_alphas: [1.0, 0.5, 0.25, 0.125]
+    service_timeout_sec: 2.0
+    # Simulation fixture only. It is not a hand-eye calibration.
+    link7_camera_transform:
+      [0.0, 0.0, 1.0, 0.10,
+       -1.0, 0.0, 0.0, 0.00,
+       0.0, -1.0, 0.0, 0.00,
+       0.0, 0.0, 0.0, 1.00]

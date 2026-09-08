@@ -300,7 +300,8 @@ def require_confirmation(
     if input_function is input and not sys.stdin.isatty():
         raise SmokeTestError("真机执行确认必须在交互式终端中输入")
     answer = input_function(
-        f"确认工作区仍为空、急停仍可触及；输入 {expected} 继续："
+        "确认工作区仍为空，观察人员仍在工作区外守住控制箱断电位置；"
+        f"输入 {expected} 继续："
     ).strip()
     if answer != expected:
         raise SmokeTestError("确认词不匹配；没有发送运动请求")
@@ -1130,7 +1131,6 @@ class NeroRealSmokeTest(Node):
                 f"当前到 ready 的跨度 {total_delta:.4f} rad 超过 "
                 "0.50 rad 专用上限"
             )
-
         trajectory = TrajectoryGenerator(joint_limits=safe_limits)
         predicted = state.positions.copy()
         target_poses = []
@@ -1234,6 +1234,7 @@ class NeroRealSmokeTest(Node):
                 raise SmokeTestError(
                     f"ready 第 {index} 段实时关节变化超过 0.06 rad"
                 )
+
             self.execute_placo(
                 target_pose,
                 state,
@@ -1727,7 +1728,7 @@ def main(args: Optional[Sequence[str]] = None) -> int:
     except (KeyboardInterrupt, EOFError):
         print(
             "\n操作已取消；若机械臂正在运动，请观察其保持状态，"
-            "异常时立即按物理急停。",
+            "异常时由观察人员在工作区外切断控制箱电源（机械臂可能下落）。",
             file=sys.stderr,
         )
         return 130

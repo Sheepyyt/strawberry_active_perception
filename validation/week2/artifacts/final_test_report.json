@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "artifact": "week2_final_test_report",
+  "generated_utc": "2026-08-13T07:00:00Z",
+  "status": "completed_through_g4_with_next_stage_prerequisites",
+  "gate_summary": {
+    "G0": "passed",
+    "G1": "passed",
+    "G2": "passed",
+    "G3": "passed_stationary_camera_exact_profile",
+    "G4": "passed_simulation_precheck_only"
+  },
+  "software_regression": {
+    "placo_controller": {
+      "command": "python -m pytest -q nero_ws/src/strawberry_nero_control/test",
+      "passed": 105,
+      "failed": 0,
+      "duration_sec": 29.90
+    },
+    "perception_clean_colcon": {
+      "workspace_packages": 4,
+      "build_status": "passed",
+      "tests": 105,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 4,
+      "note": "Fresh four-package build and test via .venv-nbv `python -m colcon`; includes rosidl contract, Gradient-NBV, C++ observation, launch/lint, and bridge tests."
+    },
+    "validation_tools_and_artifacts": {
+      "command": "/usr/bin/python3 -m pytest -q validation/week2/test",
+      "passed": 31,
+      "failed": 0
+    },
+    "rosdep": {
+      "scope": "perception plus the in-source Orbbec and NERO dependency packages; ignored MoveIt package excluded",
+      "result": "all system dependencies satisfied after libgoogle-glog-dev installation",
+      "perception_manifest_missing_keys": 0
+    },
+    "camera_driver_packages": {
+      "built": [
+        "orbbec_camera_msgs",
+        "orbbec_description",
+        "orbbec_camera"
+      ],
+      "build_status": "passed_clean_build_and_persistent_workspace_build",
+      "rosdep_status": "all_system_dependencies_satisfied"
+    },
+    "git_diff_check": "passed"
+  },
+  "acceptance_evidence": {
+    "G2": "g2_nbv_acceptance.json",
+    "G2_coverage_curve": "g2_nbv_acceptance_coverage.csv",
+    "G3": "g3_camera_runtime_summary.json",
+    "G3_real_single_view_NBV": "g3_real_single_view_nbv.json",
+    "G3_checkerboard_geometry": "g3_checkerboard_geometry.json",
+    "G3_checkerboard_multiframe_geometry": "g3_checkerboard_multiframe_geometry.json",
+    "G4": "g4_gradient_to_placo_pipeline.json"
+  },
+  "runtime_safety_scope": {
+    "move_to_pose_called": false,
+    "can_driver_started": false,
+    "g4_controller_mode": "sim",
+    "g4_execution_enabled": false,
+    "g4_motion_commands_observed": 0,
+    "note": "G4 is an IK preview, not evidence of collision safety or physical motion readiness."
+  },
+  "remaining_external_prerequisites": [
+    "Calibrate the rigid link7-to-camera-optical transform and associate every captured frame with synchronized robot joint feedback.",
+    "Validate mount rigidity, cable slack, emergency-stop access, and stream continuity during supervised low-speed arm motion."
+  ],
+  "recommended_hardware_upgrade": [
+    "USB 3 SuperSpeed is recommended for higher resolution, higher frame rate, or extra streams. The validated 640x400@10 Hz USB 2 profile may continue unless cable motion causes transport failures."
+  ]
+}

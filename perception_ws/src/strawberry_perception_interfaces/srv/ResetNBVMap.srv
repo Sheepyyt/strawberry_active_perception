@@ -1,0 +1,14 @@
+# Reset only the configured map whose scene_id exactly matches this request.
+string scene_id
+---
+uint16 SUCCESS=0
+uint16 ALREADY_EMPTY=1
+uint16 INVALID_SCENE_ID=10
+uint16 NOT_CONFIGURED=11
+uint16 SCENE_MISMATCH=12
+uint16 INTERNAL_ERROR=255
+
+# True for SUCCESS and ALREADY_EMPTY.
+bool success
+uint16 code
+string reason

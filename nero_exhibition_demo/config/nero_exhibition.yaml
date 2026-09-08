@@ -1,0 +1,10 @@
+/**:
+  ros__parameters:
+    # Exhibition-only relaxations. This file is loaded after the normal
+    # research configuration and must never be used by NBV experiments.
+    ik_position_tolerance_m: 0.050
+    ik_position_convergence_target_m: 0.001
+    ik_orientation_tolerance_rad: 0.087266463
+    max_joint_delta_rad: 1.50
+    final_position_tolerance_m: 0.050
+    final_orientation_tolerance_rad: 0.087266463

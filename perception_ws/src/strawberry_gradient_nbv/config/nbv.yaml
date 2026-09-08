@@ -1,0 +1,9 @@
+/**:
+  ros__parameters:
+    observation_topic: /strawberry/perception/observation
+    next_view_topic: /strawberry/nbv/next_view
+    configure_service: /strawberry/nbv/configure
+    reset_service: /strawberry/nbv/reset_map
+    compute_action: /strawberry/nbv/compute_next_view
+    device: auto
+    observation_cache_size: 32

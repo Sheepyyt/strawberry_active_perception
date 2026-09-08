@@ -1,5 +1,6 @@
 # Python 虚拟环境和缓存
 .venv/
+.venv-nbv/
 **/__pycache__/
 *.py[cod]
 **/.pytest_cache/
@@ -8,13 +9,50 @@
 **/build/
 **/install/
 **/log/
+# Isolated colcon verification directories use suffixed names.
+perception_ws/build-*/
+perception_ws/install-*/
+perception_ws/log-*/
+perception_ws/test-log-*/
 /log/
+/Log/
 
 # 编辑器缓存
 .vscode/
 .idea/
 
 # rosbag 和实验数据
+artifacts/
+!validation/week2/artifacts/
+!validation/week2/artifacts/baseline_initial.json
+!validation/week2/artifacts/g2_nbv_acceptance.json
+!validation/week2/artifacts/g2_nbv_acceptance_coverage.csv
+!validation/week2/artifacts/g3_camera_runtime_summary.json
+!validation/week2/artifacts/g3_real_single_view_nbv.json
+!validation/week2/artifacts/g3_checkerboard_geometry.json
+!validation/week2/artifacts/g3_checkerboard_alignment.png
+!validation/week2/artifacts/g3_checkerboard_multiframe_geometry.json
+!validation/week2/artifacts/g3_checkerboard_multiframe_alignment.png
+!validation/week2/artifacts/g4_placo_preview.json
+!validation/week2/artifacts/g4_gradient_to_placo_pipeline.json
+!validation/week2/artifacts/final_test_report.json
+!validation/week3/artifacts/
+validation/week3/artifacts/*
+!validation/week3/artifacts/handeye_live_repeatability_summary.json
+!validation/week3/artifacts/prospective_pose026_030_factory_raw_D.json
+!validation/week3/artifacts/real_handeye_current_solveik_preview.json
+!validation/week3/artifacts/real_handeye_small_nbv_solveik_preview.json
+!validation/week4/artifacts/
+validation/week4/artifacts/*
+!validation/week4/artifacts/real_nbv_frozen_config_v3_preview.json
+!validation/week4/artifacts/real_nbv_frozen_config_v3_execution.json
+!validation/week4/artifacts/real_nbv_post_motion_summary.json
+validation/week2/artifacts/camera_*.json
+validation/week2/artifacts/cold_start_*.json
+validation/week2/artifacts/known_plane*.json
+validation/week2/artifacts/replay_*.json
+validation/week2/artifacts/stability_*.json
+validation/week2/artifacts/usb_latest.json
 rosbag2_*/
 *.bag
 *.db3

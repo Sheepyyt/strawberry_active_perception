@@ -1,0 +1,72 @@
+{
+  "schema": "strawberry_real_nbv_closed_loop_summary/v1",
+  "date": "2026-08-14",
+  "status": "passed_exactly_one_real_motion",
+  "plain_summary": "真实相机观测、Gradient-NBV、正式手眼外参、Placo SolveIK、一次机械臂运动和动作后地图更新已闭环通过；没有请求第二次运动。",
+  "preview_evidence": {
+    "path": "validation/week4/artifacts/real_nbv_frozen_config_v3_preview.json",
+    "sha256": "8e3d032a794a9a5a37dfed4e24964daffefde32fd17df11d97fba529f14e256f",
+    "configure_request_sha256": "5352cb505cf9a1c278c6e067d456d53a255b95c145dce09705c74a810370697b"
+  },
+  "execution_evidence": {
+    "path": "validation/week4/artifacts/real_nbv_frozen_config_v3_execution.json",
+    "sha256": "a22c6db98dcaab0b04e2e28e76429e731ece286ceb842f0dc3338ac7c71a442c",
+    "status": "executed_once_gates_closed_post_map_updated",
+    "started_utc": "2026-08-14T03:32:25.088980+00:00",
+    "finished_utc": "2026-08-14T03:32:42.470864+00:00"
+  },
+  "motion": {
+    "high_level_move_to_pose_goals": 1,
+    "controller_trajectory_messages": 44,
+    "frozen_camera_target_translation_m": 0.0018898498653857731,
+    "frozen_camera_target_rotation_deg": 7.83097,
+    "measured_pre_to_post_camera_translation_m": 0.00182888,
+    "measured_pre_to_post_camera_rotation_deg": 7.81455,
+    "post_target_translation_error_m": 0.00042077812316054135,
+    "post_target_rotation_error_deg": 0.011505741938420421,
+    "move_to_pose_reported_position_error_m": 0.0005150346855762237,
+    "move_to_pose_reported_orientation_error_rad": 0.0003668756917128919,
+    "observed_joint_change_rad": [
+      -0.0445058959258553,
+      -0.047699848457005034,
+      -0.02841396022246767,
+      -0.010855947947404632,
+      -0.06361725123519335,
+      0.023806290997202717,
+      -0.005777039824101271
+    ],
+    "max_abs_observed_joint_change_rad": 0.06361725123519335,
+    "second_motion_requested": false,
+    "one_shot_consumed": true
+  },
+  "map_update": {
+    "coverage_before": 0.3056800067424774,
+    "coverage_after": 0.435808002948761,
+    "coverage_increase_percentage_points": 13.012799620628357,
+    "observed_voxels_before": 267229,
+    "observed_voxels_after": 372783,
+    "observed_voxels_increase": 105554,
+    "post_red_mask_pixels": 4320,
+    "post_target_center_drift_m": 0.0033023722776183637
+  },
+  "post_motion_safety": {
+    "controller_execution_enabled": false,
+    "controller_false_ack_count": 2,
+    "driver_false_ack_count": 2,
+    "arm_status": 0,
+    "motion_status": 0,
+    "err_status": 0,
+    "can_faults": 0,
+    "joint_limit_faults": 0,
+    "independent_monitor_seconds_after_motion": 120,
+    "independent_monitor_command_count": 44,
+    "independent_monitor_new_commands_after_trajectory": 0,
+    "independent_monitor_min_safe_joint_margin_rad": 0.232112
+  },
+  "important_interpretation": {
+    "safe_to_execute_is_false_because": "这是一张已消费的一次性授权票，成功后故意不能再次执行；false 不是本次失败。",
+    "trajectory_message_note": "44 条 move_j 是同一个 MoveToPose 目标的平滑轨迹采样，不是 44 次独立运动。",
+    "collision_limit": "本次软件仍没有环境碰撞模型；结果只证明已人工清空的当前小范围内这一动作通过，不能推广为任意空间均安全。",
+    "robot_state_after_test": "机械臂仍使能并保持动作后的姿态；相机和算法进程保持在线。"
+  }
+}

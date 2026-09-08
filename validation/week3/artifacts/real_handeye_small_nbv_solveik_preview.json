@@ -1,0 +1,208 @@
+{
+  "T_base_camera_current": [
+    [
+      -0.6996880719360519,
+      -0.7066743112684066,
+      0.10510956085786803,
+      0.2641310139379259
+    ],
+    [
+      -0.3035860655863164,
+      0.16090166077021817,
+      -0.9391198839036508,
+      0.04460792539460303
+    ],
+    [
+      0.6467395942512191,
+      -0.6890007789216999,
+      -0.32711744660451797,
+      0.3384799836675882
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "T_base_camera_target": [
+    [
+      -0.6981152741626055,
+      -0.7066743112684065,
+      0.1150933611212801,
+      0.2606325735782456
+    ],
+    [
+      -0.31696972172866933,
+      0.16090166077021806,
+      -0.9346875686926811,
+      0.043089995066671445
+    ],
+    [
+      0.6420009809090016,
+      -0.6890007789216998,
+      -0.33632226681736516,
+      0.3417136816388443
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "T_base_link7_current": [
+    [
+      0.10554829362882112,
+      -0.6990252938978865,
+      0.7072645871263582,
+      0.2588054997395641
+    ],
+    [
+      -0.9403762198501182,
+      0.16110354988191744,
+      0.2995633678470163,
+      0.10487608759768335
+    ],
+    [
+      -0.3233452069421262,
+      -0.6967132011856946,
+      -0.6403425586677303,
+      0.36110297312166356
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "artifact": "real_handeye_solve_ik_no_motion_preview",
+  "frames": {
+    "base": "base_link",
+    "camera": "camera_color_optical_frame",
+    "controlled": "link7"
+  },
+  "generated_utc": "2026-08-13T16:07:05.604071Z",
+  "handeye_report": {
+    "path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json",
+    "sample_count": 30,
+    "session_id": "handeye_session_001",
+    "sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f",
+    "transform_matches_bridge_diagnostic": true,
+    "version": "strawberry_handeye_stability_report/v1"
+  },
+  "ik_preview": {
+    "hardware_id": "validated_handeye_no_motion",
+    "message": "A motion-free Placo SolveIK candidate was accepted",
+    "name": "strawberry_active_perception_bridge/ik_preview_success",
+    "values": {
+      "T_link7_camera_optical": [
+        [
+          0.002514086749112965,
+          -0.0031112637846833525,
+          0.9999919996707374,
+          0.06455188069285712
+        ],
+        [
+          -0.010401145783000108,
+          0.9999409851584371,
+          0.0031372546558028984,
+          0.0023296513994964236
+        ],
+        [
+          -0.9999427461281065,
+          -0.010408949900767883,
+          0.002481577672487967,
+          0.0001988769089705917
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "alpha": 1.0,
+      "attempt_count": 1,
+      "attempts": [
+        {
+          "alpha": 1.0,
+          "code": 0,
+          "max_joint_delta_rad": 0.01200000000000001,
+          "orientation_error_rad": 0.0005768175923503059,
+          "position_error_m": 0.0009936565771136957,
+          "reason": "IK solution accepted",
+          "solve_time_ms": 0.15744997654110193,
+          "success": true
+        }
+      ],
+      "base_frame": "base_link",
+      "calibration_source": "validated_report",
+      "camera_frame": "camera_color_optical_frame",
+      "can_publisher_created": false,
+      "code": 0,
+      "controlled_frame": "link7",
+      "handeye_report_path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json",
+      "handeye_report_sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f",
+      "handeye_report_version": "strawberry_handeye_stability_report/v1",
+      "handeye_sample_count": 30,
+      "handeye_session_id": "handeye_session_001",
+      "max_joint_delta_rad": 0.01200000000000001,
+      "motion_command_count": 0,
+      "motion_command_count_observed": 0,
+      "motion_command_publisher_count": 1,
+      "motion_command_topic": "/control/move_j",
+      "move_action_client_created": false,
+      "observation_id": "small_nbv_1786637224_984563441",
+      "orientation_error_rad": 0.0005768175923503059,
+      "outcome_code": "SUCCESS",
+      "position_error_m": 0.0009936565771136957,
+      "reason": "IK solution accepted",
+      "scene_id": "real_handeye_no_motion_preview",
+      "solution_joint_positions": [
+        1.0406933871885158,
+        -1.4186114812747121,
+        0.6479630992151308,
+        1.8415719959836059,
+        0.4882216983200448,
+        -0.4478785273930639,
+        1.1361984296770795
+      ],
+      "solve_time_ms": 0.15744997654110193,
+      "success": true
+    }
+  },
+  "observation_id": "small_nbv_1786637224_984563441",
+  "preview_mode": "small_nbv",
+  "safety": {
+    "bridge_motion_command_count_observed": 0,
+    "command_publisher_count_after": 1,
+    "command_publisher_count_before": 1,
+    "command_publisher_created": false,
+    "command_topic": "/control/move_j",
+    "controller_diagnostic": {
+      "message": "IK 可用，执行门关闭",
+      "name": "/nero_control: safety",
+      "received_monotonic_ns": 654208374697974,
+      "values": {
+        "command_interface": "/control/move_j",
+        "environment_collision_checking": false,
+        "execution_enabled": "False",
+        "feedback_fresh": "True",
+        "mode": "real",
+        "precision_test_mode": "True"
+      }
+    },
+    "controller_diagnostic_fresh_after_request_started": true,
+    "controller_execution_enabled": false,
+    "monitor_duration_sec": 1.056099739,
+    "motion_command_count_observed": 0,
+    "move_action_client_created": false,
+    "passed": true
+  },
+  "scene_id": "real_handeye_no_motion_preview",
+  "schema_version": 1,
+  "status": "passed",
+  "translation_step_m": 0.005000000000000024
+}

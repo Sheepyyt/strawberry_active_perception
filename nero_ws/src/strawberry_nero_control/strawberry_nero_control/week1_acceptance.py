@@ -1230,7 +1230,8 @@ def main(args: Optional[Sequence[str]] = None) -> int:
     except (KeyboardInterrupt, EOFError):
         print(
             "\n验收批次已取消；断点保留在隐藏运行目录。"
-            "确认机械臂保持状态，异常时立即按物理急停。",
+            "确认机械臂保持状态；异常时由观察人员在工作区外切断控制箱电源，"
+            "机械臂可能下落。",
             file=sys.stderr,
         )
         return 130

@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "artifact": "g2_nbv_acceptance",
+  "generated_utc": "2026-08-12T09:45:16.354584Z",
+  "gate": "G2",
+  "status": "passed",
+  "checks": {
+    "multiview_coverage": true,
+    "next_view_geometry": true,
+    "performance": true,
+    "fixed_seed_reproducibility": true,
+    "mask_semantics": true,
+    "invalid_inputs_are_atomic": true,
+    "core_import_independence": true
+  },
+  "environment": {
+    "python": "3.12.3",
+    "numpy": "2.3.5",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce RTX 4060 Ti"
+  },
+  "upstream_reference_commit": "81b501defc117732f66478ed01cb528b15140208",
+  "multiview": {
+    "fixture": "occluded_red_target_5view_v1",
+    "coverage_definition": "target-ROI voxels ever touched by a valid ray / total target-ROI voxels",
+    "records": [
+      {
+        "observation_id": "occluded_red_target_5view_v1:000",
+        "coverage": 0.206864,
+        "gain": 0.9590619206428528,
+        "current_gain": 0.7457770109176636,
+        "planned_gain": 0.9590619206428528,
+        "gain_improvement": 0.2132849097251892,
+        "wall_time_sec": 0.28009278897661716,
+        "core_time_ms": 279.9529560143128,
+        "observed_voxel_count": 237976,
+        "occupied_voxel_count": 1976,
+        "loss_history": [
+          0.29332849383354187,
+          0.2694385051727295,
+          0.2546682059764862,
+          0.18734325468540192,
+          0.14051935076713562,
+          0.0823046863079071,
+          0.06340594589710236,
+          0.04411350563168526,
+          0.04200182855129242,
+          0.04194532707333565
+        ],
+        "step_m": 0.01781015424552653,
+        "look_at_error_deg": 0.011488659787706091,
+        "within_observation_bounds": true,
+        "pose": [
+          [
+            0.999876081943512,
+            3.8694797694915906e-05,
+            -0.0157422237098217,
+            0.005242805927991867
+          ],
+          [
+            -0.0,
+            0.9999969601631165,
+            0.00245801848359406,
+            -0.0008186209015548229
+          ],
+          [
+            0.01574227213859558,
+            -0.0024577139411121607,
+            0.9998730421066284,
+            -0.33299869298934937
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "observation_id": "occluded_red_target_5view_v1:001",
+        "coverage": 0.36512,
+        "gain": 0.7360996603965759,
+        "current_gain": 0.7248644828796387,
+        "planned_gain": 0.7360996603965759,
+        "gain_improvement": 0.011235177516937256,
+        "wall_time_sec": 0.06798832304775715,
+        "core_time_ms": 67.87211704067886,
+        "observed_voxel_count": 359848,
+        "occupied_voxel_count": 3663,
+        "loss_history": [
+          0.32177039980888367,
+          0.3120315968990326,
+          0.30842533707618713,
+          0.30814722180366516,
+          0.3070058226585388,
+          0.306915819644928,
+          0.30682694911956787,
+          0.30670714378356934,
+          0.30658718943595886,
+          0.3064922094345093
+        ],
+        "step_m": 0.002288311012541567,
+        "look_at_error_deg": 0.011624384405631146,
+        "within_observation_bounds": true,
+        "pose": [
+          [
+            0.9760724902153015,
+            -0.00033500665449537337,
+            -0.21744517982006073,
+            0.07654538750648499
+          ],
+          [
+            -0.0,
+            0.9999988079071045,
+            -0.0015406468883156776,
+            0.0005423409165814519
+          ],
+          [
+            0.21744544804096222,
+            0.0015037830453366041,
+            0.976071298122406,
+            -0.3435981273651123
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "observation_id": "occluded_red_target_5view_v1:002",
+        "coverage": 0.463856,
+        "gain": 0.704838752746582,
+        "current_gain": 0.6911227703094482,
+        "planned_gain": 0.704838752746582,
+        "gain_improvement": 0.013715982437133789,
+        "wall_time_sec": 0.06808345706667751,
+        "core_time_ms": 67.97132408246398,
+        "observed_voxel_count": 433690,
+        "occupied_voxel_count": 5226,
+        "loss_history": [
+          0.36943763494491577,
+          0.36396780610084534,
+          0.36365950107574463,
+          0.3636228144168854,
+          0.36322006583213806,
+          0.36299365758895874,
+          0.36266764998435974,
+          0.36194083094596863,
+          0.36091819405555725,
+          0.3602810800075531
+        ],
+        "step_m": 0.004477989193213785,
+        "look_at_error_deg": 0.004293697697583814,
+        "within_observation_bounds": true,
+        "pose": [
+          [
+            0.9779943823814392,
+            -0.00238352594897151,
+            0.20861764252185822,
+            -0.07308856397867203
+          ],
+          [
+            0.0,
+            0.999934732913971,
+            0.011424587108194828,
+            -0.004002569708973169
+          ],
+          [
+            -0.2086312621831894,
+            -0.011173182167112827,
+            0.9779305458068848,
+            -0.342615008354187
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "observation_id": "occluded_red_target_5view_v1:003",
+        "coverage": 0.519872,
+        "gain": 0.7256429195404053,
+        "current_gain": 0.6414605379104614,
+        "planned_gain": 0.7256429195404053,
+        "gain_improvement": 0.08418238162994385,
+        "wall_time_sec": 0.050776129006408155,
+        "core_time_ms": 50.66291301045567,
+        "observed_voxel_count": 485007,
+        "occupied_voxel_count": 6321,
+        "loss_history": [
+          0.44400742650032043,
+          0.439197301864624,
+          0.4390294551849365,
+          0.43895411491394043,
+          0.4376046657562256,
+          0.39761608839035034,
+          0.39384549856185913,
+          0.388057678937912,
+          0.3879731595516205,
+          0.385831743478775
+        ],
+        "step_m": 0.010592354052514257,
+        "look_at_error_deg": 0.016009243830141167,
+        "within_observation_bounds": true,
+        "pose": [
+          [
+            0.9999994039535522,
+            -0.0002195764536736533,
+            -0.0010660213883966208,
+            0.000363665574695915
+          ],
+          [
+            -0.0,
+            0.9794386029243469,
+            -0.20174235105514526,
+            0.0688229650259018
+          ],
+          [
+            0.0010884003713726997,
+            0.2017422318458557,
+            0.9794380068778992,
+            -0.3341282904148102
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "observation_id": "occluded_red_target_5view_v1:004",
+        "coverage": 0.563128,
+        "gain": 0.6011775135993958,
+        "current_gain": 0.5807377099990845,
+        "planned_gain": 0.6011775135993958,
+        "gain_improvement": 0.02043980360031128,
+        "wall_time_sec": 0.05253383703529835,
+        "core_time_ms": 52.4295469513163,
+        "observed_voxel_count": 524780,
+        "occupied_voxel_count": 7297,
+        "loss_history": [
+          0.5434558391571045,
+          0.5367307066917419,
+          0.5360291600227356,
+          0.5339104533195496,
+          0.5335483551025391,
+          0.5331143140792847,
+          0.5168560743331909,
+          0.5133253335952759,
+          0.5127516984939575,
+          0.5095626711845398
+        ],
+        "step_m": 0.0071150552572143,
+        "look_at_error_deg": 0.0,
+        "within_observation_bounds": true,
+        "pose": [
+          [
+            0.9999551773071289,
+            0.0019247623858973384,
+            -0.009267198853194714,
+            0.003247916931286454
+          ],
+          [
+            -0.0,
+            0.97910475730896,
+            0.20335640013217926,
+            -0.07127123326063156
+          ],
+          [
+            0.009464970789849758,
+            -0.20334728062152863,
+            0.97906094789505,
+            -0.34313589334487915
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      }
+    ],
+    "coverage": [
+      0.206864,
+      0.36512,
+      0.463856,
+      0.519872,
+      0.563128
+    ],
+    "coverage_growth": [
+      0.158256,
+      0.09873599999999999,
+      0.05601600000000001,
+      0.04325599999999996
+    ],
+    "positive_growth_count_last_four": 4,
+    "final_minus_first": 0.35626399999999997,
+    "coverage_gate_passed": true,
+    "geometry_gate_passed": true
+  },
+  "performance": {
+    "input_resolution": [
+      640,
+      400
+    ],
+    "algorithm_resolution": [
+      320,
+      200
+    ],
+    "samples_per_ray": 128,
+    "optimization_steps": 10,
+    "wall_time_sec": 0.40976780094206333,
+    "core_time_ms": 409.64177704881877,
+    "peak_allocated_mib": 1331.35986328125,
+    "peak_reserved_mib": 1388.0,
+    "gain": 0.5652604103088379,
+    "current_gain": 0.5452562570571899,
+    "planned_gain": 0.5652604103088379,
+    "gain_improvement": 0.02000415325164795,
+    "coverage": 0.505992,
+    "gate_passed": true
+  },
+  "reproducibility": {
+    "pose_max_absolute_difference": 0.0,
+    "gain_absolute_difference": 0.0,
+    "current_gain_absolute_difference": 0.0,
+    "gate_passed": true
+  },
+  "mask_semantics": {
+    "ablation": "same-area truth mask versus horizontally shifted mask",
+    "masked_pixel_count": 886,
+    "same_mask_area": true,
+    "truth_current_gain": 0.7457770109176636,
+    "shifted_current_gain": 0.5633599758148193,
+    "current_gain_absolute_difference": 0.18241703510284424,
+    "planned_pose_translation_difference_m": 0.00754588780496089,
+    "truth_gain_improvement": 0.2132849097251892,
+    "shifted_gain_improvement": 0.16738176345825195,
+    "gate_passed": true
+  },
+  "invalid_inputs": {
+    "cases": {
+      "empty_mask": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "target mask is empty"
+      },
+      "all_bad_depth": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "depth contains no valid samples in the configured range"
+      },
+      "bad_K": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "K focal lengths must be positive"
+      },
+      "size_mismatch": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "depth and mask must share a non-empty HxW grid"
+      },
+      "bad_pose": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "T_world_camera_optical rotation is not orthonormal"
+      },
+      "target_depth_invalid": {
+        "rejected": true,
+        "map_unchanged": true,
+        "reason": "target mask has no valid metric depth samples"
+      }
+    },
+    "gate_passed": true
+  },
+  "independence": {
+    "forbidden_imports": [
+      "import rclpy",
+      "import rospy",
+      "import moveit",
+      "from moveit",
+      "import abb_control",
+      "open3d",
+      "matplotlib",
+      "cv_bridge"
+    ],
+    "gate_passed": true,
+    "note": "Core check is performed without sourcing or launching ROS/MoveIt/ABB."
+  }
+}

@@ -1,0 +1,36 @@
+strawberry_gradient_nbv
+=======================
+
+This package contains an independent implementation of the method described in:
+
+  Akshay K. Burusa, Eldert J. van Henten, and Gert Kootstra,
+  "Gradient-based local next-best-view planning for improved perception of
+  targeted plant nodes," 2024 IEEE International Conference on Robotics and
+  Automation (ICRA), pp. 15854-15860, 2024.
+  https://arxiv.org/abs/2311.16759
+
+The public reference implementation was audited at:
+
+  https://github.com/akshaykburusa/gradientnbv
+  commit 81b501defc117732f66478ed01cb528b15140208
+
+The upstream repository root did not contain a license file at that commit.
+Consequently, no upstream implementation source is copied verbatim into this
+package.  This package is distributed under Apache-2.0; that license does not
+make any claim about or relicense the upstream repository.
+
+Differences from that reference include: no ROS 1, ABB, MoveIt, Gazebo,
+Open3D, Matplotlib, or RViz dependencies; direct T_world_camera_optical input;
+no Gazebo 24 mm offset or implicit optical-frame rotation; accumulated duplicate
+voxel updates; an independent ever_observed coverage bitmap; explicit bounds and
+invalid-input transactions; and optical +Z look-at orientation.
+
+The independent gain model also differs numerically from the reference: semantic
+log odds start at an explicit 0.10 background prior and are updated only at
+measured endpoints; unknown occupancy is transparent until a ray observes it;
+gain is restricted to the configured target ROI and weights unseen voxels near
+mask-derived target evidence.  Camera position is optimized with normalized,
+projected gradient steps and bounded backtracking rather than the reference
+AdamW update.  Acceptance therefore reports both current-view and planned-view
+gain and requires a measured positive improvement; these values should not be
+compared numerically with the upstream implementation.

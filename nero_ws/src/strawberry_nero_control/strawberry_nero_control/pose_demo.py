@@ -409,7 +409,11 @@ def main(args: Optional[Sequence[str]] = None) -> int:
         print(f"\n操作已停止或被拒绝：{error}", file=sys.stderr)
         return 2
     except (KeyboardInterrupt, EOFError):
-        print("\n操作已取消；异常运动时立即按物理急停。", file=sys.stderr)
+        print(
+            "\n操作已取消；异常时由观察人员在工作区外切断控制箱电源"
+            "（机械臂可能下落）。",
+            file=sys.stderr,
+        )
         return 130
     finally:
         if node is not None:

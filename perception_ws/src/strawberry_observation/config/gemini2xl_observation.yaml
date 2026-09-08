@@ -1,0 +1,39 @@
+/**:
+  ros__parameters:
+    # The adapter rectifies raw colour itself from the original colour K/D.
+    # Registered depth already lives on the zero-distortion colour grid.
+    input_color_topic: /camera/color/image_raw
+    input_depth_topic: /camera/depth/image_raw
+    input_color_camera_info_topic: /camera/color/camera_info
+    input_depth_camera_info_topic: /camera/depth/camera_info
+    observation_topic: /strawberry/perception/observation
+    capture_service: /strawberry/perception/capture_observation
+
+    source_name: gemini2xl_AYML241003A
+    source_type: 1  # Observation.SOURCE_REAL; set 4 when replaying a rosbag.
+    fixed_pose_enabled: true
+    pose_world_frame: camera_session
+
+    # ApproximateTime may form candidates up to 20 ms apart; the processor then
+    # enforces the stricter 5 ms observation contract before capture.
+    sync_queue_size: 30
+    sync_max_interval_sec: 0.02
+    sample_queue_capacity: 100
+    max_time_skew_sec: 0.005
+    default_capture_timeout_sec: 2.0
+    max_discard_frames: 100
+
+    # Gemini publishes 16UC1 depth units as millimetres with depth scaling on.
+    depth_16uc1_scale: 0.001
+    depth_32fc1_scale: 1.0
+    depth_min_m: 0.2
+    depth_max_m: 2.5
+    min_valid_depth_fraction: 0.05
+
+    # OpenCV HSV: red spans the hue wrap-around. Keep only the largest component.
+    red_hsv_low_1: [0, 80, 50]
+    red_hsv_high_1: [10, 255, 255]
+    red_hsv_low_2: [170, 80, 50]
+    red_hsv_high_2: [179, 255, 255]
+    morphology_kernel_size: 5
+    min_mask_pixels: 200

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "artifact": "g3_real_single_view_nbv",
+  "generated_utc": "2026-08-13T02:48:48Z",
+  "status": "passed",
+  "scope": "Stationary real-camera single-view smoke test only; no robot, CAN, MoveToPose, hand-eye calibration, or physical camera motion",
+  "scene": {
+    "scene_id": "real_red_single_view_v1",
+    "observation_id": "obs_1786589126_198110976",
+    "world_frame": "camera_session",
+    "camera_pose_mode": "fixed identity for one stationary view",
+    "target_center_configured_m": [
+      0.0177136,
+      -0.0235072,
+      0.569
+    ]
+  },
+  "canonical_observation": {
+    "grid": [
+      640,
+      400
+    ],
+    "color_encoding": "rgb8",
+    "depth_encoding": "32FC1",
+    "depth_unit": "m",
+    "invalid_depth": "NaN",
+    "mask_encoding": "mono8",
+    "mask_pixels": 4539,
+    "mask_bbox_uv": [
+      286,
+      150,
+      357,
+      220
+    ],
+    "mask_valid_depth_fraction": 0.9828155981493721,
+    "whole_image_valid_depth_fraction": 0.653124988079071,
+    "measured_target_center_camera_optical_m": [
+      0.017842167238154964,
+      -0.023718172020898258,
+      0.5680000185966492
+    ],
+    "target_depth_p10_p90_m": [
+      0.5490000247955322,
+      0.5920000076293945
+    ],
+    "color_depth_skew_sec": 0.000112128,
+    "skew_matches_header_difference_within_1ns": true,
+    "pose_valid": true
+  },
+  "nbv_configuration": {
+    "map_size_m": [
+      0.3,
+      0.3,
+      0.3
+    ],
+    "target_roi_size_m": [
+      0.15,
+      0.15,
+      0.15
+    ],
+    "voxel_size_m": 0.003,
+    "depth_range_m": [
+      0.2,
+      2.5
+    ],
+    "samples_per_ray": 128,
+    "optimization_steps": 10,
+    "max_translation_step_m": 0.1,
+    "random_seed": 0
+  },
+  "next_view": {
+    "success": true,
+    "code": 0,
+    "position_camera_session_m": [
+      -0.001635937369428575,
+      0.0002580653235781938,
+      0.0000073611445259302855
+    ],
+    "orientation_xyzw": [
+      0.02085492951978802,
+      0.016992260757085608,
+      -0.0003545007260520724,
+      0.9996380391513335
+    ],
+    "translation_step_m": 0.001656183255070264,
+    "look_at_error_deg": 0.0,
+    "quaternion_norm": 1.0,
+    "gain": 0.03047904372215271,
+    "roi_ever_observed_coverage": 0.3181439936161041,
+    "total_voxels": 1000000,
+    "observed_voxels": 262543,
+    "occupied_voxels": 4353,
+    "optimization_iterations": 10,
+    "compute_time_ms": 1713.9304479351267
+  },
+  "idempotency": {
+    "same_observation_requested_twice": true,
+    "second_result_exactly_equal": true,
+    "map_updated_once": true
+  },
+  "runtime_safety": {
+    "robot_started": false,
+    "can_started": false,
+    "move_to_pose_called": false,
+    "motion_command_published": false,
+    "camera_physically_moved_by_software": false
+  },
+  "timing_precision_fix": {
+    "initial_safe_rejection": "Producer computed skew by subtracting epoch-sized float64 seconds, while the consumer checked integer nanoseconds.",
+    "fix": "Producer now subtracts int64 nanosecond stamps before converting the small delta to seconds.",
+    "new_epoch_regression_test": true,
+    "observation_package_tests": {
+      "tests": 32,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 4
+    },
+    "gradient_wrapper_tests": {
+      "tests": 9,
+      "failures": 0
+    }
+  },
+  "interpretation": "The real Gemini-to-canonical-Observation-to-voxel-map-to-Gradient-NBV chain is operational for one stationary red target view. The 1.66 mm local suggestion was not executed and is not evidence of robot-motion usefulness, hand-eye accuracy, collision safety, or real multi-view fusion."
+}

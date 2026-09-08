@@ -430,7 +430,9 @@ class NeroControlNode(Node):
         if not self._simulation_mode:
             self.get_logger().warning(
                 "No environment collision checking is active. The software hold is "
-                "not a physical emergency stop. Keep the hardware E-stop reachable."
+                "not a physical emergency stop. This NERO has no hardware E-stop; "
+                "keep an observer outside the workspace ready at the control-box "
+                "power switch, noting that power loss may make the arm drop."
             )
 
     def _declare_parameters(self) -> None:

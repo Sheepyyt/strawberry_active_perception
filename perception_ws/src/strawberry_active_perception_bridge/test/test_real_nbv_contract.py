@@ -1,0 +1,940 @@
+"""Pure safety-contract tests for the one-shot real NBV supervisor."""
+
+import copy
+import hashlib
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from strawberry_active_perception_bridge.real_nbv_contract import (
+    CONVERGENCE_COVERAGE_DELTA,
+    DEFAULT_ALPHAS,
+    MotionSessionLedger,
+    aggregate_depth_mask,
+    camera_matrix,
+    compare_gradient_candidates,
+    decode_depth_32fc1,
+    decode_mask_mono8,
+    estimate_target_center,
+    five_frame_identity_sha256,
+    normalize_nbv_configuration,
+    require_unit_quaternion,
+    segmented_camera_candidates,
+    validate_ik_solution,
+    validate_raw_next_view,
+    wire_bool,
+    wire_uint8,
+)
+from strawberry_active_perception_bridge.transforms import (
+    pose_components_to_matrix,
+)
+from strawberry_active_perception_bridge.real_nbv_supervisor import (
+    DEFAULT_PLAN_PATH,
+    DEFAULT_PLAN_SHA256,
+    DEFAULT_REPORT_SHA256,
+    GateClosureError,
+    RealNBVSupervisor,
+    SupervisorError,
+    _failure_gates_closed,
+    _load_execution_plan,
+    _require_v3_execution_plan,
+    _session_policy,
+    _validate_bound_session_policy,
+    _verify_new_aggregate_batch,
+    _verify_new_batch_pair,
+)
+
+
+def _image(array: np.ndarray, encoding: str, padding: int = 0):
+    if encoding == "32FC1":
+        rows = array.astype("<f4").view(np.uint8).reshape(array.shape[0], -1)
+        unit = 4
+    else:
+        rows = array.astype(np.uint8)
+        unit = 1
+    padded = np.zeros((array.shape[0], rows.shape[1] + padding), dtype=np.uint8)
+    padded[:, : rows.shape[1]] = rows
+    return SimpleNamespace(
+        encoding=encoding,
+        height=array.shape[0],
+        width=array.shape[1],
+        step=array.shape[1] * unit + padding,
+        is_bigendian=False,
+        data=padded.tobytes(),
+    )
+
+
+def test_padded_depth_mask_and_robust_target_centre() -> None:
+    depth = np.full((20, 30), 1.0, dtype=np.float32)
+    depth[5, 5] = 2.4
+    mask = np.full((20, 30), 255, dtype=np.uint8)
+    decoded_depth = decode_depth_32fc1(_image(depth, "32FC1", padding=8))
+    decoded_mask = decode_mask_mono8(_image(mask, "mono8", padding=3))
+    info = SimpleNamespace(
+        height=20,
+        width=30,
+        k=[100.0, 0.0, 14.5, 0.0, 100.0, 9.5, 0.0, 0.0, 1.0],
+        d=[0.0] * 5,
+    )
+    intrinsic = camera_matrix(info, decoded_depth.shape)
+    estimate = estimate_target_center(
+        decoded_depth,
+        decoded_mask,
+        intrinsic,
+        minimum_pixels=200,
+    )
+    np.testing.assert_allclose(estimate.camera_xyz_m, (0.005, 0.005, 1.0))
+    assert estimate.mask_pixels == 600
+    assert estimate.valid_mask_pixels == 600
+    assert estimate.retained_pixels == 599
+
+
+def test_mask_and_quaternion_are_fail_closed() -> None:
+    invalid_mask = np.zeros((20, 20), dtype=np.uint8)
+    invalid_mask[0, 0] = 1
+    with pytest.raises(ValueError, match="0 or 255"):
+        decode_mask_mono8(_image(invalid_mask, "mono8"))
+    with pytest.raises(ValueError, match="norm must be 1"):
+        require_unit_quaternion((0.0, 0.0, 0.0, 2.0))
+
+
+def test_jazzy_one_byte_uint8_fields_are_decoded_numerically() -> None:
+    assert wire_uint8(b"\x00") == 0
+    assert wire_uint8(b"\x01") == 1
+    assert wire_bool(b"\x00") is False
+    assert wire_bool(b"\x01") is True
+    depth = np.asarray([[1.0]], dtype=np.float32)
+    message = _image(depth, "32FC1")
+    message.is_bigendian = b"\x00"
+    assert decode_depth_32fc1(message)[0, 0] == pytest.approx(1.0)
+
+
+def test_five_frame_depth_mask_aggregation_uses_all_pixel_evidence() -> None:
+    depth_values = np.asarray(
+        [
+            [[1.0, 2.0, np.nan], [1.0, np.nan, 5.0]],
+            [[9.0, 4.0, 10.0], [np.nan, np.nan, 7.0]],
+            [[3.0, np.nan, 30.0], [3.0, np.nan, 9.0]],
+            [[7.0, 8.0, np.nan], [np.nan, np.nan, np.inf]],
+            [[5.0, 6.0, 20.0], [np.nan, np.nan, -np.inf]],
+        ]
+    )
+    vote_counts = np.asarray([[0, 1, 2], [3, 4, 5]], dtype=np.uint8)
+    masks = np.zeros_like(depth_values, dtype=np.uint8)
+    for frame_index in range(5):
+        masks[frame_index][frame_index < vote_counts] = 255
+
+    result = aggregate_depth_mask(depth_values, masks)
+
+    np.testing.assert_allclose(
+        result.depth_m,
+        np.asarray([[5.0, 5.0, 20.0], [np.nan, np.nan, 7.0]]),
+        equal_nan=True,
+    )
+    np.testing.assert_array_equal(
+        result.finite_support,
+        np.asarray([[5, 4, 3], [2, 0, 3]], dtype=np.uint8),
+    )
+    np.testing.assert_array_equal(result.mask_votes, vote_counts)
+    np.testing.assert_array_equal(
+        result.mask,
+        np.asarray([[0, 0, 0], [255, 255, 255]], dtype=np.uint8),
+    )
+    assert result.audit_counts == {
+        "input_frame_count": 5,
+        "pixel_count": 6,
+        "finite_depth_sample_count": 17,
+        "output_finite_depth_pixel_count": 4,
+        "output_nan_depth_pixel_count": 2,
+        "foreground_mask_sample_count": 15,
+        "output_foreground_mask_pixel_count": 3,
+    }
+    assert all(type(value) is int for value in result.audit_counts.values())
+
+
+def test_five_frame_aggregation_is_order_independent_not_frame_selection() -> None:
+    second_pixels = (10.0, 6.0, 9.0, 7.0, 8.0)
+    depths = [
+        np.asarray([[float(index), second_pixels[index - 1]]], dtype=np.float64)
+        for index in range(1, 6)
+    ]
+    masks = [
+        np.asarray([[255 if index in (0, 2, 4) else 0, 255 if index < 2 else 0]])
+        for index in range(5)
+    ]
+    forward = aggregate_depth_mask(depths, masks)
+    reverse = aggregate_depth_mask(depths[::-1], masks[::-1])
+
+    np.testing.assert_array_equal(forward.depth_m, np.asarray([[3.0, 8.0]]))
+    assert not any(np.array_equal(forward.depth_m, frame) for frame in depths)
+    np.testing.assert_array_equal(forward.depth_m, reverse.depth_m)
+    np.testing.assert_array_equal(forward.mask, reverse.mask)
+    np.testing.assert_array_equal(forward.finite_support, reverse.finite_support)
+    assert forward.audit_counts == reverse.audit_counts
+
+
+def test_five_frame_aggregation_rejects_count_shape_and_mask_errors() -> None:
+    depth = np.ones((2, 3), dtype=np.float64)
+    mask = np.zeros((2, 3), dtype=np.uint8)
+    with pytest.raises(ValueError, match="exactly 5"):
+        aggregate_depth_mask([depth] * 4, [mask] * 5)
+    with pytest.raises(ValueError, match="does not match"):
+        aggregate_depth_mask([depth] * 4 + [np.ones((3, 2))], [mask] * 5)
+    bad_masks = [mask.copy() for _ in range(5)]
+    bad_masks[2][0, 0] = 1
+    with pytest.raises(ValueError, match="exactly 0 or 255"):
+        aggregate_depth_mask([depth] * 5, bad_masks)
+
+
+def test_five_frame_identity_is_canonical_and_recomputed() -> None:
+    scenes = [f"scene_{index}" for index in range(5)]
+    observations = [f"obs_{index}" for index in range(5)]
+    stamps = [100 + index for index in range(5)]
+    first = five_frame_identity_sha256(scenes, observations, stamps)
+    second = five_frame_identity_sha256(
+        tuple(scenes), tuple(observations), tuple(stamps)
+    )
+    assert first == second
+    assert len(first) == 64
+    changed = observations.copy()
+    changed[4] = "obs_changed"
+    assert five_frame_identity_sha256(scenes, changed, stamps) != first
+    with pytest.raises(ValueError, match="increasing"):
+        five_frame_identity_sha256(scenes, observations, stamps[::-1])
+
+
+def _nbv_configuration(scene_id: str = "frozen_scene") -> dict:
+    return {
+        "scene_id": scene_id,
+        "world_frame": "base_link",
+        "target_center_m": [0.2, -0.5, 0.25],
+        "map_size_m": [0.3, 0.3, 0.3],
+        "target_roi_size_m": [0.15, 0.15, 0.15],
+        "observation_min_m": [0.25, 0.03, 0.33],
+        "observation_max_m": [0.28, 0.06, 0.36],
+        "voxel_size_m": 0.003,
+        "depth_min_m": 0.2,
+        "depth_max_m": 2.5,
+        "samples_per_ray": 128,
+        "optimization_steps": 10,
+        "max_step_m": 0.005,
+        "random_seed": 0,
+    }
+
+
+def test_configure_nbv_semantics_freeze_wire_values_and_map_origin() -> None:
+    evidence = normalize_nbv_configuration(_nbv_configuration())
+    assert evidence.request["voxel_size_m"] == float(np.float32(0.003))
+    assert evidence.request["max_step_m"] == float(np.float32(0.005))
+    assert evidence.voxel_dimensions == (100, 100, 100)
+    expected_origin = np.asarray([0.2, -0.5, 0.25]) - (
+        np.asarray([100, 100, 100]) * float(np.float32(0.003)) / 2.0
+    )
+    np.testing.assert_allclose(evidence.map_origin_m, expected_origin)
+    assert len(evidence.sha256) == 64
+    changed = _nbv_configuration()
+    changed["target_center_m"][0] += 0.000001
+    changed_evidence = normalize_nbv_configuration(changed)
+    assert changed_evidence.sha256 != evidence.sha256
+    assert changed_evidence.map_origin_m[0] != evidence.map_origin_m[0]
+    with pytest.raises(ValueError, match="max_step"):
+        invalid = _nbv_configuration()
+        invalid["max_step_m"] = 0.006
+        normalize_nbv_configuration(invalid)
+
+
+def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:
+    current = np.eye(4)
+    angle = np.radians(120.0)
+    raw = pose_components_to_matrix(
+        (0.005, 0.0, 0.0),
+        (0.0, 0.0, np.sin(angle / 2.0), np.cos(angle / 2.0)),
+    )
+    motion = validate_raw_next_view(current, raw, gain=1.0)
+    assert motion.translation_m == pytest.approx(0.005)
+    assert np.degrees(motion.rotation_rad) == pytest.approx(120.0)
+    segments = segmented_camera_candidates(current, raw)
+    assert tuple(item[0] for item in segments) == DEFAULT_ALPHAS
+    assert segments[-1][2].translation_m == pytest.approx(0.005 * 0.03125)
+    assert np.degrees(segments[-1][2].rotation_rad) == pytest.approx(3.75)
+
+
+def test_gradient_direction_disagreement_is_separate_from_endpoint_safety() -> None:
+    artifact_current = np.eye(4)
+    artifact_target = np.eye(4)
+    artifact_target[0, 3] = 0.0025
+    live_current = np.eye(4)
+    live_current[0, 3] = 0.00002
+    live_target = live_current.copy()
+    live_target[0, 3] += 0.0025 * np.cos(np.radians(108.0))
+    live_target[1, 3] += 0.0025 * np.sin(np.radians(108.0))
+    evidence = compare_gradient_candidates(
+        artifact_current,
+        artifact_target,
+        live_current,
+        live_target,
+    )
+    assert np.degrees(
+        evidence.translation_direction_disagreement_rad
+    ) == pytest.approx(108.0)
+    assert evidence.target_motion.translation_m > 0.004
+    assert evidence.target_motion.translation_m < evidence.triangle_bound_m
+    # This metric describes optimizer repeatability.  Each endpoint retains
+    # its own independently validated 2.5 mm motion.
+    assert evidence.artifact_step_m == pytest.approx(0.0025)
+    assert evidence.live_step_m == pytest.approx(0.0025)
+
+
+@pytest.mark.parametrize("distance", [0.001, 0.00500001])
+def test_raw_step_rejects_deadband_and_over_limit(distance: float) -> None:
+    target = np.eye(4)
+    target[0, 3] = distance
+    with pytest.raises(ValueError):
+        validate_raw_next_view(np.eye(4), target, gain=1.0)
+
+
+def test_ik_validation_recomputes_joint_delta_and_all_precision_gates() -> None:
+    current = np.zeros(7)
+    solution = np.linspace(0.0, 0.07, 7)
+    accepted = validate_ik_solution(
+        current_joints=current,
+        solution_names=[f"joint{index}" for index in range(1, 8)],
+        solution_positions=solution,
+        reported_max_joint_delta_rad=0.07,
+        position_error_m=0.001,
+        orientation_error_rad=0.01,
+        sigma_min=0.2,
+        condition_number=5.0,
+    )
+    assert accepted.max_joint_delta_rad == pytest.approx(0.07)
+    with pytest.raises(ValueError, match="exceeds limit"):
+        validate_ik_solution(
+            current_joints=current,
+            solution_names=[f"joint{index}" for index in range(1, 8)],
+            solution_positions=np.linspace(0.0, 0.09, 7),
+            reported_max_joint_delta_rad=0.09,
+            position_error_m=0.001,
+            orientation_error_rad=0.01,
+            sigma_min=0.2,
+            condition_number=5.0,
+        )
+
+
+def test_supervisor_motion_surface_is_one_shot_and_explicitly_guarded() -> None:
+    source = (
+        __import__(
+            "strawberry_active_perception_bridge.real_nbv_supervisor",
+            fromlist=["__file__"],
+        )
+        .__file__
+    )
+    text = open(source, encoding="utf-8").read()
+    assert "create_publisher(\n            JointState" not in text
+    assert text.count("move_client.send_goal_async(goal)") == 1
+    assert "operator_workspace_clearance_confirmed" in text
+    assert "EXECUTE_REAL_NBV_ONCE" in text
+    assert "execution_plan_sha256" in text
+    assert "require_aggregate_execution_plan is a fixed safety invariant" in text
+    assert "audited_upper_bounds" in text
+    assert "v2 remains evidence-only" in text
+    assert "max_frozen_target_center_drift_m" in text
+    assert "exact_sha_frozen_v3" in text
+    assert "for _attempt in range(2)" in text
+    assert "isinstance(error, GateClosureError)" in text
+
+
+def test_execution_plan_is_bound_to_exact_reviewed_bytes_and_semantics() -> None:
+    document, digest, path = _load_execution_plan(
+        DEFAULT_PLAN_PATH,
+        DEFAULT_PLAN_SHA256,
+        DEFAULT_REPORT_SHA256,
+    )
+    assert digest == DEFAULT_PLAN_SHA256
+    assert path.is_file()
+    assert document["scene_id"] == "real_nbv_once_20260814T032716Z"
+    assert document["observation"]["observation_id"] == (
+        "agg5_73c6d0cd9429f8b7f2cc478d"
+    )
+    assert document["selected_candidate"]["alpha"] == 0.5
+    with pytest.raises(RuntimeError, match="SHA256 mismatch"):
+        _load_execution_plan(
+            DEFAULT_PLAN_PATH,
+            "0" * 64,
+            DEFAULT_REPORT_SHA256,
+        )
+
+
+def _minimal_aggregate_v2_outer_preview() -> dict:
+    source_outer = json.loads(
+        Path(DEFAULT_PLAN_PATH).read_text(encoding="utf-8")
+    )
+    source = source_outer.get("execution_plan_candidate", source_outer)
+    scene_id = "aggregate_v2_contract_scene"
+    selected = copy.deepcopy(source["selected_candidate"])
+    exact_tf = copy.deepcopy(source["exact_tf"])
+    observation_id = "agg5_contract_observation"
+    pose_span = {
+        "max_translation_m": 0.0001,
+        "max_rotation_deg": 0.05,
+        "max_translation_pair_zero_based": [0, 4],
+        "max_rotation_pair_zero_based": [1, 3],
+        "translation_limit_m": 0.00025,
+        "rotation_limit_deg": 0.1,
+    }
+
+    def batch(label: str, start_stamp: int, aggregate_id: str) -> dict:
+        ids = [f"{label}_{index}" for index in range(5)]
+        scenes = [f"{label}_scene_{index}" for index in range(5)]
+        stamps = [start_stamp + index for index in range(5)]
+        return {
+            "selection_performed": False,
+            "capture_count": 5,
+            "member_observation_ids": ids,
+            "raw_scenes": scenes,
+            "member_stamps_ns": stamps,
+            "pose_span": copy.deepcopy(pose_span),
+            "aggregate_observation_id": aggregate_id,
+            "aggregate_identity_sha256": five_frame_identity_sha256(
+                scenes, ids, stamps
+            ),
+            "reference_member_index_zero_based": 2,
+            "reference_observation_id": ids[2],
+            "camera_info_exactly_equal": True,
+            "member_exact_tfs": [
+                {
+                    "requested_stamp_ns": stamp,
+                    "returned_stamp_ns": stamp,
+                    "stamp_difference_ns": 0,
+                }
+                for stamp in stamps
+            ],
+        }
+
+    bootstrap_batch = batch("bootstrap", 100, "agg5_bootstrap")
+    planning_batch = batch("planning", 200, observation_id)
+    candidate = {
+        "schema_version": "strawberry_real_nbv_aggregate_plan/v2",
+        "status": "passed",
+        "scene_id": scene_id,
+        "safety": {
+            "passed": True,
+            "controller_execution_enabled": False,
+            "motion_command_count_observed": 0,
+            "gate_clients_created": False,
+            "motion_action_clients_created": False,
+            "command_publishers_created": False,
+            "controller_diagnostic_fresh_after_solve": True,
+        },
+        "handeye_report": {"sha256": DEFAULT_REPORT_SHA256},
+        "observation": {
+            "scene_id": scene_id,
+            "observation_id": observation_id,
+        },
+        "nbv": {
+            "planned_gain": source["nbv"]["planned_gain"],
+            "strict_gain_evidence": "core_invariant_nonzero_translation",
+        },
+        "aggregation": {
+            "capture_count_per_batch": 5,
+            "selection_performed": False,
+            "bootstrap_member_ids": bootstrap_batch["member_observation_ids"],
+            "bootstrap_raw_scenes": bootstrap_batch["raw_scenes"],
+            "bootstrap_member_stamps_ns": bootstrap_batch["member_stamps_ns"],
+            "bootstrap_aggregate_observation_id": bootstrap_batch[
+                "aggregate_observation_id"
+            ],
+            "bootstrap_aggregate_identity_sha256": bootstrap_batch[
+                "aggregate_identity_sha256"
+            ],
+            "bootstrap_pose_span": bootstrap_batch["pose_span"],
+            "planning_member_ids": planning_batch["member_observation_ids"],
+            "planning_raw_scenes": planning_batch["raw_scenes"],
+            "planning_member_stamps_ns": planning_batch["member_stamps_ns"],
+            "planning_aggregate_observation_id": planning_batch[
+                "aggregate_observation_id"
+            ],
+            "planning_aggregate_identity_sha256": planning_batch[
+                "aggregate_identity_sha256"
+            ],
+            "planning_pose_span": planning_batch["pose_span"],
+        },
+        "selected_candidate": selected,
+        "exact_tf": exact_tf,
+        "ik": copy.deepcopy(source["ik"]),
+    }
+    return {
+        "schema": "strawberry_real_nbv_once_supervisor/v1",
+        "status": "passed_preview_only",
+        "execute_requested": False,
+        "preview_motion_commands_observed": 0,
+        "execution_plan_candidate": candidate,
+        "selected_candidate": copy.deepcopy(selected),
+        "final_tf": {
+            "T_base_camera_optical": copy.deepcopy(
+                exact_tf["T_base_camera_optical"]
+            )
+        },
+        "corrected_observation": {"observation_id": observation_id},
+        "bootstrap_batch": bootstrap_batch,
+        "planning_batch": planning_batch,
+    }
+
+
+def _minimal_frozen_config_v3_outer_preview() -> dict:
+    document = _minimal_aggregate_v2_outer_preview()
+    source_outer = json.loads(
+        Path(DEFAULT_PLAN_PATH).read_text(encoding="utf-8")
+    )
+    source = source_outer.get("execution_plan_candidate", source_outer)
+    candidate = document["execution_plan_candidate"]
+    candidate["schema_version"] = (
+        "strawberry_real_nbv_frozen_config_plan/v3"
+    )
+    scene_id = candidate["scene_id"]
+    values = copy.deepcopy(source["nbv_configuration"])
+    values["scene_id"] = scene_id
+    evidence = normalize_nbv_configuration(values)
+    voxel_grid = {
+        "dimensions": list(evidence.voxel_dimensions),
+        "origin_m": evidence.map_origin_m.tolist(),
+    }
+    candidate["nbv_configuration"] = evidence.request
+    candidate["nbv_configuration_sha256"] = evidence.sha256
+    candidate["derived_voxel_grid"] = voxel_grid
+    candidate["target"] = {
+        "center_base_link_m": evidence.request["target_center_m"],
+        "planning_batch_center_base_link_m": evidence.request[
+            "target_center_m"
+        ],
+    }
+    document["configuration"] = {
+        "request_semantics": copy.deepcopy(evidence.request),
+        "request_sha256": evidence.sha256,
+        "derived_voxel_grid": copy.deepcopy(voxel_grid),
+        "response_code": 0,
+    }
+    document["bootstrap_target"] = {
+        "base_xyz_m": copy.deepcopy(evidence.request["target_center_m"])
+    }
+    document["final_target"] = {
+        "base_xyz_m": copy.deepcopy(evidence.request["target_center_m"])
+    }
+    return document
+
+
+def _write_exact_json(path: Path, document: dict) -> str:
+    payload = (
+        json.dumps(document, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode("utf-8")
+    path.write_bytes(payload)
+    return hashlib.sha256(payload).hexdigest()
+
+
+def test_outer_preview_loads_exact_embedded_aggregate_v2_candidate(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "aggregate_v2_outer_preview.json"
+    expected_sha256 = _write_exact_json(
+        path, _minimal_aggregate_v2_outer_preview()
+    )
+
+    candidate, actual_sha256, resolved_path = _load_execution_plan(
+        path,
+        expected_sha256,
+        DEFAULT_REPORT_SHA256,
+    )
+
+    assert actual_sha256 == expected_sha256
+    assert resolved_path == path.resolve()
+    assert candidate["schema_version"] == (
+        "strawberry_real_nbv_aggregate_plan/v2"
+    )
+    assert candidate["_verified_outer_schema"] == (
+        "strawberry_real_nbv_once_supervisor/v1"
+    )
+    assert candidate["aggregation"]["capture_count_per_batch"] == 5
+
+
+def test_v3_plan_loads_only_when_full_configure_semantics_recompute(
+    tmp_path: Path,
+) -> None:
+    document = _minimal_frozen_config_v3_outer_preview()
+    path = tmp_path / "frozen_config_v3.json"
+    digest = _write_exact_json(path, document)
+    candidate, actual, _resolved = _load_execution_plan(
+        path, digest, DEFAULT_REPORT_SHA256
+    )
+    assert actual == digest
+    assert candidate["schema_version"].endswith("/v3")
+    assert candidate["nbv_configuration"] == document["configuration"][
+        "request_semantics"
+    ]
+    expected = normalize_nbv_configuration(candidate["nbv_configuration"])
+    assert candidate["nbv_configuration_sha256"] == expected.sha256
+    assert candidate["derived_voxel_grid"]["origin_m"] == pytest.approx(
+        expected.map_origin_m
+    )
+    _require_v3_execution_plan(candidate)
+    with pytest.raises(RuntimeError, match="v2 remains evidence-only"):
+        _require_v3_execution_plan(
+            _minimal_aggregate_v2_outer_preview()[
+                "execution_plan_candidate"
+            ]
+        )
+
+
+def test_v3_plan_rejects_changed_config_or_derived_origin(tmp_path: Path) -> None:
+    document = _minimal_frozen_config_v3_outer_preview()
+    document["execution_plan_candidate"]["nbv_configuration"][
+        "target_center_m"
+    ][0] += 0.000001
+    document["configuration"]["request_semantics"]["target_center_m"][
+        0
+    ] += 0.000001
+    path = tmp_path / "frozen_config_changed.json"
+    digest = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="SHA256 does not recompute"):
+        _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+
+    document = _minimal_frozen_config_v3_outer_preview()
+    document["execution_plan_candidate"]["derived_voxel_grid"]["origin_m"][
+        0
+    ] += 0.001
+    path = tmp_path / "frozen_origin_changed.json"
+    digest = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="origin does not recompute"):
+        _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+
+
+def test_three_step_policy_is_exactly_sha_bound_in_outer_preview(
+    tmp_path: Path,
+) -> None:
+    document = _minimal_frozen_config_v3_outer_preview()
+    policy = _session_policy(3)
+    document["session_policy"] = copy.deepcopy(policy)
+    document["max_motion_steps"] = 3
+    document["execution_plan_candidate"]["session_policy"] = copy.deepcopy(
+        policy
+    )
+    path = tmp_path / "three_step_preview.json"
+    digest = _write_exact_json(path, document)
+    candidate, _actual, _resolved = _load_execution_plan(
+        path, digest, DEFAULT_REPORT_SHA256
+    )
+    assert _validate_bound_session_policy(candidate, 3) == policy
+
+    document["session_policy"]["cumulative_translation_max_m"] = 0.020
+    document["execution_plan_candidate"]["session_policy"] = copy.deepcopy(
+        document["session_policy"]
+    )
+    digest = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="SHA/semantics do not recompute"):
+        _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+
+
+def test_authorization_receipt_is_written_before_first_goal(tmp_path: Path) -> None:
+    receipt_path = tmp_path / "preview.json.consumed.json"
+    fake = SimpleNamespace(
+        _authorization_plan_sha256="a" * 64,
+        _authorization_receipt_path=receipt_path,
+        max_motion_steps=3,
+        _audit={},
+    )
+    RealNBVSupervisor._consume_session_authorization(fake)
+    saved = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert saved["plan_sha256"] == "a" * 64
+    assert saved["max_motion_steps"] == 3
+    assert saved["reusable"] is False
+    assert fake._audit["authorization_receipt"]["path"] == str(receipt_path)
+
+
+def test_failure_audit_uses_session_wide_gate_closure_latch() -> None:
+    """A not-yet-executed next step must not hide the prior gate closure."""
+    node = SimpleNamespace(_gates_closed_proven=True)
+    assert _failure_gates_closed(node, SupervisorError("step 2 IK failed"))
+    assert not _failure_gates_closed(node, GateClosureError("close failed"))
+    node._gates_closed_proven = False
+    assert not _failure_gates_closed(
+        node, SupervisorError("extra command publisher")
+    )
+
+
+def _new_batch(label: str, start: int) -> dict:
+    scenes = [f"new_session_{label}_scene_{index}" for index in range(5)]
+    ids = [f"new_{label}_obs_{index}" for index in range(5)]
+    stamps = [start + index for index in range(5)]
+    return {
+        "raw_scenes": scenes,
+        "member_observation_ids": ids,
+        "member_stamps_ns": stamps,
+        "aggregate_observation_id": "agg5_" + five_frame_identity_sha256(
+            scenes, ids, stamps
+        )[:24],
+    }
+
+
+def test_execution_capture_batches_are_new_and_mutually_disjoint() -> None:
+    plan = _minimal_frozen_config_v3_outer_preview()[
+        "execution_plan_candidate"
+    ]
+    bootstrap = _new_batch("bootstrap", 1000)
+    planning = _new_batch("planning", 2000)
+    assert _verify_new_aggregate_batch(
+        bootstrap, plan, "bootstrap"
+    )["all_identity_sets_disjoint"]
+    assert _verify_new_aggregate_batch(
+        planning, plan, "planning"
+    )["all_identity_sets_disjoint"]
+    assert _verify_new_batch_pair(
+        bootstrap, planning
+    )["all_identity_sets_disjoint"]
+
+    reused = _new_batch("reused", 3000)
+    reused["raw_scenes"][0] = plan["aggregation"][
+        "planning_raw_scenes"
+    ][0]
+    with pytest.raises(RuntimeError, match="reuses frozen"):
+        _verify_new_aggregate_batch(reused, plan, "planning")
+
+    planning["member_observation_ids"][0] = bootstrap[
+        "member_observation_ids"
+    ][0]
+    with pytest.raises(RuntimeError, match="identities overlap"):
+        _verify_new_batch_pair(bootstrap, planning)
+
+
+def test_outer_preview_rejects_selected_candidate_drift(tmp_path: Path) -> None:
+    document = _minimal_aggregate_v2_outer_preview()
+    document["selected_candidate"]["alpha"] = 0.25
+    path = tmp_path / "aggregate_v2_candidate_drift.json"
+    exact_sha256 = _write_exact_json(path, document)
+
+    with pytest.raises(
+        RuntimeError,
+        match="embedded selected candidate differs from preview result",
+    ):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+
+def test_outer_preview_rejects_non_exact_sha(tmp_path: Path) -> None:
+    path = tmp_path / "aggregate_v2_wrong_sha.json"
+    exact_sha256 = _write_exact_json(
+        path, _minimal_aggregate_v2_outer_preview()
+    )
+    replacement = "0" if exact_sha256[0] != "0" else "1"
+    wrong_sha256 = replacement + exact_sha256[1:]
+
+    with pytest.raises(RuntimeError, match="SHA256 mismatch"):
+        _load_execution_plan(path, wrong_sha256, DEFAULT_REPORT_SHA256)
+
+
+def test_aggregate_preview_rejects_frame_selection_or_duplicate_evidence(
+    tmp_path: Path,
+) -> None:
+    document = _minimal_aggregate_v2_outer_preview()
+    document["execution_plan_candidate"]["aggregation"][
+        "selection_performed"
+    ] = True
+    path = tmp_path / "aggregate_v2_selected_frame.json"
+    exact_sha256 = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="no frame was selected"):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+    document = _minimal_aggregate_v2_outer_preview()
+    duplicate = document["bootstrap_batch"]["member_observation_ids"][0]
+    document["bootstrap_batch"]["member_observation_ids"][1] = duplicate
+    document["execution_plan_candidate"]["aggregation"][
+        "bootstrap_member_ids"
+    ][1] = duplicate
+    path = tmp_path / "aggregate_v2_duplicate_frame.json"
+    exact_sha256 = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="identity evidence is invalid"):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+    document = _minimal_aggregate_v2_outer_preview()
+    document["bootstrap_batch"]["aggregate_identity_sha256"] = "0" * 64
+    document["execution_plan_candidate"]["aggregation"][
+        "bootstrap_aggregate_identity_sha256"
+    ] = "0" * 64
+    path = tmp_path / "aggregate_v2_forged_identity_hash.json"
+    exact_sha256 = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="does not recompute"):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+
+def test_aggregate_preview_rejects_pose_span_or_inexact_tf(tmp_path: Path) -> None:
+    document = _minimal_aggregate_v2_outer_preview()
+    document["bootstrap_batch"]["pose_span"]["max_translation_m"] = 0.0003
+    document["execution_plan_candidate"]["aggregation"][
+        "bootstrap_pose_span"
+    ]["max_translation_m"] = 0.0003
+    path = tmp_path / "aggregate_v2_pose_span.json"
+    exact_sha256 = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="pose span exceeds"):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+    document = _minimal_aggregate_v2_outer_preview()
+    document["planning_batch"]["member_exact_tfs"][3][
+        "returned_stamp_ns"
+    ] += 1
+    path = tmp_path / "aggregate_v2_inexact_tf.json"
+    exact_sha256 = _write_exact_json(path, document)
+    with pytest.raises(RuntimeError, match="exact exposure TF"):
+        _load_execution_plan(path, exact_sha256, DEFAULT_REPORT_SHA256)
+
+
+def _translated_camera(x_m: float) -> np.ndarray:
+    transform = np.eye(4)
+    transform[0, 3] = x_m
+    return transform
+
+
+def test_three_step_session_ledger_enforces_coverage_and_cumulative_bounds() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    for index, (position, coverage) in enumerate(
+        ((0.004, 0.38), (0.009, 0.47), (0.014, 0.52)), start=1
+    ):
+        evidence = ledger.record_closed_step(
+            planned_camera=_translated_camera(position),
+            actual_camera=_translated_camera(position - 0.0002),
+            coverage_after=coverage,
+            target_valid_mask_depth_pixels=500,
+            reported_motion_goal_count=index,
+            gates_closed=True,
+        )
+        assert evidence.step_index == index
+    summary = ledger.summary()
+    assert summary["motion_goal_count"] == 3
+    assert summary["scientific_acceptance_passed"] is True
+    assert summary["total_coverage_delta"] == pytest.approx(0.22)
+
+
+def test_session_stops_when_coverage_gain_is_below_half_percentage_point() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.40,
+    )
+    evidence = ledger.record_closed_step(
+        planned_camera=_translated_camera(0.004),
+        actual_camera=_translated_camera(0.0039),
+        coverage_after=0.40 + CONVERGENCE_COVERAGE_DELTA - 0.0001,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    assert evidence.converged is True
+    assert ledger.summary()["converged_early"] is True
+
+
+@pytest.mark.parametrize(
+    "reason,gates_closed",
+    (
+        ("step 2 SolveIK failed", True),
+        ("step 2 lost the red target", True),
+        ("step 2 reused an Observation identity", True),
+        ("step 2 NBV map coverage decreased", True),
+        ("step 2 gate closure failed", False),
+        ("step 2 found an extra command publisher", True),
+    ),
+)
+def test_fault_latch_prevents_every_later_goal(reason, gates_closed) -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    ledger.record_closed_step(
+        planned_camera=_translated_camera(0.004),
+        actual_camera=_translated_camera(0.0039),
+        coverage_after=0.36,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    ledger.abort(reason, gates_closed=gates_closed)
+    with pytest.raises(ValueError, match="terminated session"):
+        ledger.record_closed_step(
+            planned_camera=_translated_camera(0.008),
+            actual_camera=_translated_camera(0.008),
+            coverage_after=0.42,
+            target_valid_mask_depth_pixels=400,
+            reported_motion_goal_count=2,
+            gates_closed=True,
+        )
+    summary = ledger.summary()
+    assert summary["motion_goal_count"] == 1
+    assert summary["termination_reason"] == reason
+    assert summary["gates_closed_at_termination"] is gates_closed
+
+
+def test_session_rejects_second_step_without_closed_gates_and_bad_target() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    with pytest.raises(ValueError, match="gates must be proven closed"):
+        ledger.record_closed_step(
+            planned_camera=_translated_camera(0.004),
+            actual_camera=_translated_camera(0.004),
+            coverage_after=0.35,
+            target_valid_mask_depth_pixels=400,
+            reported_motion_goal_count=1,
+            gates_closed=False,
+        )
+    with pytest.raises(ValueError, match="fewer than 200"):
+        ledger.record_closed_step(
+            planned_camera=_translated_camera(0.004),
+            actual_camera=_translated_camera(0.004),
+            coverage_after=0.35,
+            target_valid_mask_depth_pixels=199,
+            reported_motion_goal_count=1,
+            gates_closed=True,
+        )
+
+
+def test_session_rejects_unreviewed_step_count_and_cumulative_motion() -> None:
+    with pytest.raises(ValueError, match="exactly 1 or 3"):
+        MotionSessionLedger(
+            max_motion_steps=2,
+            initial_camera=np.eye(4),
+            initial_coverage=0.30,
+        )
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    ledger.record_closed_step(
+        planned_camera=_translated_camera(0.004),
+        actual_camera=_translated_camera(0.007),
+        coverage_after=0.35,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    ledger.record_closed_step(
+        planned_camera=_translated_camera(0.008),
+        actual_camera=_translated_camera(-0.001),
+        coverage_after=0.40,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=2,
+        gates_closed=True,
+    )
+    with pytest.raises(ValueError, match="exceeds 15 mm"):
+        ledger.record_closed_step(
+            planned_camera=_translated_camera(0.012),
+            actual_camera=_translated_camera(0.007),
+            coverage_after=0.45,
+            target_valid_mask_depth_pixels=400,
+            reported_motion_goal_count=3,
+            gates_closed=True,
+        )

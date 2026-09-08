@@ -1,0 +1,43 @@
+# Accept only frames whose depth stamp is at or after not_before. A zero stamp
+# disables this lower bound. timeout=0 selects the adapter's configured default.
+string scene_id
+builtin_interfaces/Time not_before
+builtin_interfaces/Duration timeout
+
+# Discard this many otherwise eligible synchronized frame sets before capture.
+uint32 discard_frames
+
+# Required optional fields. Depth and camera_info are always required.
+bool require_color
+bool require_mask
+bool require_pose
+---
+# Codes 0-9 are successful outcomes.
+uint16 SUCCESS=0
+
+# Codes 10-21 describe invalid, missing, or inconsistent observation data.
+uint16 INVALID_REQUEST=10
+uint16 NO_NEW_FRAME=11
+uint16 MISSING_COLOR=12
+uint16 MISSING_DEPTH=13
+uint16 MISSING_CAMERA_INFO=14
+uint16 MISSING_MASK=15
+uint16 POSE_UNAVAILABLE=16
+uint16 INVALID_ENCODING=17
+uint16 DIMENSION_MISMATCH=18
+uint16 TIME_SKEW_EXCEEDED=19
+uint16 DEPTH_QUALITY_LOW=20
+uint16 CAMERA_MODEL_MISMATCH=21
+
+uint16 TIMEOUT=32
+uint16 CANCELED=33
+uint16 INTERNAL_ERROR=255
+
+bool success
+uint16 code
+string reason
+
+# The accepted Observation is published once on the canonical observation topic;
+# this response returns its lookup key and authoritative depth stamp only.
+string observation_id
+builtin_interfaces/Time stamp

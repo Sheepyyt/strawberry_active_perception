@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "artifact": "g4_placo_preview",
+  "verified_date": "2026-08-12",
+  "gate": "G4",
+  "status": "passed",
+  "scope": "live ROS 2 Placo SolveIK preview in simulation; no motion",
+  "scene_id": "g4_fixed_scene",
+  "observation_id": "nbv_ready_lateral_100mm",
+  "requested_lateral_offset_m": 0.1,
+  "fallback_attempts": [
+    {
+      "alpha": 1.0,
+      "status": "rejected"
+    },
+    {
+      "alpha": 0.5,
+      "status": "rejected"
+    },
+    {
+      "alpha": 0.25,
+      "status": "accepted"
+    }
+  ],
+  "accepted_result": {
+    "alpha": 0.25,
+    "attempt_count": 3,
+    "position_error_m": 0.001126172439711242,
+    "orientation_error_rad": 0.000610187757263,
+    "solve_time_ms": 5.1637409488,
+    "max_joint_delta_rad": 0.18114470017721465
+  },
+  "safety_evidence": {
+    "simulation_launch": true,
+    "execution_enabled": false,
+    "motion_command_count": 0,
+    "move_action_used": false,
+    "can_command_publisher_used": false,
+    "process_shutdown": "clean_ctrl_c"
+  },
+  "interpretation": "This passes the G4 candidate-to-Placo preview and fallback check only. It is not evidence of physical motion, collision safety, hand-eye calibration, or real-camera geometry."
+}

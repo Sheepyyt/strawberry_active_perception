@@ -72,7 +72,15 @@ def generate_launch_description():
     config_arg = DeclareLaunchArgument(
         'config_file',
         default_value=default_config,
-        description='NERO Placo controller parameter file.',
+        description='Base NERO Placo controller parameter file.',
+    )
+    profile_config_arg = DeclareLaunchArgument(
+        'profile_config_file',
+        default_value=default_config,
+        description=(
+            'Optional profile overlay loaded after config_file. The default '
+            'reloads the research configuration without changing it.'
+        ),
     )
     can_port_arg = DeclareLaunchArgument(
         'can_port',
@@ -83,8 +91,9 @@ def generate_launch_description():
         'speed_percent',
         default_value='0',
         description=(
-            'Driver speed setting. Keep 0 during read-only checks; pass 10 '
-            'only after the hardware checklist is complete.'
+            'Driver speed setting. Value 0 means the ROS driver does not '
+            'change the SDK/controller setting; pass 10 only after the '
+            'hardware checklist is complete.'
         ),
     )
     firmware_arg = DeclareLaunchArgument(
@@ -160,6 +169,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             LaunchConfiguration('config_file'),
+            LaunchConfiguration('profile_config_file'),
             {
                 'simulation_mode': False,
                 'execution_enabled_on_start': False,
@@ -202,6 +212,7 @@ def generate_launch_description():
     return LaunchDescription(
         [
             config_arg,
+            profile_config_arg,
             can_port_arg,
             speed_percent_arg,
             firmware_arg,

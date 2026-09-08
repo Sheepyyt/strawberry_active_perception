@@ -1,0 +1,303 @@
+{
+  "acceptance_gate": {
+    "maximum_rotation_deg": 2.0,
+    "maximum_translation_mm": 10.0,
+    "metric": "P95",
+    "passed": true,
+    "rotation_passed": true,
+    "translation_passed": true
+  },
+  "diagnostic_note": "This is a frozen prospective diagnostic, not robot-use authorization. safe_for_robot_use remains false; only the formal 20-split stability report may authorize a transform for robot use.",
+  "diagnostic_only": true,
+  "evaluation_protocol": {
+    "acceptance_metric": "prospective P95",
+    "all_declared_training_samples_given_to_solver": true,
+    "checkerboard_reference_estimator": "training-inlier robust center: componentwise median translation and chordal projected rotation",
+    "checkerboard_reference_refit_with_test_samples": false,
+    "maximum_errors_are_reported_but_not_used_as_the_gate_metric": true,
+    "solver": "ROBUST_PAIRWISE_AX_XB",
+    "test_samples_used_for_training": false,
+    "training_holdout_fraction": 0.0,
+    "transform_refit_with_test_samples": false
+  },
+  "fixed_training_T_base_checkerboard": [
+    [
+      0.9995844414134276,
+      0.024866026271117073,
+      0.014581674173075404,
+      -0.03973541030232802
+    ],
+    [
+      0.017573765458276713,
+      -0.12470355262578622,
+      -0.9920383998264002,
+      -0.6080011375657871
+    ],
+    [
+      -0.022849666339426075,
+      0.9918824046730497,
+      -0.1250887207072846,
+      0.1360045568791019
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "formal_robot_use_authority": "strawberry_handeye_stability_report/v1 with all 20 splits and residual-scale trials passed",
+  "frozen_T_link7_camera_optical": [
+    [
+      0.004539501913383814,
+      -0.011712753658299322,
+      0.999921099049379,
+      0.06260477080561251
+    ],
+    [
+      -0.018533108440141367,
+      0.999758671946242,
+      0.011794988759305462,
+      0.004060026527562638
+    ],
+    [
+      -0.9998179418343742,
+      -0.01858518953430869,
+      0.0043213326705400235,
+      0.004664680388148789
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "input_dataset": {
+    "byte_count": 100923,
+    "path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/handeye_samples_pose001_030_factory_raw_D.json",
+    "sample_count": 30,
+    "schema_version": "strawberry_handeye_samples/v1",
+    "session_id": "handeye_session_001",
+    "sha256": "2a18d4bc69b13d01e28dcfad8cf62186bde4fe31e925f87c9c4f8db6b6718aef"
+  },
+  "passed": true,
+  "prospective_metrics": {
+    "per_sample": [
+      {
+        "rotation_deg": 0.28400771930973456,
+        "sample_id": "pose_026",
+        "translation_mm": 4.0306557396808
+      },
+      {
+        "rotation_deg": 0.4592349626295432,
+        "sample_id": "pose_027",
+        "translation_mm": 5.152489266870688
+      },
+      {
+        "rotation_deg": 0.2863216988291495,
+        "sample_id": "pose_028",
+        "translation_mm": 4.722319521788171
+      },
+      {
+        "rotation_deg": 0.21743418069990436,
+        "sample_id": "pose_029",
+        "translation_mm": 6.154848824869725
+      },
+      {
+        "rotation_deg": 0.4176114146524324,
+        "sample_id": "pose_030",
+        "translation_mm": 7.443356354750829
+      }
+    ],
+    "rotation_deg": {
+      "count": 5,
+      "max": 0.4592349626295432,
+      "median": 0.2863216988291495,
+      "p95": 0.450910253034121
+    },
+    "sample_ids": [
+      "pose_026",
+      "pose_027",
+      "pose_028",
+      "pose_029",
+      "pose_030"
+    ],
+    "translation_mm": {
+      "count": 5,
+      "max": 7.443356354750829,
+      "median": 5.152489266870688,
+      "p95": 7.185654848774608
+    }
+  },
+  "prospective_sample_ids": [
+    "pose_026",
+    "pose_027",
+    "pose_028",
+    "pose_029",
+    "pose_030"
+  ],
+  "reason": "frozen prospective P95 gates passed",
+  "report_version": "strawberry_handeye_prospective_holdout/v2",
+  "safe_for_robot_use": false,
+  "status": "passed_diagnostic",
+  "training_fit": {
+    "config": {
+      "holdout_fraction": 0.0,
+      "max_holdout_rotation_p95_deg": 2.0,
+      "max_holdout_translation_p95_mm": 10.0,
+      "max_initial_ax_xb_rotation_p95_deg": 2.0,
+      "max_initial_ax_xb_translation_p95_mm": 10.0,
+      "max_refinement_initialization_rotation_deg": 0.1,
+      "max_refinement_initialization_translation_mm": 1.0,
+      "method_consensus_rotation_deg": 2.0,
+      "method_consensus_translation_mm": 10.0,
+      "methods": [
+        "TSAI",
+        "PARK",
+        "HORAUD",
+        "ANDREFF",
+        "DANIILIDIS"
+      ],
+      "min_axis_diversity_ratio": 0.05,
+      "min_method_consensus": 3,
+      "min_rotation_span_deg": 8.0,
+      "min_samples": 6,
+      "min_solver_samples": 4,
+      "min_translation_span_mm": 10.0,
+      "outlier_rotation_deg": 1.5,
+      "outlier_translation_mm": 8.0,
+      "pairwise_rotation_scale_deg": 0.25,
+      "pairwise_translation_scale_mm": 1.0,
+      "random_seed": 0,
+      "ransac_subsets": 16,
+      "refinement_irls_iterations": 50,
+      "refinement_max_nfev": 1000
+    },
+    "inlier_sample_ids": [
+      "pose_001",
+      "pose_002",
+      "pose_003",
+      "pose_004",
+      "pose_005",
+      "pose_006",
+      "pose_007",
+      "pose_008",
+      "pose_009",
+      "pose_010",
+      "pose_011",
+      "pose_012",
+      "pose_013",
+      "pose_014",
+      "pose_015",
+      "pose_016",
+      "pose_017",
+      "pose_018",
+      "pose_019",
+      "pose_020",
+      "pose_021",
+      "pose_022",
+      "pose_023",
+      "pose_024",
+      "pose_025"
+    ],
+    "input_sample_count": 25,
+    "outlier_sample_ids": [],
+    "reason": "calibration passed without a holdout set",
+    "selected_initial_method": "HORAUD",
+    "selected_method": "ROBUST_PAIRWISE_AX_XB",
+    "selected_solver_sample_ids": [
+      "pose_001",
+      "pose_002",
+      "pose_003",
+      "pose_004",
+      "pose_005",
+      "pose_006",
+      "pose_007",
+      "pose_008",
+      "pose_009",
+      "pose_010",
+      "pose_011",
+      "pose_012",
+      "pose_013",
+      "pose_014",
+      "pose_015",
+      "pose_016",
+      "pose_017",
+      "pose_018",
+      "pose_019",
+      "pose_020",
+      "pose_021",
+      "pose_022",
+      "pose_023",
+      "pose_024",
+      "pose_025"
+    ],
+    "single_fit_safe_for_robot_use": false,
+    "solver_holdout_sample_ids": [],
+    "solver_training_sample_ids": [
+      "pose_001",
+      "pose_002",
+      "pose_003",
+      "pose_004",
+      "pose_005",
+      "pose_006",
+      "pose_007",
+      "pose_008",
+      "pose_009",
+      "pose_010",
+      "pose_011",
+      "pose_012",
+      "pose_013",
+      "pose_014",
+      "pose_015",
+      "pose_016",
+      "pose_017",
+      "pose_018",
+      "pose_019",
+      "pose_020",
+      "pose_021",
+      "pose_022",
+      "pose_023",
+      "pose_024",
+      "pose_025"
+    ],
+    "status": "passed",
+    "success": true
+  },
+  "training_sample_ids": [
+    "pose_001",
+    "pose_002",
+    "pose_003",
+    "pose_004",
+    "pose_005",
+    "pose_006",
+    "pose_007",
+    "pose_008",
+    "pose_009",
+    "pose_010",
+    "pose_011",
+    "pose_012",
+    "pose_013",
+    "pose_014",
+    "pose_015",
+    "pose_016",
+    "pose_017",
+    "pose_018",
+    "pose_019",
+    "pose_020",
+    "pose_021",
+    "pose_022",
+    "pose_023",
+    "pose_024",
+    "pose_025"
+  ],
+  "transform_convention": {
+    "T_base_link7": "maps a point expressed in link7 into base_link; p_base = T_base_link7 p_link7",
+    "T_camera_checkerboard": "maps a checkerboard point into camera optical coordinates; p_camera = T_camera_checkerboard p_checkerboard",
+    "camera_optical_axes": "+X right, +Y down, +Z forward",
+    "matrix_layout": "row-major homogeneous 4x4",
+    "result_T_link7_camera_optical": "maps a camera optical point into link7; p_link7 = T_link7_camera_optical p_camera",
+    "units": "metres and radians unless a field name states otherwise"
+  }
+}

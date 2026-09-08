@@ -590,7 +590,11 @@ class PlacoIKSolver:
                 return self._result(
                     False,
                     IKErrorCode.UNREACHABLE,
-                    'IK residual exceeds 2 mm or 2 degrees',
+                    (
+                        f'IK residual exceeds '
+                        f'{self.config.position_tolerance_m * 1000.0:.1f} mm or '
+                        f'{np.degrees(self.config.orientation_tolerance_rad):.1f} degrees'
+                    ),
                     candidate,
                     position_error,
                     orientation_error,

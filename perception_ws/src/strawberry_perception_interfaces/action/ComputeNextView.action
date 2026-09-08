@@ -1,0 +1,17 @@
+# The Observation itself travels on the canonical topic. This action references
+# one already-published observation and must process its ID idempotently.
+string scene_id
+string observation_id
+---
+strawberry_perception_interfaces/NextView next_view
+---
+uint8 PHASE_UNKNOWN=0
+uint8 PHASE_VALIDATING=1
+uint8 PHASE_UPDATING_MAP=2
+uint8 PHASE_OPTIMIZING=3
+uint8 PHASE_FINALIZING=4
+
+uint8 phase
+float32 coverage
+builtin_interfaces/Duration elapsed
+uint32 iteration

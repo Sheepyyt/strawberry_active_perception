@@ -1,0 +1,30 @@
+nbv_ik_preview:
+  ros__parameters:
+    observation_topic: /strawberry/perception/observation
+    next_view_topic: /strawberry/nbv/next_view
+    solve_ik_service: /strawberry_nero/solve_ik
+    diagnostics_topic: /strawberry/active_perception/ik_preview
+    base_frame: base_link
+    expected_camera_frame: camera_color_optical_frame
+    calibration_source: validated_report
+    handeye_report_path: /home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json
+    handeye_report_sha256: 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
+    minimum_calibration_samples: 30
+    motion_command_topic: /control/move_j
+    preview_alphas: [1.0, 0.5, 0.25, 0.125]
+    service_timeout_sec: 2.0
+
+real_handeye_preview_fixture:
+  ros__parameters:
+    handeye_report_path: /home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json
+    handeye_report_sha256: 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
+    minimum_calibration_samples: 30
+    base_frame: base_link
+    link_frame: link7
+    camera_frame: camera_color_optical_frame
+    preview_mode: current
+    small_nbv_step_m: 0.005
+    target_distance_m: 0.35
+    motion_command_topic: /control/move_j
+    timeout_sec: 15.0
+    output_path: ""

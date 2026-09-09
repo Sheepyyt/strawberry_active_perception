@@ -116,6 +116,29 @@ TEST(ObservationProcessor, Converts16BitMillimetresAndBuildsLargestRedMask)
   EXPECT_EQ(mask.at<uint8_t>(3, 35), 0U);
 }
 
+TEST(ObservationProcessor, DilatesOnlyTheAcceptedLargestRedComponent)
+{
+  auto config = test_config();
+  config.mask_dilation_kernel_size = 5;
+  const auto common_stamp = stamp(43);
+  cv::Mat depth(static_cast<int>(kHeight), static_cast<int>(kWidth), CV_16UC1,
+    cv::Scalar(1000));
+
+  ObservationProcessor processor(config);
+  const ProcessResult result = processor.process(
+    red_rgb_image(common_stamp),
+    image_message(depth, sensor_msgs::image_encodings::TYPE_16UC1, common_stamp),
+    camera_info(common_stamp), camera_info(common_stamp), true);
+
+  ASSERT_TRUE(result.ok()) << result.reason;
+  EXPECT_EQ(result.frame.mask_pixels, 28 * 24);
+  const cv::Mat mask = cv_bridge::toCvCopy(
+    result.frame.target_mask, sensor_msgs::image_encodings::MONO8)->image;
+  EXPECT_EQ(mask.at<uint8_t>(3, 3), 255U);
+  EXPECT_EQ(mask.at<uint8_t>(2, 2), 0U);
+  EXPECT_EQ(mask.at<uint8_t>(3, 35), 0U);
+}
+
 TEST(ObservationProcessor, Normalizes32BitDepthAndInvalidValuesToNan)
 {
   auto config = test_config();

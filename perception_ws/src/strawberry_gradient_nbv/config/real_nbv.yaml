@@ -1,0 +1,13 @@
+/**:
+  ros__parameters:
+    # The real supervisor replaces the adapter's fixed camera_session pose
+    # with the exposure-time base_link pose before publishing this topic.
+    observation_topic: /strawberry/perception/real_nbv_observation
+    next_view_topic: /strawberry/nbv/next_view
+    configure_service: /strawberry/nbv/configure
+    reset_service: /strawberry/nbv/reset_map
+    compute_action: /strawberry/nbv/compute_next_view
+    device: auto
+    observation_cache_size: 32
+    # Runtime artifacts stay outside git; render them with gradient_nbv_visualize.
+    map_snapshot_directory: /home/yyt/strawberry_active_perception/artifacts/nbv_map_snapshots

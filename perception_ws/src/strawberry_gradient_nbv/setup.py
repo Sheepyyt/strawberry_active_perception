@@ -37,6 +37,7 @@ setup(
             "gradient_nbv = strawberry_gradient_nbv.ros_node:main",
             "gradient_nbv_fixture = strawberry_gradient_nbv.replay:main",
             "gradient_nbv_ros_replay = strawberry_gradient_nbv.ros_replay:main",
+            "gradient_nbv_visualize = strawberry_gradient_nbv.map_visualization:main",
         ],
     },
 )

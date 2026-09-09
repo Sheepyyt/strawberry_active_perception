@@ -12,8 +12,9 @@ cd /home/yyt/strawberry_active_perception
 ```
 
 脚本只接受上述精确 commit。当前工作树已经包含补丁时只做验证；工作树存在其它
-修改时会拒绝覆盖。补丁 SHA256：
+修改时会拒绝覆盖。补丁使用零上下文格式，但只有在 commit 和补丁 SHA 都完全一致时才会
+应用，因此不会把它静默套到未知版本。补丁 SHA256：
 
 ```text
-80af58642bf9fd58610056343875cd45b55ce62724fa747d104c1d30972b6cd2
+394542caff32f5d147a7a33059a0fa078e96416276f0a61d9fed62b48e8104d4
 ```

@@ -1,166 +1,230 @@
-# 双臂主动感知草莓项目空间
+# 单臂主动感知草莓（NERO + Gemini 2 XL + Gradient-NBV）
 
-当前已实现 NERO 单臂的 Placo 末端位姿 IK、ROS 2 接口、平滑关节轨迹、安全拒绝和真机
-执行。系统不使用 MoveIt，也不调用 NERO 原厂笛卡尔 IK。Gemini 2 XL 的统一 RGB-D
-Observation、脱离 MoveIt 的 Gradient-NBV 核心和真实闭环监督器位于
-`perception_ws`。30 个实机姿态的手眼标定已经正式通过离线数值门禁并接入真实执行链路。
-2026-08-14 已完成一次“真实相机拍摄 → Gradient-NBV → 正式手眼变换 → Placo SolveIK →
-机械臂小步运动 → 再拍摄并更新地图”的闭环；程序只执行了一个目标，随后自动关闭两道
-软件执行门，没有执行第二步。双臂协同和 VAMP 尚未开始。
+一句话说明：相机先拍草莓，程序把看到和没看到的三维空间记在体素地图里，Gradient-NBV
+选择下一观察位置，Placo 把它换成机械臂关节角，安全监督器执行小步运动后再拍照并继续更新
+同一张地图。整个计算和控制链不依赖 MoveIt。
 
-## 下载
+## 当前进度
 
-机械臂驱动和相机驱动是 Git 子模块：
+已经完成并保存证据的主链路是：
+
+```text
+Gemini RGB-D → mono8 目标 mask → 统一 Observation
+       → 同一张体素地图持续更新 → Gradient-NBV
+       → 正式手眼外参 → Placo SolveIK → NERO 小步运动 → 再观察
+```
+
+截至 2026-09-09：
+
+- Placo 单臂 IK、轨迹、ROS 2 服务/Action 和真机安全门已完成；主控制测试 `105 passed`。
+- Gemini 2 XL 在 `640×400@10 Hz` 下已通过 3 次冷启动和 30 分钟稳定性测试。当前线缆
+  即使协商为 USB 2/480M，也足以继续这一低带宽实验。
+- MoveIt-free Gradient-NBV 已通过合成五视角验收；ROI 有效射线覆盖率从 `20.69%` 增至
+  `56.31%`。现在会为每次地图更新保存可重放的体素快照。
+- 30 个真实姿态完成了 eye-in-hand 手眼标定；正式报告的 20/20 个留出切分通过，报告已
+  放入版本库并由 SHA-256 锁定。
+- 红色目标真实三步闭环使用同一张地图、只配置 1 次，覆盖率
+  `24.68% → 40.72% → 44.75% → 46.37%`，总增量 `21.69` 个百分点；3 个高层运动均完成，
+  每步结束后两道执行门关闭。
+- 把测试物换成真实草莓后，用当前 HSV 红色规则 mask 连续完成 2 步，覆盖率
+  `23.94% → 35.21% → 41.65%`。第三个建议位移不超过 1 mm；当前代码会把这种情况解释为
+  “提前收敛”，但修复后尚未重新做真机复测。
+
+这里的 `coverage` 是“目标 ROI 中有多少体素被有效深度射线碰到”，用于比较地图是否持续
+获得新信息；它不是草莓真实表面覆盖率，也不能直接解释成“看清了百分之多少草莓”。
+
+详细证据：
+
+- [相机、接口与 Gradient-NBV 验收](validation/week2/README.md)
+- [正式手眼标定结果](validation/week3/HAND_EYE_RESULT_CN.md)
+- [红色目标三步真实闭环](validation/week4/README.md)
+- [真实草莓 HSV-mask 多步闭环](validation/week5/README.md)
+- [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
+
+## 先直观看懂体素地图
+
+下面是同一合成场景连续 5 次观察后的俯视、正视和侧视图。灰色是还没看过，蓝色是深度
+射线已经经过，深灰是测到的表面，红色是 mask 支持的目标，绿色是相机路径，橙圈是下一
+建议位置。底部曲线显示地图覆盖率逐次增加。
+
+![Gradient-NBV 五视角体素地图](validation/week2/artifacts/g2_nbv_map_final.png)
+
+[打开动态 GIF 查看五次更新过程](validation/week2/artifacts/g2_nbv_map_progress.gif)
+
+离线复现这张图（不会连接相机或机械臂）：
+
+```bash
+cd /home/yyt/strawberry_active_perception
+PYTHONPATH=perception_ws/src/strawberry_gradient_nbv \
+  .venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization \
+  demo --device cpu --output-dir /tmp/nbv-map-demo
+xdg-open /tmp/nbv-map-demo/nbv_map_final.png
+```
+
+真实 NBV 配置会把每步完整体素快照写入 `artifacts/nbv_map_snapshots/`。运行结束后可执行：
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source perception_ws/install/setup.bash
+.venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization \
+  render --output-dir /tmp/real-nbv-map artifacts/nbv_map_snapshots/场景名/generation_001/*.npz
+```
+
+旧的真实闭环只保存了覆盖率和体素数量，没有保存完整体素数组，所以能核验曲线和统计，
+不能事后无损恢复成三维图；从本版本开始的新实验可以。
+
+## 为什么当前最多三步，而不是达到目标才停
+
+“三步”是第一轮真机验证的安全上限，不是 NBV 算法的最终停止目标。它用来先证明：第二、
+第三步确实使用前面累积的同一张地图，并且连续开门、运动、关门不会失控。
+
+当前监督器已经会在两种情况下提前停：单步 coverage 增量低于 `0.5` 个百分点，或算法提出
+的下一位移不超过 `1 mm`。最终版本还应加入可配置的目标停止策略，同时保留最大步数/时间
+作为兜底：
+
+1. coverage 达到经过实验标定的目标；或连续若干视角几乎不再增长；
+2. 预期信息增益连续若干次低于阈值；
+3. 下一动作进入位移死区；
+4. 达到最大步数、最大累计运动或任何安全错误。
+
+不能现在随意写一个“80% 就完成”，因为当前 coverage 是 ROI 射线覆盖，不是真实草莓表面
+真值。下一轮应先用多组回放数据画出“观察次数—coverage—增益”曲线，再固定阈值；届时
+步数只是上限，达到目标会更早停止。
+
+## “真正的草莓分割”是什么
+
+是 mask。mask 是一张与彩色图同尺寸的黑白图：草莓像素为 255（白），其他像素为 0
+（黑）。当前程序通过 HSV 颜色阈值找红色，因此镜头前放真实草莓可以跑通几何闭环，但它
+不能理解“草莓”这个类别，红杯子、红纸或偏色光照都可能误判。
+
+可以直接使用 [Meta 官方 SAM 3](https://github.com/facebookresearch/sam3) / SAM 3.1：用文本
+提示 `strawberry` 先做零样本分割，不必先自行训练。接入方式是新增一个 mask provider，
+把 SAM 输出转成现有 `mono8` mask；后面的 Observation、NBV、手眼、IK 和运动代码都复用。
+
+但“无需训练”不等于“无需验证”。SAM 可能选中多个草莓、漏掉叶片或把包装图案当目标，
+所以先做离线质量门：置信度、目标实例选择、至少 200 个有效 mask 深度像素、时间稳定性和
+人工抽查。SAM 3.1 模型约 848M 参数，官方环境要求 Python 3.12、较新的 PyTorch/CUDA，
+应放在独立 `.venv-sam3` 中按需运行，先测本机 8 GB 显存的速度与显存，不与 NBV 环境硬混。
+
+需要操作者提供的不是训练代码，而是：
+
+1. 在 Hugging Face 申请并接受官方 checkpoint 权限，然后在本机登录（不要把 token 提交）；
+2. 保留 10～30 组不同距离、角度、遮挡和光照的真实草莓图用于验证；
+3. 演示可以不标注，但要客观汇报准确性时，人工检查或标注其中一小批作为真值。
+
+## 从新电脑复现
+
+### 1. 克隆与系统依赖
 
 ```bash
 git clone --recurse-submodules \
   https://github.com/Sheepyyt/strawberry_active_perception.git
 cd strawberry_active_perception
 git submodule update --init --recursive
+sudo apt install libgoogle-glog-dev python3-venv python3-pip python3-opencv
 ```
 
-GitHub 网页会把子模块显示成可点击的提交链接，而不是复制第三方仓库的全部文件，这是正常
-现象。
-
-## 创建环境并构建
+NERO v1.11 的启动、电子阻尼急停和 `move_home` 控制门是固定上游 commit 的本地安全补丁：
 
 ```bash
-cd /home/yyt/strawberry_active_perception
-source /opt/ros/jazzy/setup.bash
+./vendor_patches/agx_arm_ros/apply_checked.sh
+```
 
+脚本同时校验子模块 commit 和补丁 SHA；版本不符会拒绝修改，不会静默套到另一版驱动。
+
+### 2. 两个互相隔离的 Python 环境
+
+```bash
 python3 -m venv --system-site-packages --prompt sap-core .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+deactivate
 
-cd nero_ws
-python -m colcon build --symlink-install \
-  --packages-select strawberry_nero_interfaces strawberry_nero_control
-source install/setup.bash
-```
-
-工作区的 `colcon_defaults.yaml` 会忽略 `agx_arm_moveit`。必须使用 `python -m colcon`，让
-生成的 ROS 2 Python 程序使用安装了 Placo 的 `.venv`。
-
-感知侧使用独立环境，避免 NumPy 2/PyTorch 与系统 OpenCV/cv_bridge 的 ABI 混用：
-
-```bash
-cd /home/yyt/strawberry_active_perception
 python3 -m venv --system-site-packages --prompt sap-nbv .venv-nbv
 source .venv-nbv/bin/activate
 python -m pip install -r perception_ws/src/strawberry_gradient_nbv/requirements-nbv.txt
-
-source /opt/ros/jazzy/setup.bash
-source camera_ws/install/setup.bash
-source nero_ws/install/setup.bash
-python -m colcon --log-base perception_ws/log build \
-  --symlink-install --base-paths perception_ws/src \
-  --build-base perception_ws/build --install-base perception_ws/install \
-  --event-handlers console_cohesion+
+deactivate
 ```
 
-相机适配器是 C++ 节点，使用系统 ROS/OpenCV；NBV wrapper 使用 `.venv-nbv`，且不导入
-`cv_bridge`。当前 Gemini 仍协商为 USB 2.0/480M，但已经在 `640x400@10 Hz` 的固定配置下
-通过 30 分钟稳定性验收，因此不会阻塞后续低带宽实验。USB 3 SuperSpeed 是提高分辨率、
-帧率或增加额外数据流时的推荐升级；若机械臂运动时线缆弯折导致断流，再将它升级为阻塞项。
+`.venv` 服务 Placo；`.venv-nbv` 服务 PyTorch/Gradient-NBV。相机适配器使用系统 C++ OpenCV，
+从而避开 NumPy 2 与系统 `cv_bridge` 的 ABI 冲突。
 
-## 当前结论（Week 2 + Week 3 + Week 4）
+### 3. 构建三个工作区
 
-- G1 统一接口、G2 独立 Gradient-NBV 和 G4 无运动 Placo 仿真预检已经通过；
-- G0 已通过：`libgoogle-glog-dev` 已安装，系统依赖检查和相机三包 clean build 均成功；
-- G2 五视角 ROI coverage 从 20.6864% 增至 56.3128%，默认 GPU 验收约 0.4 s；
-- Gemini 三次冷启动、30 分钟低带宽 transport、rosbag 回放和真实红色目标单视角 NBV
-  已通过；360×270 mm 标定板的尺度、平面一致性和 20 帧四边彩深实体边缘对齐均已通过，
-  G3 已在“静止相机、当前 640×400@10 Hz 配置”的范围内完成；
-- 厂商的 `image_undistorted` 实际没有消除畸变：同一时间戳的原图和所谓去畸变图逐字节
-  相同。现在由项目自己的 adapter 使用相机原始 `K/D` 真正校正 RGB；硬件已经对齐到彩色
-  网格的 HW-D2C depth 保持原样，不做第二次 remap。独立 20 帧实机几何复核已经通过；
-- 30 个同步机械臂姿态已按正确相机模型重新计算。正式手眼标定 20/20 个独立留出切分
-  全部通过；最差留出 P95 为 `6.10 mm / 0.52°`，不同切分外参最大差异为
-  `3.386 mm / 0.513°`。这说明外参已通过离线数值验收，不等于已经允许机械臂执行 NBV；
-- 正式外参已进入真实 Placo `SolveIK` 的只读计算链。当前位姿和相机光学 +X 方向 5 mm
-  候选均为 `passed`；5 mm 完整候选 `alpha=1` 首次求解成功，最大关节变化为 `0.012 rad`，
-  末端位置/姿态求解误差约 `0.994 mm / 0.000577 rad`。两个独立运动命令观察计数均为 0，
-  因此这是“算出可达解”，不是“机械臂已经走了 5 mm”；
-- 在上述只读验证之后，真实闭环监督器又完成了一次正式小步运动。SHA 冻结目标对应的
-  相机变化约为 `1.890 mm / 7.831°`；只发送了 1 个高层 `MoveToPose` 目标。动作后精确 TF
-  测得相机目标误差为 `0.421 mm / 0.0115°`，红色目标仍清楚可见；ROI 地图 coverage 从
-  `30.568%` 增至 `43.581%`，增加 `13.013` 个百分点，已观察体素增加 `105554`；
-- 控制器为这 1 个平滑动作发送了 44 个约 50 Hz 的关节轨迹采样点，这不是 44 次运动。
-  动作结束后控制器门和驱动门分别获得两次关闭回执，独立监视器继续观察 2 分钟，没有
-  新命令、第二动作、CAN/限位/机械臂错误。完整证据见
-  [`validation/week4/README.md`](validation/week4/README.md) 和
-  [`real_nbv_post_motion_summary.json`](validation/week4/artifacts/real_nbv_post_motion_summary.json)；
-- 面向现场操作者的启动、看图和红色物体测试步骤见
-  [`CAMERA_GUIDE_CN.md`](CAMERA_GUIDE_CN.md)；完整门禁、实测数字和复现命令见
-  [`validation/week2/README.md`](validation/week2/README.md)。手眼结果、矩阵、证据 SHA 和
-  当前安全边界见 [`HAND_EYE_RESULT_CN.md`](validation/week3/HAND_EYE_RESULT_CN.md)。
+相机驱动先按其[中文说明](camera_ws/src/OrbbecSDK_ROS2/README_CN.MD)安装 udev 规则，然后：
 
-README 不记录“相机在线、机械臂已使能”之类会过期的现场状态。每次实验都必须重新运行：
+```bash
+source /opt/ros/jazzy/setup.bash
+
+cd camera_ws
+colcon build --symlink-install \
+  --packages-select orbbec_camera_msgs orbbec_description orbbec_camera
+cd ..
+
+source .venv/bin/activate
+cd nero_ws
+python -m colcon build --symlink-install \
+  --packages-select agx_arm_msgs agx_arm_description agx_arm_ctrl \
+    strawberry_nero_interfaces strawberry_nero_control
+cd ..
+deactivate
+
+source camera_ws/install/setup.bash
+source nero_ws/install/setup.bash
+source .venv-nbv/bin/activate
+python -m colcon --log-base perception_ws/log build \
+  --symlink-install --base-paths perception_ws/src \
+  --build-base perception_ws/build --install-base perception_ws/install
+deactivate
+```
+
+`nero_ws/colcon_defaults.yaml` 会忽略 MoveIt 包。
+
+### 4. 一键离线回归
+
+```bash
+./verify_software.sh
+```
+
+这个脚本只运行测试，不打开相机、不激活 CAN、不使机械臂运动。正式外参报告位于
+`validation/week3/artifacts/stability_pose001_030_factory_raw_D.json`，SHA-256 为
+`31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f`。
+
+## 每次硬件实验前
+
+README 不保存“相机在线、机械臂已使能”等很快过期的状态；只相信本次命令输出：
 
 ```bash
 ./camera_operator.sh usb
 ./camera_operator.sh status
-./camera_operator.sh test-red
+./camera_operator.sh test-strawberry
 ./robot_operator.sh can
 ./robot_operator.sh status
 ./robot_operator.sh pose
 ```
 
-命令的当次输出才代表真实状态，历史 JSON 不能替代上电后的检查。早期两份只读证据见
-[`current`](validation/week3/artifacts/real_handeye_current_solveik_preview.json)（SHA-256
-`5b2c3d6096acc3caa12e49acfc0ddb0a9be4ca6bc481f81a1615a8a51f946413`）和
-[`optical +X 5 mm`](validation/week3/artifacts/real_handeye_small_nbv_solveik_preview.json)
-（SHA-256 `5ca282f883f2b0affe9b7719c6554843ab45c401216046e3eb3dadc0447f421e`）。
+通俗的相机操作见 [CAMERA_GUIDE_CN.md](CAMERA_GUIDE_CN.md)，机械臂说明见
+[NERO 控制 README](nero_ws/src/strawberry_nero_control/README.md)。真实运动仍必须清空整臂
+扫掠区、检查线缆、安排观察员，并生成新的只读 preview/完整 SHA；历史授权和历史 JSON
+不能重复用于新实验。本项目尚无环境碰撞模型，不能无人值守运行。
 
 ## 目录
 
 ```text
-strawberry_active_perception/
-├── camera_ws/src/OrbbecSDK_ROS2/        相机驱动子模块
-├── perception_ws/
-│   └── src/
-│       ├── strawberry_perception_interfaces/  统一 Observation/NBV 接口
-│       ├── strawberry_observation/            Gemini 按需采集适配器
-│       ├── strawberry_gradient_nbv/           独立 Gradient-NBV 核心与回放
-│       └── strawberry_active_perception_bridge/  Placo SolveIK 只读预检
-├── nero_ws/
-│   ├── src/agx_arm_ros/                 NERO 官方驱动子模块
-│   ├── src/strawberry_nero_interfaces/  ROS 2 消息、服务和 Action 定义
-│   ├── src/strawberry_nero_control/     Placo IK、轨迹、安全控制和 Demo
-│   └── colcon_defaults.yaml             构建时忽略 MoveIt
-├── validation/week1/                    保留的测试 CSV、JSON 和数据摘要
-├── validation/week2/                    相机/NBV/预检工具、门禁与小型证据
-├── validation/week3/                    手眼采集、标定结果与只读验证说明
-├── validation/week4/                    第一次真实 NBV 小步闭环、监督器证据与说明
-├── nero_exhibition_demo/                与科研参数隔离的大幅参观展示
-├── vendor_patches/agx_arm_ros/           固定版本的 NERO v1.11 安全补丁
-├── requirements.txt                     Python 运行依赖
-└── README.md
+camera_ws/                    Orbbec ROS 2 驱动子模块与构建空间
+nero_ws/                      NERO 驱动、Placo IK、轨迹与安全控制
+perception_ws/src/
+  strawberry_perception_interfaces/    统一消息、Service、Action
+  strawberry_observation/              Gemini 适配、HSV mask、按需采集
+  strawberry_gradient_nbv/             纯核心、回放、地图快照与可视化
+  strawberry_handeye_calibration/      手眼标定与稳定性验证
+  strawberry_active_perception_bridge/ NBV→手眼→IK→受监督运动
+validation/week1..week5/      可提交的小型数据、报告和真实执行证据
+vendor_patches/agx_arm_ros/   受版本/SHA 保护的 NERO v1.11 安全补丁
+nero_exhibition_demo/         与科研参数隔离的展示程序
+artifacts/                    大型 rosbag/现场原始数据（本机保留，不提交）
 ```
 
-`.venv/`、`nero_ws/build/`、`nero_ws/install/`、日志和 Python 缓存均为本机生成内容，不提交
-Git。删除 `build/install` 后，重新执行上面的构建命令即可恢复。
-
-## 两个 Strawberry 包为什么分开
-
-- `strawberry_nero_interfaces` 只定义其他节点怎样请求 IK、运动和安全恢复，以及返回哪些字段；
-- `strawberry_nero_control` 实现 Placo 求解、连续性检查、五次轨迹和 NERO 执行。
-
-接口独立后，未来 Gradient-NBV 只需依赖稳定的小接口包，不必依赖控制程序内部实现。
-
-`nero_ws/src/strawberry_nero_control/strawberry_nero_control/` 这个内层同名目录是 Python 源码
-模块；外层目录是 ROS 2 Python 工程。它们不是两份重复代码，而是 `ament_python` 的标准
-结构。
-
-## 复现 Demo 和查看结果
-
-- 从上电、CAN、恢复、ready、目标预览、真机执行、回程到安全失能的完整教程：
-  [`nero_ws/src/strawberry_nero_control/README.md`](nero_ws/src/strawberry_nero_control/README.md)
-- 测试过程、数据表和原始结果说明：
-  [`validation/week1/README.md`](validation/week1/README.md)
-- Gemini、统一接口、Gradient-NBV 和 SolveIK 预检的门禁与采集工具：
-  [`validation/week2/README.md`](validation/week2/README.md)
-- 手眼标定的通俗结论、正式矩阵、证据文件和下一步边界：
-  [`validation/week3/HAND_EYE_RESULT_CN.md`](validation/week3/HAND_EYE_RESULT_CN.md)
-- 第一次真实 Gradient-NBV 小步闭环、失败保护过程和动作后地图证据：
-  [`validation/week4/README.md`](validation/week4/README.md)
+下一项最小开发任务是：接入 SAM 3.1 mask provider 并做离线 A/B 验证；随后把三步上限推广为
+“目标/收敛条件决定何时停，最大步数和累计运动只负责兜底”的有限状态循环。双臂、采摘和
+无人值守连续运动暂不进入本阶段。

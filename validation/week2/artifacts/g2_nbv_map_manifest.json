@@ -1,0 +1,31 @@
+{
+  "schema": "strawberry_gradient_nbv_visualization/v1",
+  "scene_id": "occluded_red_target_5view_v1",
+  "source": "deterministic synthetic fixture",
+  "snapshot_count": 5,
+  "coverage": [
+    0.206864,
+    0.36512,
+    0.463856,
+    0.519872,
+    0.563128
+  ],
+  "final_png": {
+    "path": "g2_nbv_map_final.png",
+    "sha256": "2fa9c3df26998006b954f9bb5dcb110760cf25590091ec27db6e1153296cb869"
+  },
+  "animated_gif": {
+    "path": "g2_nbv_map_progress.gif",
+    "sha256": "021109569743efa1ad39290041114a92af2c706b269ddb2d4b25ce2479209d8c"
+  },
+  "reproduce": "PYTHONPATH=perception_ws/src/strawberry_gradient_nbv .venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization demo --device cpu --output-dir /tmp/nbv-map-demo",
+  "meaning": {
+    "unknown": "gray: no valid depth ray has touched the voxel",
+    "observed": "blue: touched by at least one valid depth ray",
+    "occupied": "dark: measured depth surface endpoint",
+    "target": "red: mask-supported target endpoint",
+    "camera": "green: known camera path",
+    "next": "orange ring: proposed next camera position"
+  },
+  "scientific_limit": "Coverage is the fraction of target-ROI voxels touched by valid rays; it is not ground-truth strawberry surface coverage."
+}

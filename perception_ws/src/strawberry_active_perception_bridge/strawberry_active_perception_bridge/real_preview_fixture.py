@@ -30,8 +30,8 @@ from .transforms import matrix_to_pose_components, pose_components_to_matrix
 
 
 DEFAULT_REPORT_PATH = (
-    "/home/yyt/strawberry_active_perception/artifacts/week3/"
-    "handeye_session_001/stability_pose001_030_factory_raw_D.json"
+    "/home/yyt/strawberry_active_perception/validation/week3/artifacts/"
+    "stability_pose001_030_factory_raw_D.json"
 )
 DEFAULT_REPORT_SHA256 = (
     "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"

@@ -86,6 +86,7 @@ def test_adapter_config_declares_real_source_type():
     assert 'input_color_topic: /camera/color/image_raw' in config
     assert 'input_color_camera_info_topic: /camera/color/camera_info' in config
     assert 'input_depth_camera_info_topic: /camera/depth/camera_info' in config
+    assert 'mask_dilation_kernel_size: 5' in config
 
 
 def test_adapter_source_uses_four_way_sync_and_both_camera_infos():

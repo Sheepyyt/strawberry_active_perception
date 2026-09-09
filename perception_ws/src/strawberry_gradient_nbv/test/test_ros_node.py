@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 import rclpy
 from rclpy.qos import DurabilityPolicy, HistoryPolicy, ReliabilityPolicy
+from rclpy.parameter import Parameter
 
 from strawberry_gradient_nbv.core import NBVInputError
 from strawberry_gradient_nbv.image_codec import ObservationDecodeError
@@ -80,6 +81,19 @@ class _FakeBackend:
             optimization_iterations=3,
             compute_time_ms=7.5,
         )
+
+    def visualization_state(self):
+        observed = np.asarray([[[self.state > 0]]], dtype=bool)
+        return {
+            "dimensions": np.array([1, 1, 1], dtype=np.int32),
+            "origin_m": np.array([-0.5, -0.5, 0.0]),
+            "voxel_size_m": np.asarray(1.0),
+            "target_center_m": np.array([0.0, 0.0, 0.5]),
+            "target_roi_size_m": np.array([1.0, 1.0, 1.0]),
+            "observed": observed,
+            "occupied": observed.copy(),
+            "target": observed.copy(),
+        }
 
 
 class _GoalHandle:
@@ -406,6 +420,26 @@ def test_action_success_is_idempotent_cached_and_publishes_all_phases(wrapper) -
     assert node._next_view_qos.reliability == ReliabilityPolicy.RELIABLE
     assert node._next_view_qos.durability == DurabilityPolicy.TRANSIENT_LOCAL
     assert node.get_parameter("reset_service").value == "/strawberry/nbv/reset_map"
+
+
+def test_enabled_map_snapshot_is_written_once_per_unique_update(wrapper, tmp_path) -> None:
+    node, backend, _publisher = wrapper
+    node.set_parameters(
+        [Parameter("map_snapshot_directory", Parameter.Type.STRING, str(tmp_path))]
+    )
+    _configure(node)
+    node._on_observation(_observation("map/step:1"))
+
+    _first_goal, first = _compute(node, "map/step:1")
+    assert first.next_view.success
+    paths = list(tmp_path.rglob("*.npz"))
+    assert len(paths) == 1
+    assert "map_step_001" in paths[0].name
+
+    _second_goal, second = _compute(node, "map/step:1")
+    assert second.next_view.success
+    assert backend.update_calls == 1
+    assert list(tmp_path.rglob("*.npz")) == paths
 
 
 def test_result_packaging_failure_rolls_back_and_does_not_mark_id_processed(wrapper) -> None:

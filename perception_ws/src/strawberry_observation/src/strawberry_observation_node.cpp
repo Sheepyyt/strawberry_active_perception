@@ -112,6 +112,8 @@ public:
     processing_config.red_hsv_high_2 = hsv_parameter("red_hsv_high_2", {179, 255, 255});
     processing_config.morphology_kernel_size = static_cast<int>(
       declare_parameter<int64_t>("morphology_kernel_size", 5));
+    processing_config.mask_dilation_kernel_size = static_cast<int>(
+      declare_parameter<int64_t>("mask_dilation_kernel_size", 1));
     processing_config.min_mask_pixels = static_cast<int>(
       declare_parameter<int64_t>("min_mask_pixels", 200));
     processor_ = std::make_unique<ObservationProcessor>(processing_config);

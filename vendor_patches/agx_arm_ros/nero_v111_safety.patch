@@ -2,17 +2,10 @@ diff --git a/README.md b/README.md
 index 27d455b..eb41729 100644
 --- a/README.md
 +++ b/README.md
-@@ -512,12 +512,26 @@ Revo2 Touch 有两种接入方式，请按实际方案选用（勿混用）：
-     ros2 service call /move_home std_srvs/srv/Empty
-     ```
-
+@@ -515 +515 @@ Revo2 Touch 有两种接入方式，请按实际方案选用（勿混用）：
 -4. 急停（保持当前位置）
 +4. 电子阻尼急停
-
-     ```bash
-     ros2 service call /emergency_stop std_srvs/srv/Empty
-     ```
-
+@@ -520,0 +521,14 @@ Revo2 Touch 有两种接入方式，请按实际方案选用（勿混用）：
 +    > **安全说明：** 该服务调用 NERO SDK 的电子阻尼急停，并同时关闭
 +    > `/control/*` 控制门。它不是机械锁止；机械臂抬起时可能在重力作用下
 +    > 缓慢下降。直接失能或断电则可能立即下落，操作人员应避开机械臂下方并
@@ -27,36 +20,20 @@ index 27d455b..eb41729 100644
 +    电子急停会锁住 `/control_enable`；如需恢复控制，必须先确认现场安全并重启驱动，
 +    不会在同一进程内直接解除急停锁。
 +
- 5. 退出示教模式（Piper 系列）
-
-     ```bash
-@@ -913,8 +927,9 @@ ros2 topic pub /control/joint_states sensor_msgs/msg/JointState \
- |------|------|------|----------|
- | `/enable_agx_arm` | `std_srvs/SetBool` | 使能/失能机械臂 | 始终可用 |
- | `/control_enable` | `std_srvs/SetBool` | 开启/关闭 `/control/*` 控制门控 | 始终可用 |
+@@ -916,2 +930,3 @@ ros2 topic pub /control/joint_states sensor_msgs/msg/JointState \
 -| `/move_home` | `std_srvs/Empty` | 回零位 | 始终可用 |
 -| `/emergency_stop` | `std_srvs/Empty` | 急停（保持当前位置） | 始终可用 |
 +| `/move_home` | `std_srvs/Empty` | 回零位 | 机械臂已使能且 `/control_enable` 已开启 |
 +| `/emergency_stop` | `std_srvs/Empty` | 电子阻尼急停并关闭控制门；可能缓慢下降 | 始终可调用（尽力发送） |
 +| `/electronic_emergency_stop` | `std_srvs/Trigger` | 电子阻尼急停，并返回 SDK 是否接受发送请求 | 始终可调用（无控制箱回执） |
- | `/exit_teach_mode` | `std_srvs/Empty` | 退出示教模式 | Piper 系列 |
-
- ---
 diff --git a/README_EN.md b/README_EN.md
 index e111c10..936d1be 100644
 --- a/README_EN.md
 +++ b/README_EN.md
-@@ -510,12 +510,28 @@ Revo2 Touch supports two integration paths—use one according to your setup (do
-     ros2 service call /move_home std_srvs/srv/Empty
-     ```
-
+@@ -513 +513 @@ Revo2 Touch supports two integration paths—use one according to your setup (do
 -4. Emergency stop (hold current position)
 +4. Electronic damping stop
-
-     ```bash
-     ros2 service call /emergency_stop std_srvs/srv/Empty
-     ```
-
+@@ -518,0 +519,16 @@ Revo2 Touch supports two integration paths—use one according to your setup (do
 +    > **Safety:** This service calls the NERO SDK electronic damping stop and
 +    > closes the `/control/*` command gate. It is not a mechanical lock; a
 +    > raised arm may descend slowly under gravity. Disabling or removing power
@@ -73,46 +50,22 @@ index e111c10..936d1be 100644
 +    The stop latches `/control_enable`; control can resume only after the
 +    operator confirms safety and restarts the driver.
 +
- 5. Exit teach mode (Piper series)
-
-     ```bash
-@@ -911,8 +927,9 @@ Message type: `agx_arm_msgs/HandPositionTimeCmd`
- |---------|------|-------------|-----------|
- | `/enable_agx_arm` | `std_srvs/SetBool` | Enable/disable arm | Always available |
- | `/control_enable` | `std_srvs/SetBool` | Open/close `/control/*` command gate | Always available |
+@@ -914,2 +930,3 @@ Message type: `agx_arm_msgs/HandPositionTimeCmd`
 -| `/move_home` | `std_srvs/Empty` | Move to home position | Always available |
 -| `/emergency_stop` | `std_srvs/Empty` | Emergency stop (hold current position) | Always available |
 +| `/move_home` | `std_srvs/Empty` | Move to home position | Arm enabled and `/control_enable` open |
 +| `/emergency_stop` | `std_srvs/Empty` | Electronic damping stop and close command gate; may descend slowly | Always callable (best effort) |
 +| `/electronic_emergency_stop` | `std_srvs/Trigger` | Electronic damping stop with SDK send result | Always callable (no controller acknowledgement) |
- | `/exit_teach_mode` | `std_srvs/Empty` | Exit teach mode | Piper series |
-
- ---
 diff --git a/src/agx_arm_ctrl/agx_arm_ctrl/agx_arm_ctrl_single_node.py b/src/agx_arm_ctrl/agx_arm_ctrl/agx_arm_ctrl_single_node.py
-index e5cf9e6..ffa897f 100644
+index e5cf9e6..401d294 100644
 --- a/src/agx_arm_ctrl/agx_arm_ctrl/agx_arm_ctrl_single_node.py
 +++ b/src/agx_arm_ctrl/agx_arm_ctrl/agx_arm_ctrl_single_node.py
-@@ -10,7 +10,7 @@ from pyAgxArm import create_agx_arm_config, AgxArmFactory, ArmModel, PiperFW, Ne
- from rclpy.node import Node
- from sensor_msgs.msg import JointState
- from builtin_interfaces.msg import Time
+@@ -13 +13 @@ from builtin_interfaces.msg import Time
 -from std_srvs.srv import SetBool, Empty
 +from std_srvs.srv import SetBool, Empty, Trigger
- from geometry_msgs.msg import Pose, PoseStamped, PoseArray
- from scipy.spatial.transform import Rotation as R
-
-@@ -157,6 +157,7 @@ class AgxArmRosNode(Node):
-         self.arm_joint_names = list()
-         self.arm_joint_count = 0
-         self._control_gate_block_logged = False
+@@ -159,0 +160 @@ class AgxArmRosNode(Node):
 +        self._emergency_stop_latched = False
-
-     def _log_parameters(self):
-         self.get_logger().info(f"can_port: {self.can_port}")
-@@ -176,10 +177,42 @@ class AgxArmRosNode(Node):
-         self.get_logger().info(f"gripper_default_effort: {self.gripper_default_effort}")
-         self.get_logger().info(f"control_enabled: {self.control_enabled}")
-
+@@ -178,0 +180,17 @@ class AgxArmRosNode(Node):
 +    def _driver_firmware_for_version(self, current_version: float):
 +        """Select the SDK protocol adapter before connecting to the arm."""
 +        firmware_version = PiperFW.DEFAULT
@@ -130,10 +83,9 @@ index e5cf9e6..ffa897f 100644
 +                firmware_version = NeroFW.V112
 +        return firmware_version
 +
-     def _init_agx_arm(self):
+@@ -180,2 +198,8 @@ class AgxArmRosNode(Node):
 -        config: PiperCanDefaultConfig = create_agx_arm_config(
 -            robot=self.arm_type, comm="can", channel=self.can_port
--        )
 +        configured_firmware = PiperFW.DEFAULT
 +        if self.fw_version:
 +            compact_version = self.fw_version[1:]
@@ -142,7 +94,7 @@ index e5cf9e6..ffa897f 100644
 +            )
 +            configured_firmware = self._driver_firmware_for_version(
 +                current_version
-+            )
+@@ -182,0 +207,9 @@ class AgxArmRosNode(Node):
 +
 +        config_kwargs = {
 +            "robot": self.arm_type,
@@ -152,13 +104,7 @@ index e5cf9e6..ffa897f 100644
 +        if configured_firmware != PiperFW.DEFAULT:
 +            config_kwargs["firmeware_version"] = configured_firmware
 +        config: PiperCanDefaultConfig = create_agx_arm_config(**config_kwargs)
-         self.agx_arm = AgxArmFactory.create_arm(config)
-         self.agx_arm.connect()
-
-@@ -193,12 +226,7 @@ class AgxArmRosNode(Node):
-             time.sleep(0.1)
-             self.enable_flag = self.agx_arm.get_joint_enable_status(255)
-
+@@ -196,6 +229 @@ class AgxArmRosNode(Node):
 -        if self.fw_version:
 -            compact_version = self.fw_version[1:]
 -            current_version = float(
@@ -166,13 +112,7 @@ index e5cf9e6..ffa897f 100644
 -            )
 -        else:
 +        if not self.fw_version:
-             firmware = None
-             start_time = time.time()
-             while time.time() - start_time < self.enable_timeout:
-@@ -222,25 +250,18 @@ class AgxArmRosNode(Node):
-                 f"{compact_version[:3]}.{compact_version[3:] or '0'}"
-             )
-
+@@ -225,13 +253,3 @@ class AgxArmRosNode(Node):
 -        firmeware_version = PiperFW.DEFAULT
 -        if self.is_piper:
 -            if current_version < 185:
@@ -189,53 +129,28 @@ index e5cf9e6..ffa897f 100644
 +            detected_firmware = self._driver_firmware_for_version(
 +                current_version
 +            )
-
+@@ -239 +257,4 @@ class AgxArmRosNode(Node):
 -        if firmeware_version != PiperFW.DEFAULT:
 +        if (
 +            not self.fw_version
 +            and detected_firmware != PiperFW.DEFAULT
 +        ):
-             self.agx_arm.disconnect()
-             config = create_agx_arm_config(
-                 robot=self.arm_type, comm="can", channel=self.can_port,
+@@ -243 +264 @@ class AgxArmRosNode(Node):
 -                firmeware_version=firmeware_version
 +                firmeware_version=detected_firmware
-             )
-             self.agx_arm = AgxArmFactory.create_arm(config)
-             self.agx_arm.connect()
-@@ -352,6 +373,11 @@ class AgxArmRosNode(Node):
-         self.create_service(SetBool, "control_enable", self._control_gate_callback)
-         self.create_service(Empty, "move_home", self._move_home_callback)
-         self.create_service(Empty, "emergency_stop", self._emergency_stop_callback)
+@@ -354,0 +376,5 @@ class AgxArmRosNode(Node):
 +        self.create_service(
 +            Trigger,
 +            "electronic_emergency_stop",
 +            self._checked_emergency_stop_callback,
 +        )
-         if not self.is_switch_seamlessly:
-             self.create_service(Empty, "exit_teach_mode", self._exit_teach_mode_callback)
-
-@@ -449,14 +475,14 @@ class AgxArmRosNode(Node):
-         all_joints_in_target_status = joints_status if enable else not joints_status
-
-         if all_joints_in_target_status:
+@@ -452 +478 @@ class AgxArmRosNode(Node):
 -            self.enable_flag = True if enable else False
 +            self.enable_flag = bool(enable)
-             self.get_logger().info(f"All joints {action_name} status is {self.enable_flag}")
-         else:
-             self.get_logger().warn(
-                 f"Not all joints are {action_name}d after {action_name}ing the arm"
-             )
-
+@@ -459 +485 @@ class AgxArmRosNode(Node):
 -        return True
 +        return bool(all_joints_in_target_status)
-
-     ### publisher thread
-     def _publish_thread(self):
-@@ -877,13 +903,37 @@ class AgxArmRosNode(Node):
-     ### service callbacks
-     def _enable_callback(self, request, response):
-         try:
+@@ -880,5 +906,23 @@ class AgxArmRosNode(Node):
 -            if not self._check_arm_ready():
 -                response.success = False
 -                response.message = "Agx_arm is not connected"
@@ -264,32 +179,19 @@ index e5cf9e6..ffa897f 100644
 +                        "No joint feedback yet; attempting enable so legacy "
 +                        "Nero firmware can start CAN feedback"
 +                    )
-                 response.success = True if self._enable_arm(True) else False
-                 response.message = "Agx_arm enabled" if response.success else "Failed to enable Agx_arm"
+@@ -886,0 +931,6 @@ class AgxArmRosNode(Node):
 +            elif not self._check_arm_ready():
 +                response.success = False
 +                response.message = "Agx_arm is not connected"
 +                self.get_logger().warn(
 +                    "Agx_arm is not connected, cannot set disable state"
 +                )
-             else:
-                 response.success = True if self._enable_arm(False) else False
-                 response.message = "Agx_arm disabled" if response.success else "Failed to disable Agx_arm"
-@@ -900,6 +950,10 @@ class AgxArmRosNode(Node):
-                 self.get_logger().warn("Agx_arm is not connected, cannot move to home position")
-             elif not self.enable_flag:
-                 self.get_logger().warn("Agx_arm is not enabled, cannot move to home position")
+@@ -902,0 +953,4 @@ class AgxArmRosNode(Node):
 +            elif not self.control_enabled:
 +                self.get_logger().warn(
 +                    "External control gate is closed, cannot move to home position"
 +                )
-             else:
-                 if not self.is_switch_seamlessly:
-                     arm_status = self.agx_arm.get_arm_status()
-@@ -918,6 +972,14 @@ class AgxArmRosNode(Node):
-         return response
-
-     def _control_gate_callback(self, request, response):
+@@ -920,0 +975,8 @@ class AgxArmRosNode(Node):
 +        if request.data and self._emergency_stop_latched:
 +            response.success = False
 +            response.message = (
@@ -298,13 +200,7 @@ index e5cf9e6..ffa897f 100644
 +            )
 +            self.get_logger().warn(response.message)
 +            return response
-         self.control_enabled = request.data
-         self._control_gate_block_logged = False
-         state = "opened" if request.data else "closed"
-@@ -926,31 +988,41 @@ class AgxArmRosNode(Node):
-         self.get_logger().info(response.message)
-         return response
-
+@@ -929,2 +991,7 @@ class AgxArmRosNode(Node):
 -    def _emergency_stop_callback(self, request, response):
 -        """Emergency stop: use is_switch_seamlessly flag to decide MIT vs move_j."""
 +    def _request_electronic_emergency_stop(self):
@@ -314,7 +210,7 @@ index e5cf9e6..ffa897f 100644
 +        self.control_enabled = False
 +        self._emergency_stop_latched = True
 +        self._control_gate_block_logged = False
-         try:
+@@ -932,20 +999,13 @@ class AgxArmRosNode(Node):
 -            if not self._check_arm_ready():
 -                self.get_logger().warn("Agx_arm is not connected, cannot perform emergency stop")
 -                return response
@@ -348,8 +244,7 @@ index e5cf9e6..ffa897f 100644
 +                "Electronic damping-stop frame queued; controller receipt is "
 +                "not independently acknowledged",
 +            )
-         except Exception as e:
-             self.get_logger().error(f"Emergency stop failed: {e}")
+@@ -953,0 +1014,12 @@ class AgxArmRosNode(Node):
 +            return False, f"Electronic damping-stop send failed: {e}"
 +
 +    def _emergency_stop_callback(self, request, response):
@@ -362,22 +257,12 @@ index e5cf9e6..ffa897f 100644
 +        response.success, response.message = (
 +            self._request_electronic_emergency_stop()
 +        )
-         return response
-
-     def _exit_teach_mode_callback(self, request, response):
 diff --git a/src/agx_arm_ctrl/launch/start_single_agx_arm.launch.py b/src/agx_arm_ctrl/launch/start_single_agx_arm.launch.py
 index db15bcf..67c0081 100644
 --- a/src/agx_arm_ctrl/launch/start_single_agx_arm.launch.py
 +++ b/src/agx_arm_ctrl/launch/start_single_agx_arm.launch.py
-@@ -153,6 +153,7 @@ def generate_launch_description():
-             ('control_enable', 'control_enable'),
-             ('move_home', 'move_home'),
-             ('emergency_stop', 'emergency_stop'),
+@@ -155,0 +156 @@ def generate_launch_description():
 +            ('electronic_emergency_stop', 'electronic_emergency_stop'),
-             ('exit_teach_mode', 'exit_teach_mode'),
-         ],
-     )
-
 diff --git a/src/agx_arm_ctrl/test/test_safety_services.py b/src/agx_arm_ctrl/test/test_safety_services.py
 new file mode 100644
 index 0000000..89b3416

@@ -20,7 +20,9 @@ from strawberry_active_perception_bridge.real_nbv_contract import (
     decode_mask_mono8,
     estimate_target_center,
     five_frame_identity_sha256,
+    independently_segmented_camera_candidates,
     normalize_nbv_configuration,
+    project_numerical_step_overshoot,
     require_unit_quaternion,
     segmented_camera_candidates,
     validate_ik_solution,
@@ -36,6 +38,7 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     DEFAULT_PLAN_SHA256,
     DEFAULT_REPORT_SHA256,
     GateClosureError,
+    MAX_FROZEN_TARGET_CENTER_DRIFT_M,
     RealNBVSupervisor,
     SupervisorError,
     _failure_gates_closed,
@@ -46,6 +49,12 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     _verify_new_aggregate_batch,
     _verify_new_batch_pair,
 )
+
+
+def test_frozen_target_identity_gate_matches_measured_camera_repeatability() -> None:
+    """The identity gate covers measured jitter but remains tightly bounded."""
+    assert MAX_FROZEN_TARGET_CENTER_DRIFT_M == pytest.approx(0.005)
+    assert MAX_FROZEN_TARGET_CENTER_DRIFT_M < 0.020
 
 
 def _image(array: np.ndarray, encoding: str, padding: int = 0):
@@ -89,7 +98,58 @@ def test_padded_depth_mask_and_robust_target_centre() -> None:
     np.testing.assert_allclose(estimate.camera_xyz_m, (0.005, 0.005, 1.0))
     assert estimate.mask_pixels == 600
     assert estimate.valid_mask_pixels == 600
+    assert estimate.depth_layer_count == 2
+    assert estimate.selected_layer_pixels == 599
     assert estimate.retained_pixels == 599
+
+
+def test_target_centre_selects_nearest_supported_depth_layer() -> None:
+    depth = np.full((20, 30), 2.0, dtype=np.float32)
+    depth.reshape(-1)[:220] = 0.36
+    mask = np.full(depth.shape, 255, dtype=np.uint8)
+    intrinsic = np.asarray(
+        [[100.0, 0.0, 14.5], [0.0, 100.0, 9.5], [0.0, 0.0, 1.0]]
+    )
+
+    estimate = estimate_target_center(
+        depth, mask, intrinsic, minimum_pixels=200
+    )
+
+    assert estimate.valid_mask_pixels == 600
+    assert estimate.depth_layer_count == 2
+    assert estimate.selected_layer_pixels == 220
+    assert estimate.retained_pixels == 220
+    assert estimate.median_depth_m == pytest.approx(0.36)
+    assert estimate.camera_xyz_m[2] == pytest.approx(0.36)
+
+
+def test_target_centre_does_not_let_background_satisfy_foreground_gate() -> None:
+    depth = np.full((20, 30), 2.0, dtype=np.float32)
+    depth.reshape(-1)[:180] = 0.36
+    mask = np.full(depth.shape, 255, dtype=np.uint8)
+    intrinsic = np.asarray(
+        [[100.0, 0.0, 14.5], [0.0, 100.0, 9.5], [0.0, 0.0, 1.0]]
+    )
+
+    with pytest.raises(ValueError, match="nearest target-depth layer has 180"):
+        estimate_target_center(depth, mask, intrinsic, minimum_pixels=200)
+
+
+def test_target_centre_ignores_tiny_nearer_outlier_layer() -> None:
+    depth = np.full((20, 30), 2.0, dtype=np.float32)
+    depth.reshape(-1)[:250] = 0.36
+    depth.reshape(-1)[:3] = 0.21
+    mask = np.full(depth.shape, 255, dtype=np.uint8)
+    intrinsic = np.asarray(
+        [[100.0, 0.0, 14.5], [0.0, 100.0, 9.5], [0.0, 0.0, 1.0]]
+    )
+
+    estimate = estimate_target_center(
+        depth, mask, intrinsic, minimum_pixels=200
+    )
+
+    assert estimate.retained_pixels == 247
+    assert estimate.median_depth_m == pytest.approx(0.36)
 
 
 def test_mask_and_quaternion_are_fail_closed() -> None:
@@ -262,6 +322,29 @@ def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:
     assert np.degrees(segments[-1][2].rotation_rad) == pytest.approx(3.75)
 
 
+def test_translation_and_rotation_can_be_segmented_independently() -> None:
+    """A large rotation can be shortened without losing useful translation."""
+    current = np.eye(4)
+    angle = np.radians(120.0)
+    raw = pose_components_to_matrix(
+        (0.005, 0.0, 0.0),
+        (0.0, 0.0, np.sin(angle / 2.0), np.cos(angle / 2.0)),
+    )
+    candidates = independently_segmented_camera_candidates(current, raw)
+    assert len(candidates) == len(DEFAULT_ALPHAS) * (len(DEFAULT_ALPHAS) + 1)
+    translation_alpha, rotation_alpha, _, motion = candidates[4]
+    assert translation_alpha == 1.0
+    assert rotation_alpha == 0.0625
+    assert motion.translation_m == pytest.approx(0.005)
+    assert np.degrees(motion.rotation_rad) == pytest.approx(7.5)
+    translation_alpha, rotation_alpha, candidate, motion = candidates[6]
+    assert translation_alpha == 1.0
+    assert rotation_alpha == 0.0
+    np.testing.assert_allclose(candidate[:3, :3], current[:3, :3])
+    assert motion.translation_m == pytest.approx(0.005)
+    assert motion.rotation_rad == pytest.approx(0.0)
+
+
 def test_gradient_direction_disagreement_is_separate_from_endpoint_safety() -> None:
     artifact_current = np.eye(4)
     artifact_target = np.eye(4)
@@ -288,12 +371,47 @@ def test_gradient_direction_disagreement_is_separate_from_endpoint_safety() -> N
     assert evidence.live_step_m == pytest.approx(0.0025)
 
 
-@pytest.mark.parametrize("distance", [0.001, 0.00500001])
+@pytest.mark.parametrize("distance", [0.001, 0.005002])
 def test_raw_step_rejects_deadband_and_over_limit(distance: float) -> None:
     target = np.eye(4)
     target[0, 3] = distance
     with pytest.raises(ValueError):
         validate_raw_next_view(np.eye(4), target, gain=1.0)
+
+
+def test_raw_step_accepts_sub_micrometre_frozen_start_drift() -> None:
+    target = np.eye(4)
+    target[0, 3] = 0.0050008
+    motion = validate_raw_next_view(np.eye(4), target, gain=1.0)
+    assert motion.translation_m == pytest.approx(0.0050008)
+
+    with pytest.raises(ValueError, match="overshoot_tolerance_m"):
+        validate_raw_next_view(
+            np.eye(4), target, gain=1.0, overshoot_tolerance_m=float("nan")
+        )
+
+
+def test_only_sub_micrometre_step_overshoot_is_projected() -> None:
+    current = np.eye(4)
+    target = np.eye(4)
+    target[0, 3] = 0.0050002
+    projected, correction = project_numerical_step_overshoot(current, target)
+    assert correction == pytest.approx(0.0000002)
+    assert np.linalg.norm(projected[:3, 3]) == pytest.approx(0.005)
+    assert np.array_equal(projected[:3, :3], target[:3, :3])
+
+    target[0, 3] = 0.005002
+    with pytest.raises(ValueError, match="beyond"):
+        project_numerical_step_overshoot(current, target)
+
+    # A dynamic target is not frozen until after its fresh preflight pose.  A
+    # bounded stationary start drift can therefore be removed before freezing.
+    target[0, 3] = 0.005011
+    projected, correction = project_numerical_step_overshoot(
+        current, target, overshoot_tolerance_m=0.001
+    )
+    assert correction == pytest.approx(0.000011)
+    assert np.linalg.norm(projected[:3, 3]) == pytest.approx(0.005)
 
 
 def test_ik_validation_recomputes_joint_delta_and_all_precision_gates() -> None:
@@ -310,6 +428,7 @@ def test_ik_validation_recomputes_joint_delta_and_all_precision_gates() -> None:
         condition_number=5.0,
     )
     assert accepted.max_joint_delta_rad == pytest.approx(0.07)
+    assert accepted.minimum_joint_limit_clearance_rad > 0.001
     with pytest.raises(ValueError, match="exceeds limit"):
         validate_ik_solution(
             current_joints=current,
@@ -321,6 +440,40 @@ def test_ik_validation_recomputes_joint_delta_and_all_precision_gates() -> None:
             sigma_min=0.2,
             condition_number=5.0,
         )
+
+
+def test_ik_validation_rejects_solution_on_research_joint_limit() -> None:
+    current = np.zeros(7)
+    names = [f"joint{index}" for index in range(1, 8)]
+    solution = np.zeros(7)
+    solution[1] = -1.7050934149601134
+    with pytest.raises(ValueError, match="joint2 clearance"):
+        validate_ik_solution(
+            current_joints=current,
+            solution_names=names,
+            solution_positions=solution,
+            reported_max_joint_delta_rad=abs(solution[1]),
+            position_error_m=0.001,
+            orientation_error_rad=0.01,
+            sigma_min=0.2,
+            condition_number=5.0,
+            max_joint_delta_rad=2.0,
+        )
+
+    solution[1] += 0.0015
+    accepted = validate_ik_solution(
+        current_joints=current,
+        solution_names=names,
+        solution_positions=solution,
+        reported_max_joint_delta_rad=abs(solution[1]),
+        position_error_m=0.001,
+        orientation_error_rad=0.01,
+        sigma_min=0.2,
+        condition_number=5.0,
+        max_joint_delta_rad=2.0,
+    )
+    assert accepted.minimum_joint_limit_clearance_rad == pytest.approx(0.0015)
+    assert accepted.limiting_joint_name == "joint2"
 
 
 def test_supervisor_motion_surface_is_one_shot_and_explicitly_guarded() -> None:
@@ -341,6 +494,11 @@ def test_supervisor_motion_surface_is_one_shot_and_explicitly_guarded() -> None:
     assert "audited_upper_bounds" in text
     assert "v2 remains evidence-only" in text
     assert "max_frozen_target_center_drift_m" in text
+    assert "fresh optimizer output is diagnostic only" in text
+    assert "minimum_pixels=1" in text
+    assert "resulting aggregate is\n                # still required to pass" in text
+    assert "if selected is None and not self.execute_requested" in text
+    assert "if not translation_agrees or not rotation_agrees" not in text
     assert "exact_sha_frozen_v3" in text
     assert "for _attempt in range(2)" in text
     assert "isinstance(error, GateClosureError)" in text
@@ -767,10 +925,10 @@ def test_aggregate_preview_rejects_frame_selection_or_duplicate_evidence(
 
 def test_aggregate_preview_rejects_pose_span_or_inexact_tf(tmp_path: Path) -> None:
     document = _minimal_aggregate_v2_outer_preview()
-    document["bootstrap_batch"]["pose_span"]["max_translation_m"] = 0.0003
+    document["bootstrap_batch"]["pose_span"]["max_translation_m"] = 0.0006
     document["execution_plan_candidate"]["aggregation"][
         "bootstrap_pose_span"
-    ]["max_translation_m"] = 0.0003
+    ]["max_translation_m"] = 0.0006
     path = tmp_path / "aggregate_v2_pose_span.json"
     exact_sha256 = _write_exact_json(path, document)
     with pytest.raises(RuntimeError, match="pose span exceeds"):
@@ -798,12 +956,17 @@ def test_three_step_session_ledger_enforces_coverage_and_cumulative_bounds() -> 
         initial_camera=np.eye(4),
         initial_coverage=0.30,
     )
-    for index, (position, coverage) in enumerate(
-        ((0.004, 0.38), (0.009, 0.47), (0.014, 0.52)), start=1
+    for index, (position, actual_position, coverage) in enumerate(
+        (
+            (0.004, 0.0038, 0.38),
+            (0.0088, 0.0086, 0.47),
+            (0.0136, 0.0134, 0.52),
+        ),
+        start=1,
     ):
         evidence = ledger.record_closed_step(
             planned_camera=_translated_camera(position),
-            actual_camera=_translated_camera(position - 0.0002),
+            actual_camera=_translated_camera(actual_position),
             coverage_after=coverage,
             target_valid_mask_depth_pixels=500,
             reported_motion_goal_count=index,
@@ -814,6 +977,68 @@ def test_three_step_session_ledger_enforces_coverage_and_cumulative_bounds() -> 
     assert summary["motion_goal_count"] == 3
     assert summary["scientific_acceptance_passed"] is True
     assert summary["total_coverage_delta"] == pytest.approx(0.22)
+
+
+def test_session_planned_step_starts_from_measured_previous_pose() -> None:
+    """Accepted terminal error must not make a clamped next step look too long."""
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    ledger.record_closed_step(
+        planned_camera=_translated_camera(0.005),
+        actual_camera=_translated_camera(0.0052),
+        coverage_after=0.36,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    evidence = ledger.record_closed_step(
+        planned_start_camera=_translated_camera(0.00525),
+        # The second target is exactly 5 mm from the measured 5.2 mm pose,
+        # plus a 0.05 mm stationary preflight shift.
+        planned_camera=_translated_camera(0.01025),
+        actual_camera=_translated_camera(0.0101),
+        coverage_after=0.43,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=2,
+        gates_closed=True,
+    )
+    assert evidence.planned_step_translation_m == pytest.approx(0.005)
+    assert ledger.summary()["motion_goal_count"] == 2
+
+
+def test_session_ledger_accepts_same_sub_micrometre_step_tolerance() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    evidence = ledger.record_closed_step(
+        planned_camera=_translated_camera(0.0050008),
+        actual_camera=_translated_camera(0.0049),
+        coverage_after=0.36,
+        target_valid_mask_depth_pixels=400,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    assert evidence.planned_step_translation_m == pytest.approx(0.0050008)
+
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    with pytest.raises(ValueError, match="planned camera step"):
+        ledger.record_closed_step(
+            planned_camera=_translated_camera(0.0050012),
+            actual_camera=_translated_camera(0.0049),
+            coverage_after=0.36,
+            target_valid_mask_depth_pixels=400,
+            reported_motion_goal_count=1,
+            gates_closed=True,
+        )
 
 
 def test_session_stops_when_coverage_gain_is_below_half_percentage_point() -> None:
@@ -832,6 +1057,51 @@ def test_session_stops_when_coverage_gain_is_below_half_percentage_point() -> No
     )
     assert evidence.converged is True
     assert ledger.summary()["converged_early"] is True
+
+
+def test_session_can_converge_on_next_view_motion_deadband() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.24,
+    )
+    ledger.record_closed_step(
+        planned_camera=_translated_camera(0.004),
+        actual_camera=_translated_camera(0.0039),
+        coverage_after=0.35,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    ledger.record_closed_step(
+        planned_start_camera=_translated_camera(0.0039),
+        planned_camera=_translated_camera(0.0079),
+        actual_camera=_translated_camera(0.0078),
+        coverage_after=0.416,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=2,
+        gates_closed=True,
+    )
+
+    reason = "Gradient-NBV requested no motion above the 1 mm deadband"
+    ledger.mark_converged(reason)
+    summary = ledger.summary()
+
+    assert summary["motion_goal_count"] == 2
+    assert summary["converged_early"] is True
+    assert summary["convergence_reason"] == reason
+    assert summary["terminated"] is False
+    assert summary["scientific_acceptance_passed"] is False
+
+
+def test_session_cannot_converge_before_any_closed_motion() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.24,
+    )
+    with pytest.raises(ValueError, match="before a motion goal"):
+        ledger.mark_converged("deadband reached")
 
 
 @pytest.mark.parametrize(
@@ -922,8 +1192,8 @@ def test_session_rejects_unreviewed_step_count_and_cumulative_motion() -> None:
         gates_closed=True,
     )
     ledger.record_closed_step(
-        planned_camera=_translated_camera(0.008),
-        actual_camera=_translated_camera(-0.001),
+        planned_camera=_translated_camera(0.011),
+        actual_camera=_translated_camera(0.002),
         coverage_after=0.40,
         target_valid_mask_depth_pixels=400,
         reported_motion_goal_count=2,
@@ -931,7 +1201,7 @@ def test_session_rejects_unreviewed_step_count_and_cumulative_motion() -> None:
     )
     with pytest.raises(ValueError, match="exceeds 15 mm"):
         ledger.record_closed_step(
-            planned_camera=_translated_camera(0.012),
+            planned_camera=_translated_camera(0.006),
             actual_camera=_translated_camera(0.007),
             coverage_after=0.45,
             target_valid_mask_depth_pixels=400,

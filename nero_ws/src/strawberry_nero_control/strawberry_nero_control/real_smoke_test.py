@@ -63,7 +63,7 @@ FORBIDDEN_COMMAND_TOPICS = (
 
 SMOKE_DISTANCE_M = 0.015
 ROUNDTRIP_DISTANCE_M = 0.010
-FEEDBACK_MAX_AGE_S = 0.20
+FEEDBACK_MAX_AGE_S = 0.50
 STATIONARY_SPEED_RAD_S = 0.020
 # The server always initializes Placo from its own newest feedback.  This
 # client-side comparison only detects movement between preview and Action
@@ -615,9 +615,9 @@ class NeroRealSmokeTest(Node):
             raise SmokeTestError("没有机械臂状态反馈")
         now = time.monotonic()
         if now - state.received_monotonic > FEEDBACK_MAX_AGE_S:
-            raise SmokeTestError("关节反馈超过 0.2 s，拒绝执行")
+            raise SmokeTestError("关节反馈超过 0.5 s，拒绝执行")
         if now - self._arm_status_monotonic > FEEDBACK_MAX_AGE_S:
-            raise SmokeTestError("状态反馈超过 0.2 s，拒绝执行")
+            raise SmokeTestError("状态反馈超过 0.5 s，拒绝执行")
         if status.ctrl_mode != 1:
             raise SmokeTestError(
                 f"ctrl_mode={status.ctrl_mode}，不是 CAN 控制模式"

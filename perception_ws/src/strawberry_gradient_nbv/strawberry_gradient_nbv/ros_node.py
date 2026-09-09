@@ -11,6 +11,8 @@ from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass
 import math
+from pathlib import Path
+import re
 import threading
 import time
 from typing import Any, Mapping
@@ -49,6 +51,12 @@ _OBSERVATION_CACHE_CAPACITY = 32
 _MAX_IMAGE_SKEW_SEC = 0.005
 _FRACTION_TOLERANCE = 1.0e-5
 _SKEW_TOLERANCE_SEC = 1.0e-9
+
+
+def _safe_path_component(value: str) -> str:
+    """Return a short filename component without allowing path traversal."""
+    normalized = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(value)).strip("._")
+    return (normalized or "unnamed")[:80]
 
 
 @dataclass(frozen=True)
@@ -327,6 +335,9 @@ class GradientNBVNode(Node):
         # duplicate action return the exact original diagnostics without fusion.
         self._results: dict[tuple[str, str], NextView] = {}
         self._configuration: dict[str, Any] | None = None
+        self._map_generation = 0
+        self._map_step = 0
+        self._camera_pose_history: list[np.ndarray] = []
 
         self.declare_parameter(
             "observation_topic", "/strawberry/perception/observation"
@@ -341,6 +352,7 @@ class GradientNBVNode(Node):
         self.declare_parameter(
             "observation_cache_size", _OBSERVATION_CACHE_CAPACITY
         )
+        self.declare_parameter("map_snapshot_directory", "")
 
         self._observation_cache_capacity = int(
             self.get_parameter("observation_cache_size").value
@@ -423,6 +435,53 @@ class GradientNBVNode(Node):
     ) -> Any:
         return self._backend.update_and_plan(depth, mask, intrinsics, pose)
 
+    def _save_map_snapshot(
+        self,
+        scene_id: str,
+        observation_id: str,
+        decoded: _DecodedObservation,
+        backend_result: Any,
+        output: NextView,
+    ) -> tuple[Path | None, list[np.ndarray]]:
+        """Persist an optional human-readable map input after one update."""
+        configured_directory = str(
+            self.get_parameter("map_snapshot_directory").value
+        ).strip()
+        history = [*self._camera_pose_history, decoded.pose.copy()]
+        if not configured_directory:
+            return None, history
+        visualization_state = getattr(self._backend, "visualization_state", None)
+        if visualization_state is None:
+            raise RuntimeError(
+                "map_snapshot_directory requires a backend with visualization_state()"
+            )
+        from .map_visualization import save_map_snapshot
+
+        directory = (
+            Path(configured_directory).expanduser().resolve()
+            / _safe_path_component(scene_id)
+            / f"generation_{self._map_generation:03d}"
+        )
+        filename = (
+            f"map_step_{self._map_step + 1:03d}_"
+            f"{_safe_path_component(observation_id)}.npz"
+        )
+        path = save_map_snapshot(
+            directory / filename,
+            visualization_state(),
+            scene_id=scene_id,
+            observation_id=observation_id,
+            world_frame=str(self._configuration["world_frame"]),
+            coverage=float(output.coverage),
+            current_camera_pose=decoded.pose,
+            next_camera_pose=_validate_result_pose(
+                _result_value(backend_result, "pose", "T_world_camera")
+            ),
+            camera_pose_history=np.stack(history),
+            configuration=self._configuration,
+        )
+        return path, history
+
     def _restore_transaction(self, snapshot: Any) -> str | None:
         """Best-effort rollback; return a diagnostic only if rollback failed."""
         try:
@@ -477,6 +536,9 @@ class GradientNBVNode(Node):
             self._configuration = config
             self._results.clear()
             self._observations.clear()
+            self._map_generation += 1
+            self._map_step = 0
+            self._camera_pose_history.clear()
         response.success = True
         response.code = ConfigureNBV.Response.SUCCESS
         response.reason = "configuration applied atomically and map reset"
@@ -531,6 +593,9 @@ class GradientNBVNode(Node):
                 return response
             self._results.clear()
             self._observations.clear()
+            self._map_generation += 1
+            self._map_step = 0
+            self._camera_pose_history.clear()
         response.success = True
         response.code = (
             ResetNBVMap.Response.SUCCESS
@@ -934,9 +999,22 @@ class GradientNBVNode(Node):
                 output = self._success_message(
                     scene_id, observation_id, observation, backend_result
                 )
+                snapshot_path, camera_history = self._save_map_snapshot(
+                    scene_id,
+                    observation_id,
+                    decoded,
+                    backend_result,
+                    output,
+                )
                 # Cache construction is part of the transaction: a message
                 # that cannot be retained must not commit a fused map update.
                 self._results[key] = deepcopy(output)
+                self._camera_pose_history = camera_history
+                self._map_step += 1
+                if snapshot_path is not None:
+                    self.get_logger().info(
+                        f"Saved Gradient-NBV map snapshot: {snapshot_path}"
+                    )
             except NBVInputError as error:
                 rollback_error = self._restore_transaction(snapshot)
                 if rollback_error is None:

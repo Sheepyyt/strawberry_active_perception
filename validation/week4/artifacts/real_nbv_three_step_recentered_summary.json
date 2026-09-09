@@ -1,0 +1,91 @@
+{
+  "schema": "strawberry_real_nbv_three_step_summary/v1",
+  "date": "2026-09-08",
+  "status": "passed",
+  "experiment": "red target, one persistent Gradient-NBV map, at most three motions",
+  "preparation": {
+    "old_historical_start_restored": false,
+    "new_start_policy": "use the current safe pose as the reproducible session start",
+    "recenter_motion_before_session": "base_link +Z 10 mm, orientation unchanged",
+    "recenter_final_error_mm": 0.235,
+    "recenter_final_error_deg": 0.0223,
+    "capture_timeout_sec": 5.0
+  },
+  "preview": {
+    "path": "artifacts/week4/real_nbv_three_step_preview_recentered.json",
+    "sha256": "1936ef87d7f445d0d7234dc4dc8c43e465aa8e3a33b66bb7c8ee57c653868a7e",
+    "status": "passed_preview_only",
+    "motion_commands": 0
+  },
+  "execution": {
+    "path": "artifacts/week4/real_nbv_three_step_execution_recentered.json",
+    "sha256": "41061c9e97a798958b1f64d875072bd82e54d850949eecd78d205217d5de8bd9",
+    "status": "executed_session_scientific_acceptance_passed",
+    "motion_goal_count": 3,
+    "move_j_setpoints_total": 56,
+    "second_and_third_targets_from_persistent_map": true,
+    "authorization_consumed": true,
+    "fourth_motion_requested": false
+  },
+  "coverage": {
+    "initial": 0.2468239963054657,
+    "after_each_step": [
+      0.4071919918060303,
+      0.44754400849342346,
+      0.46371200680732727
+    ],
+    "per_step_delta": [
+      0.16036799550056458,
+      0.04035201668739319,
+      0.01616799831390381
+    ],
+    "total_delta": 0.21688801050186157,
+    "nondecreasing": true
+  },
+  "steps": [
+    {
+      "index": 1,
+      "target_source": "SHA-frozen preview",
+      "actual_translation_mm": 4.622385060460549,
+      "actual_rotation_deg": 2.6856986119092827,
+      "post_translation_error_mm": 0.36643310117877526,
+      "post_rotation_error_deg": 0.02328477376957663,
+      "valid_target_depth_pixels": 419,
+      "move_j_setpoints": 34,
+      "both_gates_closed": true
+    },
+    {
+      "index": 2,
+      "target_source": "persistent Gradient-NBV map",
+      "dynamic_target_sha256": "76a325544d773b0431b67139eb6508c4be5916a3ee75674051a7386b444b0cd5",
+      "actual_translation_mm": 1.4166725784383197,
+      "actual_rotation_deg": 0.08380112884598372,
+      "post_translation_error_mm": 0.02196242717063383,
+      "post_rotation_error_deg": 0.004889947101323823,
+      "valid_target_depth_pixels": 416,
+      "move_j_setpoints": 11,
+      "both_gates_closed": true
+    },
+    {
+      "index": 3,
+      "target_source": "persistent Gradient-NBV map",
+      "dynamic_target_sha256": "002d99e2319dc59d4771f509bb35c804fcc1846befe627c404d31b919447956d",
+      "actual_translation_mm": 1.047362907447106,
+      "actual_rotation_deg": 0.10180774571462659,
+      "post_translation_error_mm": 0.020901509372943177,
+      "post_rotation_error_deg": 0.00778544124838326,
+      "valid_target_depth_pixels": 416,
+      "move_j_setpoints": 11,
+      "both_gates_closed": true
+    }
+  ],
+  "final_runtime_check": {
+    "controller_execution_enabled": false,
+    "feedback_fresh": true,
+    "arm_status": 0,
+    "motion_status": 0,
+    "err_status": 0,
+    "can_or_joint_limit_alarm": false,
+    "new_move_j_messages_in_four_second_window": 0
+  }
+}

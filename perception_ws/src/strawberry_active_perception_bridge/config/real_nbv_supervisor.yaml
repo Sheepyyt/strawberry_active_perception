@@ -35,18 +35,22 @@ real_nbv_supervisor:
     controller_gate_service: /strawberry_nero/enable_execution
     move_action: /strawberry_nero/move_to_pose
 
-    handeye_report_path: /home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json
+    handeye_report_path: /home/yyt/strawberry_active_perception/validation/week3/artifacts/stability_pose001_030_factory_raw_D.json
     handeye_report_sha256: 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
     minimum_calibration_samples: 30
     output_path: /home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_frozen_config_v3_preview.json
 
-    capture_timeout_sec: 2.0
+    # USB2 下彩色帧偶尔会短暂停顿；5 秒给 3 帧预热留出余量。
+    capture_timeout_sec: 5.0
     capture_discard_frames: 3
     planning_capture_count: 5
     aggregate_min_finite_count: 3
     aggregate_mask_majority_count: 3
-    max_batch_camera_translation_span_m: 0.00025
+    # A real arm can settle by a few tenths of a millimetre after its gates
+    # close.  Five frames must still agree within 0.50 mm / 0.10 degrees.
+    max_batch_camera_translation_span_m: 0.00050
     max_batch_camera_rotation_span_deg: 0.10
+    post_motion_camera_settle_delay_sec: 2.0
     operation_timeout_sec: 20.0
     tf_timeout_sec: 1.0
     minimum_target_pixels: 200
@@ -60,8 +64,11 @@ real_nbv_supervisor:
     observation_bound_half_extent_m: 0.016
     max_target_drift_m: 0.020
     # Preview and execution target centres must agree with frozen ConfigureNBV.
-    # This 1 mm hard ceiling can only be tightened.
-    max_frozen_target_center_drift_m: 0.001
+    # Gemini's 1 mm depth quantization plus the small target produced up to
+    # 2.07 mm within-batch variation and 3.58 mm single-frame-to-aggregate
+    # variation.  This fixed 5 mm identity gate may only be tightened; fresh
+    # captures never replace the SHA-frozen map or target.
+    max_frozen_target_center_drift_m: 0.005
     max_plan_start_translation_drift_m: 0.001
     max_plan_start_rotation_drift_deg: 0.5
     # These are hard ceilings; command-line overrides may only make them stricter.

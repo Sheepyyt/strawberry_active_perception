@@ -358,6 +358,45 @@ class GradientNBVCore:
         self._semantic_log_odds.copy_(snapshot.semantic_log_odds)
         self._ever_observed.copy_(snapshot.ever_observed)
 
+    def visualization_state(self) -> dict[str, np.ndarray]:
+        """Return a compact CPU copy suitable for NPZ/PNG diagnostics.
+
+        This deliberately exports categorical fields instead of the internal
+        optimizer tensors.  ``observed`` means a valid ray touched the voxel,
+        ``occupied`` means a depth endpoint increased occupancy, and
+        ``target`` means mask-supported evidence made that voxel more likely
+        to belong to the target.  Mutating the returned arrays cannot change
+        the live map.
+        """
+        if (
+            self.config is None
+            or self._origin is None
+            or self._log_odds is None
+            or self._semantic_log_odds is None
+            or self._ever_observed is None
+        ):
+            raise NBVInputError("NBV core is not configured")
+        return {
+            "dimensions": np.asarray(self._dimensions, dtype=np.int32),
+            "origin_m": self._origin.detach().cpu().numpy().astype(
+                np.float64, copy=True
+            ),
+            "voxel_size_m": np.asarray(self.config.voxel_size, dtype=np.float64),
+            "target_center_m": np.asarray(
+                self.config.target_center, dtype=np.float64
+            ).copy(),
+            "target_roi_size_m": np.asarray(
+                self.config.target_roi_size, dtype=np.float64
+            ).copy(),
+            "observed": self._ever_observed.detach().cpu().numpy().copy(),
+            "occupied": (
+                self._log_odds > 0.0
+            ).detach().cpu().numpy().copy(),
+            "target": (
+                self._semantic_log_odds > 0.0
+            ).detach().cpu().numpy().copy(),
+        }
+
     @property
     def coverage(self) -> float:
         """Fraction of target-ROI voxels ever touched by a valid ray."""

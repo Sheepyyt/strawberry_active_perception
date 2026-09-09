@@ -19,7 +19,9 @@ Gradient-NBV 共享同一份数据契约。该包不依赖 MoveIt，也不控制
   配置深度范围外的像素统一为 NaN。
 - 彩色图统一为 `rgb8`。
 - 用 HSV 红色双区间、5x5 开运算、5x5 闭运算提取草莓候选，只保留最大
-  连通域；默认最少 200 px。
+  连通域；默认最少 200 px。Gemini 实机配置再把该连通域向外扩 2 px，允许
+  紧贴透明目标的哑光背板提供深度；连通域筛选仍在扩张前完成，小红色噪点
+  不能靠扩张达到面积门槛。
 - 服务只返回 `observation_id` 和深度曝光时间。完整 Observation 发布到
   Reliable + TransientLocal topic，避免把大图复制进服务响应。
 - 当前姿态为 `camera_session -> camera optical` 的单位变换，且
@@ -28,8 +30,8 @@ Gradient-NBV 共享同一份数据契约。该包不依赖 MoveIt，也不控制
 
 ## 构建
 
-先确保 Orbbec 驱动已在 `camera_ws` 构建。驱动的 rosdep 当前还要求
-`libgoogle-glog-dev`，建议先补齐系统依赖。然后构建感知工作区：
+先确保 Orbbec 驱动已在 `camera_ws` 构建。其系统依赖包含
+`libgoogle-glog-dev`；本机已经安装，新环境仍需按根 README 安装。然后构建感知工作区：
 
 ```bash
 cd /home/yyt/strawberry_active_perception
@@ -48,9 +50,9 @@ source perception_ws/install/setup.bash
 
 ## 启动相机与适配器
 
-优先使用 USB 3.x；但当前实机链路只协商到 **480 Mbit/s USB 2.0 High-Speed**，不是
-SuperSpeed。该链路只对下面固定的 `640x400@10 Hz` 低带宽 profile 完成了条件 transport
-验收，不能外推到更高分辨率、帧率或额外数据流。当前已知设备序列号是
+优先使用 USB 3.x；验收所用的固定线缆当时只协商到 **480 Mbit/s USB 2.0 High-Speed**，
+不是 SuperSpeed。该链路只对下面固定的 `640x400@10 Hz` 低带宽 profile 完成了条件
+transport 验收，不能外推到更高分辨率、帧率或额外数据流。已验证设备序列号是
 `AYML241003A`：
 
 ```bash
@@ -78,7 +80,7 @@ ros2 launch strawberry_observation gemini2xl_observation.launch.py \
 - Capture 服务：`/strawberry/perception/capture_observation`
 
 所有输入/输出 topic、深度范围、深度尺度、同步容差、HSV 阈值、形态学核、
-最小 mask 面积和固定姿态开关都在
+mask 扩张核、最小 mask 面积和固定姿态开关都在
 `config/gemini2xl_observation.yaml` 参数化。
 回放原始 RGB-D rosbag 时复用同一节点，并把 `source_type` 设为 `4`
 （`SOURCE_REPLAY`）、`source_name` 设为 bag/manifest 名称；几何与单位处理不分叉。

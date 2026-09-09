@@ -1,8 +1,8 @@
 # Week 3：手眼标定采集与结果
 
 30 个实机姿态已经采集完成，并在修正相机畸变模型后通过正式手眼标定门禁。最终矩阵、
-20/20 留出验证、独立 20 帧固定板复核、两次已通过的真实只读 SolveIK 预检、证据 SHA、
-当前运行状态和下一步操作边界，请先看
+20/20 留出验证、独立 20 帧固定板复核、两次已通过的真实只读 SolveIK 预检和证据 SHA，
+请先看
 [`HAND_EYE_RESULT_CN.md`](HAND_EYE_RESULT_CN.md)。本页后续内容保留采集器的数据约定和
 复现方法；它不是让现场人员现在继续采更多姿态的指令。
 
@@ -151,7 +151,7 @@ PnP/刚体矩阵、原子无 object NPZ、重复样本拒绝，以及源码不�
 当前正式报告为：
 
 ```text
-artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json
+validation/week3/artifacts/stability_pose001_030_factory_raw_D.json
 SHA256 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
 ```
 
@@ -233,6 +233,6 @@ ros2 run strawberry_active_perception_bridge real_handeye_preview \
 - [`optical +X 5 mm` 只读结果](artifacts/real_handeye_small_nbv_solveik_preview.json)，SHA-256：
   `5ca282f883f2b0affe9b7719c6554843ab45c401216046e3eb3dadc0447f421e`
 
-这一步只证明“正式外参能进入真实 Placo 计算链，而且附近 5 mm 候选有解”。它不是一次
-真实 NBV 运动。下一步必须另立真实闭环小步运动的安全门，完成现场空间、线缆、速度、控制
-权限和停止方式检查并获得明确确认后，才可以让机械臂真正走一个小步。
+这一步在当时只证明“正式外参能进入真实 Placo 计算链，而且附近 5 mm 候选有解”。后续
+真实运动与多步地图更新已经完成，见 `validation/week4` 和 `validation/week5`；本节保留
+为先只读、再运动的可追溯验证顺序。

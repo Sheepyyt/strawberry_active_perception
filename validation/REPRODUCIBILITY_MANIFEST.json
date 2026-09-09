@@ -1,0 +1,59 @@
+{
+  "schema": "strawberry_active_perception_reproducibility_manifest/v1",
+  "generated_on": "2026-09-09",
+  "scope": "software and tracked evidence through the real strawberry HSV-mask multi-step loop",
+  "source_baseline_before_this_closure": "fa0d2c480785e9a1ee52154e39d0f2a4cd3feaec",
+  "submodules": {
+    "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
+    "nero_ws/src/agx_arm_ros": "22a9cf6c5ad2fd2e0743531936bc5dab007fa5bc"
+  },
+  "external_algorithm_reference": {
+    "repository": "https://github.com/akshaykburusa/gradientnbv",
+    "audited_commit": "81b501defc117732f66478ed01cb528b15140208",
+    "note": "independent implementation; see strawberry_gradient_nbv/NOTICE"
+  },
+  "vendor_patch": {
+    "path": "vendor_patches/agx_arm_ros/nero_v111_safety.patch",
+    "sha256": "394542caff32f5d147a7a33059a0fa078e96416276f0a61d9fed62b48e8104d4"
+  },
+  "tracked_evidence": [
+    {
+      "path": "validation/week2/artifacts/g2_nbv_map_final.png",
+      "sha256": "2fa9c3df26998006b954f9bb5dcb110760cf25590091ec27db6e1153296cb869"
+    },
+    {
+      "path": "validation/week2/artifacts/g2_nbv_map_progress.gif",
+      "sha256": "021109569743efa1ad39290041114a92af2c706b269ddb2d4b25ce2479209d8c"
+    },
+    {
+      "path": "validation/week3/artifacts/stability_pose001_030_factory_raw_D.json",
+      "sha256": "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
+    },
+    {
+      "path": "validation/week4/artifacts/real_nbv_three_step_recentered_execution.json",
+      "sha256": "41061c9e97a798958b1f64d875072bd82e54d850949eecd78d205217d5de8bd9"
+    },
+    {
+      "path": "validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json",
+      "sha256": "f79670e3a6f7d1e0deaf6337de710f31557355b8812c3c40214c7f18784c34ae"
+    }
+  ],
+  "offline_regression_at_closure": {
+    "strawberry_nero_control": "105 passed",
+    "agx_safety_services": "7 passed",
+    "nero_exhibition_demo": "6 checks passed including two offline previews",
+    "strawberry_gradient_nbv": "56 passed",
+    "strawberry_handeye_calibration": "34 passed",
+    "bridge_and_week4": "91 passed",
+    "week2_and_week3_validation_tools": "45 passed",
+    "perception_colcon_test_result": "209 tests, 0 errors, 0 failures, 4 skipped"
+  },
+  "reproduce_command": "./verify_software.sh",
+  "limitations": [
+    "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
+    "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
+    "historical real runs did not store dense voxel arrays; new runs can store visualization snapshots",
+    "no environment collision model is active",
+    "hardware state is intentionally not recorded as a persistent current-state claim"
+  ]
+}

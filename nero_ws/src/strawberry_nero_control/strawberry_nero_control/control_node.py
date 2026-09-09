@@ -493,7 +493,7 @@ class NeroControlNode(Node):
             "tracking_pause_error_rad": 0.08,
             "tracking_abort_error_rad": 0.15,
             "tracking_abort_duration_sec": 0.5,
-            "feedback_timeout_sec": 0.2,
+            "feedback_timeout_sec": 0.5,
             "settle_joint_tolerance_rad": 0.02,
             "settle_velocity_tolerance_rad_s": 0.02,
             "settle_duration_sec": 0.3,

@@ -40,6 +40,7 @@ struct ProcessingConfig
   std::array<int, 3> red_hsv_low_2{170, 80, 50};
   std::array<int, 3> red_hsv_high_2{179, 255, 255};
   int morphology_kernel_size{5};
+  int mask_dilation_kernel_size{1};
   int min_mask_pixels{200};
 };
 

@@ -128,6 +128,11 @@ ObservationProcessor::ObservationProcessor(ProcessingConfig config)
   if (config_.morphology_kernel_size <= 0 || config_.morphology_kernel_size % 2 == 0) {
     throw std::invalid_argument("morphology_kernel_size must be a positive odd integer");
   }
+  if (config_.mask_dilation_kernel_size <= 0 ||
+    config_.mask_dilation_kernel_size % 2 == 0)
+  {
+    throw std::invalid_argument("mask_dilation_kernel_size must be a positive odd integer");
+  }
   if (config_.min_mask_pixels < 1) {
     throw std::invalid_argument("min_mask_pixels must be positive");
   }
@@ -351,6 +356,15 @@ ProcessResult ObservationProcessor::process(
   cv::Mat largest_mask = cv::Mat::zeros(mask.size(), CV_8UC1);
   if (largest_area >= config_.min_mask_pixels) {
     cv::compare(labels, largest_label, largest_mask, cv::CMP_EQ);
+    if (config_.mask_dilation_kernel_size > 1) {
+      const cv::Mat dilation_kernel = cv::getStructuringElement(
+        cv::MORPH_RECT,
+        cv::Size(
+          config_.mask_dilation_kernel_size,
+          config_.mask_dilation_kernel_size));
+      cv::dilate(largest_mask, largest_mask, dilation_kernel);
+      largest_area = cv::countNonZero(largest_mask);
+    }
   } else {
     largest_area = 0;
   }

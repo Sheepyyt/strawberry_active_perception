@@ -30,10 +30,18 @@
     depth_max_m: 2.5
     min_valid_depth_fraction: 0.05
 
-    # OpenCV HSV: red spans the hue wrap-around. Keep only the largest component.
-    red_hsv_low_1: [0, 80, 50]
+    # OpenCV HSV strawberry bootstrap: red spans the hue wrap-around. Real
+    # strawberry flesh in the verified lab lighting is darker and slightly
+    # less saturated than the former plastic target, so S=60 retains the fruit
+    # while the largest-component rule rejects the small red background specks.
+    red_hsv_low_1: [0, 60, 50]
     red_hsv_high_1: [10, 255, 255]
-    red_hsv_low_2: [170, 80, 50]
+    red_hsv_low_2: [170, 60, 50]
     red_hsv_high_2: [179, 255, 255]
     morphology_kernel_size: 5
-    min_mask_pixels: 200
+    # Expand the selected red component by only two pixels.  This lets a
+    # matte backing immediately behind a transparent target provide depth.
+    mask_dilation_kernel_size: 5
+    # This is only the pre-dilation component-selection threshold. The real
+    # NBV supervisor still requires at least 200 mask pixels with valid depth.
+    min_mask_pixels: 150

@@ -1,0 +1,38 @@
+{
+  "schema": "strawberry_real_strawberry_hsv_multistep_summary/v1",
+  "date": "2026-09-08",
+  "physical_target": "real strawberry fruit",
+  "mask_provider": "HSV red-color rule, not a learned strawberry model",
+  "source_artifact": {
+    "path": "real_strawberry_hsv_multistep_execution.json",
+    "sha256": "f79670e3a6f7d1e0deaf6337de710f31557355b8812c3c40214c7f18784c34ae",
+    "historical_status": "failed because the then-current code classified a <=1 mm next-view request as an error"
+  },
+  "motion_goal_count": 2,
+  "persistent_map": true,
+  "configure_call_count": 1,
+  "coverage": {
+    "initial": 0.2394160032272339,
+    "after_each_motion": [
+      0.3521359860897064,
+      0.41653600335121155
+    ],
+    "per_step_delta": [
+      0.11271998286247253,
+      0.06440001726150513
+    ],
+    "total_delta": 0.17712000012397766,
+    "nondecreasing": true
+  },
+  "termination": {
+    "historical_reason": "the following raw NextView translation was <=1 mm",
+    "current_code_behavior": "classify this condition as graceful early convergence after at least one completed motion",
+    "fresh_real_rerun_after_behavior_fix": false
+  },
+  "safety": {
+    "gates_closed_at_termination": true,
+    "automatic_return_or_disable": false,
+    "additional_motion_after_termination": false
+  },
+  "scientific_limit": "Coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage. The HSV mask proves a real-fruit geometry loop, not semantic strawberry recognition."
+}

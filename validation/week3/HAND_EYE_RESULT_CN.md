@@ -4,8 +4,8 @@
 
 Gemini 2 XL 与 NERO `link7` 之间的手眼外参，已经用 30 个真实机械臂姿态完成离线标定，
 并通过 20/20 个独立留出切分。相机模型修正后的独立实机数据也能复核这个结果。真实外参下
-的当前位姿和相机光学 +X 方向 5 mm Placo `SolveIK` **只读预览**也均已通过，但目前还没有
-执行真实 NBV 运动。
+的当前位姿和相机光学 +X 方向 5 mm Placo `SolveIK` **只读预览**也均已通过；此后该外参
+已经用于一次、三步和真实草莓 HSV-mask 多步 NBV 闭环。
 
 这里的“标定报告允许用于机械臂”只表示矩阵通过了数值门槛。它不代表碰撞检查、运动控制、
 线缆安全和现场人员确认已经自动完成，也不等于真实运动已经获准或发生。
@@ -106,7 +106,7 @@ RGB-PnP 与 depth 几何对齐指标，也不替代 20 个留出切分，更不�
 |---|---|---|
 | 原始彩色相机模型 | `artifacts/week3/handeye_session_001/gemini2xl_raw_color_camera_model.json` | `b66b71b5e291abd865db7fd4da408272ab56a2d5b6a262a8b5e9d8448032f696` |
 | 修正相机模型后的 30 姿态派生数据集 | `artifacts/week3/handeye_session_001/handeye_samples_pose001_030_factory_raw_D.json` | `2a18d4bc69b13d01e28dcfad8cf62186bde4fe31e925f87c9c4f8db6b6718aef` |
-| 30 姿态正式稳定性报告 | `artifacts/week3/handeye_session_001/stability_pose001_030_factory_raw_D.json` | `31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f` |
+| 30 姿态正式稳定性报告 | `validation/week3/artifacts/stability_pose001_030_factory_raw_D.json` | `31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f` |
 | adapter 修正后的 20 帧几何报告 | `artifacts/week3/handeye_session_001/corrected_adapter_checkerboard_20_geometry.json` | `2a847e733fb9bd9f52e3fd7d8814f5586afbf616d5fdaa7149cf927ac77713cf` |
 | 20 帧实机图像/深度数据 | `artifacts/week3/handeye_session_001/corrected_adapter_checkerboard_20.npz` | `5dff526e555a339fbdde53ea78da425c048abb9b2dfa9d0649cd7745f155cd2a` |
 | 独立 20 帧固定板复核摘要 | `validation/week3/artifacts/handeye_live_repeatability_summary.json` | `fd84fcefe142c675ded6918ff797661afe69e073d58adcba5d731650f797e4a5` |
@@ -116,9 +116,9 @@ RGB-PnP 与 depth 几何对齐指标，也不替代 20 个留出切分，更不�
 原始 `pose_001.npz` 到 `pose_030.npz` 没有被覆盖。派生数据集内还逐样本记录了原始 NPZ、
 角点、物点、旧棋盘位姿和 `T_base_link7` 的 SHA，可追溯每一项重计算输入。
 
-## 现在能做什么、还不能做什么
+## 这份手眼结果后来怎样被使用
 
-### 真实只读 SolveIK 已经验证了什么
+手眼完成后先做了两次真实、只读的 SolveIK 预检：
 
 两次预检都读取正式报告及其 SHA，并确认 bridge 使用的矩阵与报告完全一致：
 
@@ -129,34 +129,11 @@ RGB-PnP 与 depth 几何对齐指标，也不替代 20 个留出切分，更不�
 - bridge 自身和外部独立 topic 观察器记录的运动命令数均为 0；
 - 控制器 `execution_enabled=false`，驱动 `control_enabled=false`，检查时关节速度为 0。
 
-因此这里只证明了目标可达和计算链正确。求出的关节值没有被下发，机械臂没有移动 5 mm，
-也没有发生任何其他运动。
+这两次只读结果当时只证明计算链正确，没有下发运动。此后，正式外参已经进入真实监督器：
+先完成 1 次冻结目标闭环，再完成红色目标 3 步持续地图闭环，以及真实草莓 HSV-mask 的
+2 步闭环。后续运动证据分别在 `validation/week4` 和 `validation/week5`，不要再把本页的
+早期“只读”结论误读成项目仍停留在只读阶段。
 
-现在能做：
-
-- 使用正式 `T_link7_camera_optical` 做坐标变换；
-- 把 NBV 给出的相机候选位姿换算成 `link7` 候选位姿；
-- 调用 `/strawberry_nero/solve_ik`，只检查完整候选或缩短候选有没有 Placo IK 解；
-- 保存每次只读 IKResult，全程保持运动命令计数为 0。
-
-现在还不能声称或直接做：
-
-- 不能声称真实 NBV 已经运动验证；它尚未执行；
-- 不能因为手眼报告通过，就绕过碰撞、线缆、速度、工作空间和现场安全检查；
-- 不能调用 `MoveToPose`、发送 CAN/轨迹命令，或让只读预检改变真实关节状态；
-- 不能把静止单视角 Observation 当成带准确时变位姿的真实多视角数据。
-
-## 下一步以及你只需要做什么
-
-真实外参的 `NBV -> camera/link7 -> Placo SolveIK` **只读 preview 已经完成**。下一步不是
-直接运行真实 NBV，而是另立“真实闭环小步运动”安全门：重新检查现场空间、相机和线缆余量、
-低速/小步限制、控制权限、停止方式及运动前后监控。只有这些条件逐项通过并获得现场明确确认，
-才会把一个经过审核的小步关节解真正下发。
-
-2026-08-14 本文更新时的临时运行状态是：相机已经停止；机械臂仍处于使能保持状态；运动执行门为
-`false`；驱动 `control_enabled=false`；关节速度为 0。这只是当时状态，不是软件永久默认值。
-
-现场人员无需再为只读 SolveIK preview 做任何操作。现在只需保持机械臂周围净空，不要手动
-推动机械臂，也不要直接断电或失能当前悬空机械臂。如果必须离开现场或必须断电，请先说明，
-我们会先安排支撑或安全回位；在真正准备低速闭环小步运动前，会再次明确告诉你需要确认的
-唯一一步。不要把本次 5 mm 数学候选误解为真实 NBV 已经运动。
+手眼报告通过并不替代环境碰撞、线缆、工作空间和现场安全检查。每次真实实验仍需读取曝光
+时刻的 `T_base_link7`，与这里的 `T_link7_camera_optical` 相乘得到相机世界位姿；不能使用
+固定单位位姿，也不能复用过期现场状态或历史授权。

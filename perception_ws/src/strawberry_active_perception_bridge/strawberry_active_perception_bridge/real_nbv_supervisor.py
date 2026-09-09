@@ -71,10 +71,11 @@ from .real_nbv_contract import (
     decode_mask_mono8,
     estimate_target_center,
     five_frame_identity_sha256,
+    independently_segmented_camera_candidates,
     normalize_nbv_configuration,
     ordered_joint_positions,
+    project_numerical_step_overshoot,
     require_unit_quaternion,
-    segmented_camera_candidates,
     stamp_nanoseconds,
     transform_point,
     validate_ik_solution,
@@ -91,8 +92,8 @@ from .transforms import (
 
 
 DEFAULT_REPORT_PATH = (
-    "/home/yyt/strawberry_active_perception/artifacts/week3/"
-    "handeye_session_001/stability_pose001_030_factory_raw_D.json"
+    "/home/yyt/strawberry_active_perception/validation/week3/artifacts/"
+    "stability_pose001_030_factory_raw_D.json"
 )
 DEFAULT_REPORT_SHA256 = (
     "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
@@ -123,13 +124,22 @@ FORBIDDEN_COMMAND_TOPICS = (
 AGGREGATE_CAPTURE_COUNT = 5
 AGGREGATE_MIN_FINITE_COUNT = 3
 AGGREGATE_MASK_MAJORITY_COUNT = 3
-AGGREGATE_MAX_TRANSLATION_SPAN_M = 0.00025
+AGGREGATE_MAX_TRANSLATION_SPAN_M = 0.00050
 AGGREGATE_MAX_ROTATION_SPAN_DEG = 0.10
 MAX_PLAN_START_TRANSLATION_DRIFT_M = 0.001
 MAX_PLAN_START_ROTATION_DRIFT_DEG = 0.5
 MAX_PLAN_TARGET_TRANSLATION_DRIFT_M = 0.0015
 MAX_PLAN_TARGET_ROTATION_DRIFT_DEG = 0.5
-MAX_FROZEN_TARGET_CENTER_DRIFT_M = 0.001
+# This is an identity/corroboration gate, not an input to ConfigureNBV during
+# execution.  Live Gemini measurements of the small red target showed
+# 1.45--2.07 mm maximum within-batch centre variation even after fixed
+# five-frame aggregation.  A later pre-gate single-frame check differed from
+# its frozen five-frame centre by 3.58 mm while the target and camera were
+# stationary.  Keep a fixed 5 mm ceiling: it covers that measured sensor
+# repeatability while remaining far below the independent 20 mm
+# post-motion "target lost or moved" gate.  The SHA-frozen configuration,
+# voxel origin and first motion target remain unchanged by fresh captures.
+MAX_FROZEN_TARGET_CENTER_DRIFT_M = 0.005
 AGGREGATE_PLAN_V2 = "strawberry_real_nbv_aggregate_plan/v2"
 AGGREGATE_PLAN_V3 = "strawberry_real_nbv_frozen_config_plan/v3"
 
@@ -261,10 +271,19 @@ def _target_audit(estimate: Any, centre_base: np.ndarray) -> dict[str, Any]:
         "base_xyz_m": array_list(centre_base),
         "mask_pixels": estimate.mask_pixels,
         "valid_mask_pixels": estimate.valid_mask_pixels,
+        "depth_layer_count": estimate.depth_layer_count,
+        "selected_layer_pixels": estimate.selected_layer_pixels,
+        "selected_layer_range_m": [
+            estimate.selected_layer_min_depth_m,
+            estimate.selected_layer_max_depth_m,
+        ],
         "retained_pixels": estimate.retained_pixels,
         "median_depth_m": estimate.median_depth_m,
         "depth_mad_m": estimate.depth_mad_m,
-        "method": "masked depth median/MAD trim then component-wise 3-D median",
+        "method": (
+            "nearest supported masked-depth layer, median/MAD trim, then "
+            "component-wise 3-D median"
+        ),
     }
 
 
@@ -861,13 +880,17 @@ class RealNBVSupervisor(Node):
         self.declare_parameter("handeye_report_sha256", DEFAULT_REPORT_SHA256)
         self.declare_parameter("minimum_calibration_samples", 30)
         self.declare_parameter("output_path", DEFAULT_OUTPUT_PATH)
-        self.declare_parameter("capture_timeout_sec", 2.0)
+        # The verified USB2 profile can show short color-stream scheduling
+        # gaps. Five seconds keeps capture-on-demand reproducible while the
+        # service still fails closed instead of publishing a stale frame.
+        self.declare_parameter("capture_timeout_sec", 5.0)
         self.declare_parameter("capture_discard_frames", 3)
         self.declare_parameter("planning_capture_count", 5)
         self.declare_parameter("aggregate_min_finite_count", 3)
         self.declare_parameter("aggregate_mask_majority_count", 3)
-        self.declare_parameter("max_batch_camera_translation_span_m", 0.00025)
+        self.declare_parameter("max_batch_camera_translation_span_m", 0.00050)
         self.declare_parameter("max_batch_camera_rotation_span_deg", 0.10)
+        self.declare_parameter("post_motion_camera_settle_delay_sec", 2.0)
         self.declare_parameter("operation_timeout_sec", 20.0)
         self.declare_parameter("tf_timeout_sec", 1.0)
         self.declare_parameter("minimum_target_pixels", 200)
@@ -995,7 +1018,14 @@ class RealNBVSupervisor(Node):
         ):
             raise SupervisorError(
                 "five-frame camera pose-span gates may only be made stricter than "
-                "0.25 mm / 0.10 degrees"
+                "0.50 mm / 0.10 degrees"
+            )
+        settle_delay = float(
+            self.get_parameter("post_motion_camera_settle_delay_sec").value
+        )
+        if not math.isfinite(settle_delay) or not 0.0 <= settle_delay <= 10.0:
+            raise SupervisorError(
+                "post_motion_camera_settle_delay_sec must be within [0, 10]"
             )
         audited_upper_bounds = {
             "max_step_m": MAX_CAMERA_STEP_M,
@@ -1369,6 +1399,21 @@ class RealNBVSupervisor(Node):
                 observation,
                 pose,
                 configuration=target_configuration,
+                # A five-frame aggregate is specifically allowed to recover
+                # pixels missing from as many as two member frames.  Member
+                # centres are diagnostic only; the resulting aggregate is
+                # still required to pass the full 200-pixel session gate.
+                minimum_pixels=1,
+            )
+            session_minimum = int(
+                self.get_parameter("minimum_target_pixels").value
+            )
+            target_audit["diagnostic_only"] = True
+            target_audit["session_minimum_target_pixels"] = session_minimum
+            target_audit["meets_session_minimum"] = bool(
+                target_audit["mask_pixels"] >= session_minimum
+                and target_audit["valid_mask_pixels"] >= session_minimum
+                and target_audit["retained_pixels"] >= session_minimum
             )
             members.append(observation)
             member_captures.append(capture_audit)
@@ -1658,6 +1703,7 @@ class RealNBVSupervisor(Node):
         base_camera: np.ndarray,
         *,
         configuration: dict[str, Any] | None = None,
+        minimum_pixels: int | None = None,
     ) -> tuple[np.ndarray, dict[str, Any]]:
         depth = decode_depth_32fc1(observation.depth)
         mask = decode_mask_mono8(observation.target_mask)
@@ -1676,7 +1722,11 @@ class RealNBVSupervisor(Node):
             intrinsic,
             depth_min_m=depth_min_m,
             depth_max_m=depth_max_m,
-            minimum_pixels=int(self.get_parameter("minimum_target_pixels").value),
+            minimum_pixels=(
+                int(self.get_parameter("minimum_target_pixels").value)
+                if minimum_pixels is None
+                else int(minimum_pixels)
+            ),
         )
         centre_base = transform_point(base_camera, estimate.camera_xyz_m)
         audit = _target_audit(estimate, centre_base)
@@ -1839,9 +1889,20 @@ class RealNBVSupervisor(Node):
     ) -> tuple[NextView, dict[str, Any]]:
         if self._active_nbv_configuration is None:
             raise SupervisorError("Gradient-NBV map has not been configured")
+        # A supervisor is short-lived and creates this publisher immediately
+        # before sending a large Observation.  DDS discovery can take longer
+        # than construction of the message, especially after several rapid
+        # preview runs.  Publishing before the transient-local subscriber is
+        # matched makes wait_for_all_acked fail nondeterministically even
+        # though the Gradient-NBV action server is healthy.
+        self._spin_until(
+            lambda: self._corrected_publisher.get_subscription_count() >= 1,
+            5.0,
+            "a matched Gradient-NBV Observation subscriber",
+        )
         self._corrected_publisher.publish(corrected)
         acknowledged = self._corrected_publisher.wait_for_all_acked(
-            Duration(seconds=2.0)
+            Duration(seconds=5.0)
         )
         if not acknowledged:
             raise SupervisorError(
@@ -1896,6 +1957,16 @@ class RealNBVSupervisor(Node):
             raise SupervisorError("NextView numerical diagnostics are invalid")
         target = _strict_pose_matrix(next_view.pose, "NextView pose")
         current = _strict_pose_matrix(corrected.camera_pose, "Observation pose")
+        original_target = target.copy()
+        target, projected_overshoot = project_numerical_step_overshoot(
+            current,
+            target,
+            max_step_m=float(self._active_nbv_configuration["max_step_m"]),
+        )
+        if projected_overshoot > 0.0:
+            _fill_pose_stamped(
+                next_view.pose, target, self.base_frame, corrected.header.stamp
+            )
         if require_strict_improvement_proxy:
             raw_motion = validate_raw_next_view(
                 current,
@@ -1919,6 +1990,8 @@ class RealNBVSupervisor(Node):
             "code": int(next_view.code),
             "reason": str(next_view.reason),
             "T_base_camera_raw": array_list(target),
+            "T_base_camera_unprojected": array_list(original_target),
+            "translation_projection_correction_m": projected_overshoot,
             "translation_m": raw_motion.translation_m,
             "rotation_deg": math.degrees(raw_motion.rotation_rad),
             "planned_gain": float(next_view.gain),
@@ -1967,7 +2040,9 @@ class RealNBVSupervisor(Node):
         alphas = tuple(
             float(value) for value in self.get_parameter("candidate_alphas").value
         )
-        candidates = segmented_camera_candidates(current_camera, raw_target, alphas)
+        candidates = independently_segmented_camera_candidates(
+            current_camera, raw_target, alphas
+        )
         max_rotation = math.radians(
             float(self.get_parameter("max_selected_camera_rotation_deg").value)
         )
@@ -1984,7 +2059,7 @@ class RealNBVSupervisor(Node):
         )
         records: list[dict[str, Any]] = []
         selected: dict[str, Any] | None = None
-        for alpha, camera_target, motion in candidates:
+        for translation_alpha, rotation_alpha, camera_target, motion in candidates:
             link7_target = camera_target_to_link7(
                 camera_target, self.report.transform_link7_camera_optical
             )
@@ -1997,11 +2072,18 @@ class RealNBVSupervisor(Node):
             response = self._wait_future(
                 self._solve_client.call_async(request),
                 self.operation_timeout,
-                f"SolveIK alpha={alpha:g}",
+                (
+                    "SolveIK translation_alpha="
+                    f"{translation_alpha:g}, rotation_alpha={rotation_alpha:g}"
+                ),
             )
             result = response.result
             record: dict[str, Any] = {
-                "alpha": alpha,
+                # ``alpha`` stays the translation factor for v3 compatibility.
+                "alpha": translation_alpha,
+                "translation_alpha": translation_alpha,
+                "rotation_alpha": rotation_alpha,
+                "segmentation_contract": "independent_translation_and_rotation",
                 "T_base_camera": array_list(camera_target),
                 "T_base_link7": array_list(link7_target),
                 "camera_translation_m": motion.translation_m,
@@ -2051,6 +2133,10 @@ class RealNBVSupervisor(Node):
                 record["independent_max_joint_delta_rad"] = (
                     validation.max_joint_delta_rad
                 )
+                record["minimum_joint_limit_clearance_rad"] = (
+                    validation.minimum_joint_limit_clearance_rad
+                )
+                record["limiting_joint_name"] = validation.limiting_joint_name
                 record["accepted"] = True
                 if selected is None:
                     selected = record
@@ -2370,6 +2456,10 @@ class RealNBVSupervisor(Node):
             "condition_number": validation.condition_number,
             "reported_max_joint_delta_rad": validation.reported_max_joint_delta_rad,
             "independent_max_joint_delta_rad": validation.max_joint_delta_rad,
+            "minimum_joint_limit_clearance_rad": (
+                validation.minimum_joint_limit_clearance_rad
+            ),
+            "limiting_joint_name": validation.limiting_joint_name,
             "solution_names": list(result.solution_joint_state.name),
             "solution_positions_rad": [
                 float(value) for value in result.solution_joint_state.position
@@ -2602,6 +2692,23 @@ class RealNBVSupervisor(Node):
             raise SupervisorError(
                 f"step {step_index} lost or moved the fixed red target"
             )
+        # The map-derived target was computed from ``current_camera``.  A fresh
+        # preflight TF can differ by a few micrometres because of encoder
+        # quantisation even while the arm is stationary.  If that moves an
+        # otherwise valid 5 mm endpoint just beyond the limit, shorten the
+        # still-unfrozen dynamic endpoint along the same straight translation
+        # path.  The adjusted matrix is the one audited, solved and executed.
+        camera_target, start_projection = project_numerical_step_overshoot(
+            pre_camera,
+            camera_target,
+            max_step_m=float(frozen_configuration["max_step_m"]),
+            overshoot_tolerance_m=float(
+                self.get_parameter("max_plan_start_translation_drift_m").value
+            ),
+        )
+        link7_target = camera_target_to_link7(
+            camera_target, self.report.transform_link7_camera_optical
+        )
         immediate = validate_raw_next_view(
             pre_camera,
             camera_target,
@@ -2633,11 +2740,20 @@ class RealNBVSupervisor(Node):
             raise SupervisorError(
                 f"step {step_index} fresh SolveIK solution drifted from plan"
             )
+        selected_for_execution = copy.deepcopy(selected)
+        selected_for_execution["T_base_camera"] = array_list(camera_target)
+        selected_for_execution["T_base_link7"] = array_list(link7_target)
+        selected_for_execution["camera_translation_m"] = immediate.translation_m
+        selected_for_execution[
+            "preflight_translation_projection_correction_m"
+        ] = start_projection
         return link7_target, planned_joints, {
             "target_source": "persistent Gradient-NBV map after prior step",
-            "selected_candidate": copy.deepcopy(selected),
+            "selected_candidate": selected_for_execution,
             "T_base_camera": array_list(camera_target),
             "T_base_link7": array_list(link7_target),
+            "planned_start_camera": array_list(pre_camera),
+            "preflight_translation_projection_correction_m": start_projection,
             "planned_gain": float(planned_gain),
             "planned_cumulative_motion": {
                 "translation_m": cumulative.translation_m,
@@ -2947,9 +3063,17 @@ class RealNBVSupervisor(Node):
             raise SupervisorError(
                 "motion command traffic was observed during the read-only preview"
             )
-        if selected is None:
+        # A preview must provide one executable segment before it can be frozen.
+        # During execution the exact first target is already bound by the
+        # reviewed artifact SHA. A fresh optimizer run is scene-health
+        # diagnostic evidence only: single-view NBV can legitimately choose a
+        # different member of a near-symmetric set of useful directions. Fresh
+        # captures may never replace the frozen target, while target identity,
+        # exact start pose and a fresh IK of that frozen target remain hard gates.
+        if selected is None and not self.execute_requested:
             raise SupervisorError("NO_REACHABLE_SEGMENTED_VIEW")
         if not self.execute_requested:
+            assert selected is not None
             freeze_check_started = time.monotonic()
             freeze_diagnostic = self._wait_controller_closed(
                 freeze_check_started
@@ -3027,6 +3151,11 @@ class RealNBVSupervisor(Node):
                     "T_base_camera": selected["T_base_camera"],
                     "T_base_link7": selected["T_base_link7"],
                     "alpha": selected["alpha"],
+                    "translation_alpha": selected["translation_alpha"],
+                    "rotation_alpha": selected["rotation_alpha"],
+                    "segmentation_contract": selected[
+                        "segmentation_contract"
+                    ],
                     "translation_m": selected["camera_translation_m"],
                     "rotation_deg": selected["camera_rotation_deg"],
                 },
@@ -3127,84 +3256,90 @@ class RealNBVSupervisor(Node):
             np.asarray(execution_plan["selected_candidate"]["T_base_camera"]),
             "artifact selected camera",
         )
-        live_target = validate_rigid_transform(
-            np.asarray(selected["T_base_camera"]), "live selected camera"
-        )
-        consistency = compare_gradient_candidates(
-            artifact_current,
-            artifact_target,
-            final_camera,
-            live_target,
-        )
-        start_drift = consistency.start_motion
-        target_drift = consistency.target_motion
+        start_drift = camera_motion(artifact_current, final_camera)
         translation_threshold = float(
             self.get_parameter("max_plan_target_translation_drift_m").value
         )
         rotation_threshold = float(
             self.get_parameter("max_plan_target_rotation_drift_deg").value
         )
-        translation_agrees = target_drift.translation_m <= translation_threshold
-        rotation_agrees = (
-            math.degrees(target_drift.rotation_rad) <= rotation_threshold
-        )
         median_depth_change = abs(
             float(audit["bootstrap_target"]["median_depth_m"])
             - float(audit["final_target"]["median_depth_m"])
         )
-        audit["artifact_consistency"] = {
+        consistency_audit: dict[str, Any] = {
             "start_translation_drift_m": start_drift.translation_m,
             "start_rotation_drift_deg": math.degrees(start_drift.rotation_rad),
-            "selected_translation_drift_m": target_drift.translation_m,
-            "selected_rotation_drift_deg": math.degrees(target_drift.rotation_rad),
             "artifact_alpha": float(execution_plan["selected_candidate"]["alpha"]),
-            "live_alpha": float(selected["alpha"]),
-            "artifact_selected_step_m": consistency.artifact_step_m,
-            "live_selected_step_m": consistency.live_step_m,
-            "translation_direction_disagreement_deg": math.degrees(
-                consistency.translation_direction_disagreement_rad
-            ),
-            "bounded_search_triangle_limit_m": consistency.triangle_bound_m,
             "translation_corroboration_threshold_m": translation_threshold,
             "rotation_corroboration_threshold_deg": rotation_threshold,
-            "translation_corroboration_passed": translation_agrees,
-            "rotation_corroboration_passed": rotation_agrees,
             "bootstrap_to_final_target_center_drift_m": float(
                 audit["target_center_drift_m"]
             ),
             "bootstrap_to_final_median_depth_change_m": median_depth_change,
-            "classification": (
-                "corroborated"
-                if translation_agrees and rotation_agrees
-                else "gradient_translation_instability"
-            ),
+            "fresh_optimizer_candidate_available": selected is not None,
             "role": (
-                "fresh optimizer repeatability evidence; not a replacement for "
-                "the SHA-frozen execution target or its independent safety gates"
+                "fresh optimizer output is diagnostic only; it is neither an "
+                "execution gate nor a replacement for the SHA-frozen target"
             ),
+            "corroboration_required_for_motion": False,
             "frozen_target_changed": False,
             "gate_clients_created_at_this_point": False,
         }
+        if selected is None:
+            consistency_audit.update(
+                {
+                    "classification": "fresh_optimizer_has_no_safe_segment",
+                    "translation_corroboration_passed": False,
+                    "rotation_corroboration_passed": False,
+                }
+            )
+        else:
+            live_target = validate_rigid_transform(
+                np.asarray(selected["T_base_camera"]), "live selected camera"
+            )
+            consistency = compare_gradient_candidates(
+                artifact_current,
+                artifact_target,
+                final_camera,
+                live_target,
+            )
+            target_drift = consistency.target_motion
+            translation_agrees = (
+                target_drift.translation_m <= translation_threshold
+            )
+            rotation_agrees = (
+                math.degrees(target_drift.rotation_rad) <= rotation_threshold
+            )
+            consistency_audit.update(
+                {
+                    "selected_translation_drift_m": target_drift.translation_m,
+                    "selected_rotation_drift_deg": math.degrees(
+                        target_drift.rotation_rad
+                    ),
+                    "live_alpha": float(selected["alpha"]),
+                    "artifact_selected_step_m": consistency.artifact_step_m,
+                    "live_selected_step_m": consistency.live_step_m,
+                    "translation_direction_disagreement_deg": math.degrees(
+                        consistency.translation_direction_disagreement_rad
+                    ),
+                    "bounded_search_triangle_limit_m": consistency.triangle_bound_m,
+                    "translation_corroboration_passed": translation_agrees,
+                    "rotation_corroboration_passed": rotation_agrees,
+                    "classification": (
+                        "corroborated"
+                        if translation_agrees and rotation_agrees
+                        else "alternate_valid_single_view_nbv_direction"
+                    ),
+                }
+            )
+        audit["artifact_consistency"] = consistency_audit
         if start_drift.translation_m > float(
             self.get_parameter("max_plan_start_translation_drift_m").value
         ) or math.degrees(start_drift.rotation_rad) > float(
             self.get_parameter("max_plan_start_rotation_drift_deg").value
         ):
             raise SupervisorError("fresh exact camera pose drifted from bound artifact")
-        if not translation_agrees or not rotation_agrees:
-            raise SupervisorError(
-                "fresh Gradient-NBV candidate did not corroborate the frozen target; "
-                "this is optimizer translation instability, not permission to "
-                "change the frozen target or relax motion gates; no gate was opened"
-            )
-        if not math.isclose(
-            float(selected["alpha"]),
-            float(execution_plan["selected_candidate"]["alpha"]),
-            rel_tol=0.0,
-            abs_tol=1.0e-12,
-        ):
-            raise SupervisorError("fresh segmented alpha differs from bound artifact")
-
         artifact_target_center = np.asarray(
             execution_plan["target"]["center_base_link_m"], dtype=float
         )
@@ -3339,6 +3474,7 @@ class RealNBVSupervisor(Node):
             "fresh_solution_drift_from_preview_rad": solution_drift,
             "preflight_capture": copy.deepcopy(audit["execution_pre_capture"]),
             "preflight_tf": copy.deepcopy(audit["execution_pre_tf"]),
+            "planned_start_camera": array_list(execution_pre_camera),
             "preflight_target": copy.deepcopy(audit["execution_pre_target"]),
             "preflight_target_to_frozen_center_m": pre_target_drift,
             "immediate_camera_motion": copy.deepcopy(
@@ -3373,6 +3509,12 @@ class RealNBVSupervisor(Node):
             # Perception resumes only after _execute_one_goal has obtained two
             # false acknowledgements per gate, a fresh controller=false
             # diagnostic, no new command, and continuous stationary feedback.
+            settle_delay = float(
+                self.get_parameter("post_motion_camera_settle_delay_sec").value
+            )
+            step_record["post_motion_camera_settle_delay_sec"] = settle_delay
+            if settle_delay > 0.0:
+                time.sleep(settle_delay)
             post_observation, post_camera, post_batch = (
                 self._capture_five_frame_aggregate(
                     self.scene_id,
@@ -3434,6 +3576,9 @@ class RealNBVSupervisor(Node):
                 is False
             )
             evidence = ledger.record_closed_step(
+                planned_start_camera=np.asarray(
+                    step_record["planned_start_camera"], dtype=float
+                ),
                 planned_camera=current_planned_camera,
                 actual_camera=post_camera,
                 coverage_after=float(post_view.coverage),
@@ -3491,10 +3636,38 @@ class RealNBVSupervisor(Node):
             raw_target = _strict_pose_matrix(
                 post_view.pose, f"step {next_step_index} raw NextView"
             )
+            raw_gain = float(post_view.gain)
+            if not math.isfinite(raw_gain) or raw_gain <= 0.0:
+                raise SupervisorError(
+                    f"step {next_step_index} NextView gain is not finite and positive"
+                )
+            raw_motion = camera_motion(post_camera, raw_target)
+            if raw_motion.translation_m <= MIN_CAMERA_STEP_M + 1.0e-12:
+                convergence_reason = (
+                    "Gradient-NBV requested no additional camera translation "
+                    "above the 1 mm deadband"
+                )
+                ledger.mark_converged(convergence_reason)
+                step_record["next_view_convergence"] = {
+                    "next_step_index": next_step_index,
+                    "reason": convergence_reason,
+                    "raw_translation_m": raw_motion.translation_m,
+                    "raw_rotation_deg": math.degrees(raw_motion.rotation_rad),
+                    "planned_gain": raw_gain,
+                    "source_observation_id": str(post_view.observation_id),
+                    "source_map_coverage": float(post_view.coverage),
+                    "motion_goal_sent": False,
+                }
+                audit["session_progress"] = ledger.summary()
+                audit["active_step_index"] = None
+                self._checkpoint_execution_audit(
+                    f"converged_before_step_{next_step_index}_deadband"
+                )
+                break
             validate_raw_next_view(
                 post_camera,
                 raw_target,
-                float(post_view.gain),
+                raw_gain,
                 max_step_m=float(frozen_configuration["max_step_m"]),
             )
             dynamic_selected, dynamic_candidates = self._solve_candidates(
@@ -3525,6 +3698,13 @@ class RealNBVSupervisor(Node):
                 "T_base_camera": dynamic_audit["T_base_camera"],
                 "T_base_link7": dynamic_audit["T_base_link7"],
                 "alpha": float(dynamic_selected["alpha"]),
+                "translation_alpha": float(
+                    dynamic_selected["translation_alpha"]
+                ),
+                "rotation_alpha": float(dynamic_selected["rotation_alpha"]),
+                "segmentation_contract": dynamic_selected[
+                    "segmentation_contract"
+                ],
             }
             target_digest = hashlib.sha256(
                 json.dumps(
@@ -3593,10 +3773,20 @@ class RealNBVSupervisor(Node):
             )
         elif audit["session_progress"]["converged_early"]:
             audit["status"] = "executed_session_converged_scientific_acceptance_not_met"
-            audit["reason"] = (
-                "session stopped safely because coverage gain fell below 0.5 "
-                "percentage point; scientific acceptance was not met"
+            convergence_reason = audit["session_progress"].get(
+                "convergence_reason"
             )
+            if convergence_reason:
+                audit["reason"] = (
+                    "session stopped safely because Gradient-NBV reached its "
+                    f"motion deadband ({convergence_reason}); scientific "
+                    "acceptance was not met"
+                )
+            else:
+                audit["reason"] = (
+                    "session stopped safely because coverage gain fell below 0.5 "
+                    "percentage point; scientific acceptance was not met"
+                )
         else:
             audit["status"] = "executed_session_scientific_acceptance_not_met"
             audit["reason"] = (

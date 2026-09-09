@@ -1,0 +1,2553 @@
+{
+  "T_link7_camera_optical": [
+    [
+      0.002514086749112965,
+      -0.0031112637846833525,
+      0.9999919996707374,
+      0.06455188069285712
+    ],
+    [
+      -0.010401145783000108,
+      0.9999409851584371,
+      0.0031372546558028984,
+      0.0023296513994964236
+    ],
+    [
+      -0.9999427461281065,
+      -0.010408949900767883,
+      0.002481577672487967,
+      0.0001988769089705917
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "calibration_config": {
+    "holdout_fraction": 0.2,
+    "max_holdout_rotation_p95_deg": 2.0,
+    "max_holdout_translation_p95_mm": 10.0,
+    "max_initial_ax_xb_rotation_p95_deg": 2.0,
+    "max_initial_ax_xb_translation_p95_mm": 10.0,
+    "max_refinement_initialization_rotation_deg": 0.1,
+    "max_refinement_initialization_translation_mm": 1.0,
+    "method_consensus_rotation_deg": 2.0,
+    "method_consensus_translation_mm": 10.0,
+    "methods": [
+      "TSAI",
+      "PARK",
+      "HORAUD",
+      "ANDREFF",
+      "DANIILIDIS"
+    ],
+    "min_axis_diversity_ratio": 0.05,
+    "min_method_consensus": 3,
+    "min_rotation_span_deg": 8.0,
+    "min_samples": 6,
+    "min_solver_samples": 4,
+    "min_translation_span_mm": 10.0,
+    "outlier_rotation_deg": 1.5,
+    "outlier_translation_mm": 8.0,
+    "pairwise_rotation_scale_deg": 0.25,
+    "pairwise_translation_scale_mm": 1.0,
+    "random_seed": 0,
+    "ransac_subsets": 16,
+    "refinement_irls_iterations": 50,
+    "refinement_max_nfev": 1000
+  },
+  "cross_split_transform_stability": {
+    "finite_transform_count": 20,
+    "pair_count": 190,
+    "rotation_deg": {
+      "count": 190,
+      "max": 0.5131307884173106,
+      "median": 0.1803114988935957,
+      "p95": 0.4031724419265078
+    },
+    "translation_mm": {
+      "count": 190,
+      "max": 3.3864389034014737,
+      "median": 1.479566904691997,
+      "p95": 3.1629347566679313
+    },
+    "worst_rotation_pair": {
+      "first_method": "ROBUST_PAIRWISE_AX_XB",
+      "first_seed": 7,
+      "rotation_deg": 0.5131307884173106,
+      "second_method": "ROBUST_PAIRWISE_AX_XB",
+      "second_seed": 8,
+      "translation_mm": 0.5445748232291773
+    },
+    "worst_translation_pair": {
+      "first_method": "ROBUST_PAIRWISE_AX_XB",
+      "first_seed": 9,
+      "rotation_deg": 0.27868562143497017,
+      "second_method": "ROBUST_PAIRWISE_AX_XB",
+      "second_seed": 11,
+      "translation_mm": 3.3864389034014737
+    }
+  },
+  "diagnostic_medoid_T_link7_camera_optical": [
+    [
+      0.002514086749112965,
+      -0.0031112637846833525,
+      0.9999919996707374,
+      0.06455188069285712
+    ],
+    [
+      -0.010401145783000108,
+      0.9999409851584371,
+      0.0031372546558028984,
+      0.0023296513994964236
+    ],
+    [
+      -0.9999427461281065,
+      -0.010408949900767883,
+      0.002481577672487967,
+      0.0001988769089705917
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "diagnostic_medoid_method": "ROBUST_PAIRWISE_AX_XB",
+  "diagnostic_medoid_seed": 18,
+  "motion_diagnostics": {
+    "informative_rotation_pair_count": 434,
+    "maximum_relative_rotation_deg": 47.50370545705766,
+    "maximum_relative_translation_mm": 56.82297355626004,
+    "pair_count": 435,
+    "rotation_axis_diversity_ratio": 0.5197737055725457,
+    "rotation_axis_singular_values": [
+      17.34203439377056,
+      9.01393347901666,
+      7.211299905089348
+    ]
+  },
+  "outlier_occurrence_counts": {},
+  "physical_prior_used_for_acceptance": false,
+  "reason": "calibration passed all independent holdout and transform stability checks",
+  "recommended_method": "ROBUST_PAIRWISE_AX_XB",
+  "recommended_seed": 18,
+  "report_version": "strawberry_handeye_stability_report/v1",
+  "residual_scale_sensitivity": {
+    "all_trials_passed": true,
+    "finite_transform_count": 6,
+    "pairs": [
+      {
+        "first_rotation_scale_deg": 0.125,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.21839013105863053,
+        "second_rotation_scale_deg": 0.25,
+        "second_translation_scale_mm": 1.0,
+        "translation_mm": 0.11672145728247824
+      },
+      {
+        "first_rotation_scale_deg": 0.125,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.9304723669870067,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 1.0,
+        "translation_mm": 0.515166972528548
+      },
+      {
+        "first_rotation_scale_deg": 0.125,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.029579260131610576,
+        "second_rotation_scale_deg": 0.25,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.01985485815293642
+      },
+      {
+        "first_rotation_scale_deg": 0.125,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.1980193841570008,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.10856898448926998
+      },
+      {
+        "first_rotation_scale_deg": 0.125,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.42145629493478953,
+        "second_rotation_scale_deg": 1.0,
+        "second_translation_scale_mm": 3.0,
+        "translation_mm": 0.2541364684994649
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.7123152082881297,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 1.0,
+        "translation_mm": 0.40613470150857417
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.2437218693011439,
+        "second_rotation_scale_deg": 0.25,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.12880299988145233
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.024723176760425573,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.03625941576317671
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.20317854344374947,
+        "second_rotation_scale_deg": 1.0,
+        "second_translation_scale_mm": 3.0,
+        "translation_mm": 0.16260332733249094
+      },
+      {
+        "first_rotation_scale_deg": 0.5,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.955986454011535,
+        "second_rotation_scale_deg": 0.25,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.5247889294918072
+      },
+      {
+        "first_rotation_scale_deg": 0.5,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.7338327092820142,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.4068050528128036
+      },
+      {
+        "first_rotation_scale_deg": 0.5,
+        "first_translation_scale_mm": 1.0,
+        "rotation_deg": 0.5093812825455282,
+        "second_rotation_scale_deg": 1.0,
+        "second_translation_scale_mm": 3.0,
+        "translation_mm": 0.27115080511264655
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 2.0,
+        "rotation_deg": 0.22239689317529965,
+        "second_rotation_scale_deg": 0.5,
+        "second_translation_scale_mm": 2.0,
+        "translation_mm": 0.1200377092803957
+      },
+      {
+        "first_rotation_scale_deg": 0.25,
+        "first_translation_scale_mm": 2.0,
+        "rotation_deg": 0.44666669135446224,
+        "second_rotation_scale_deg": 1.0,
+        "second_translation_scale_mm": 3.0,
+        "translation_mm": 0.26415721214412996
+      },
+      {
+        "first_rotation_scale_deg": 0.5,
+        "first_translation_scale_mm": 2.0,
+        "rotation_deg": 0.2245020095671838,
+        "second_rotation_scale_deg": 1.0,
+        "second_translation_scale_mm": 3.0,
+        "translation_mm": 0.1491261416869825
+      }
+    ],
+    "rotation_deg": {
+      "count": 15,
+      "max": 0.955986454011535,
+      "median": 0.2437218693011439,
+      "p95": 0.9381265930943652
+    },
+    "runs": [
+      {
+        "T_link7_camera_optical": [
+          [
+            0.003062950252141261,
+            -0.003791672331206742,
+            0.999988120707784,
+            0.06481574413031323
+          ],
+          [
+            -0.014043154520854716,
+            0.9998940382498962,
+            0.003834329591772892,
+            0.0025255006357888204
+          ],
+          [
+            -0.9998966987378527,
+            -0.014054732058908441,
+            0.003009378656132544,
+            0.0010899826119518381
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 0.125,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 1.0
+      },
+      {
+        "T_link7_camera_optical": [
+          [
+            0.0017309213250651379,
+            -0.003224755267652563,
+            0.9999933024099862,
+            0.06476313764701672
+          ],
+          [
+            -0.010518816698005626,
+            0.9999394175727031,
+            0.003242788867158373,
+            0.0026174898539959705
+          ],
+          [
+            -0.9999431775889268,
+            -0.0105243592596868,
+            0.0016968958520934274,
+            0.001041049594070691
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 0.25,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 1.0
+      },
+      {
+        "T_link7_camera_optical": [
+          [
+            -0.0024887646238468397,
+            -0.0007015251242183076,
+            0.9999966569509857,
+            0.06463564503124981
+          ],
+          [
+            0.0009007049744572951,
+            0.9999993467198968,
+            0.0007037686613359837,
+            0.0028548857988516542
+          ],
+          [
+            -0.999996497384464,
+            0.000902453477904123,
+            -0.0024881311308172505,
+            0.000737184173102051
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 0.5,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 1.0
+      },
+      {
+        "T_link7_camera_optical": [
+          [
+            0.0030893386522248822,
+            -0.0041078019274447715,
+            0.999986790887768,
+            0.0648077394377507
+          ],
+          [
+            -0.014449425937293297,
+            0.9998869809748456,
+            0.00415203168237843,
+            0.002507346773770927
+          ],
+          [
+            -0.9998908290792423,
+            -0.014462062105166039,
+            0.0030296341184664066,
+            0.0010907426008253938
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 0.25,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 2.0
+      },
+      {
+        "T_link7_camera_optical": [
+          [
+            0.001725743512640987,
+            -0.003469629662469222,
+            0.9999924917114797,
+            0.06478237770067798
+          ],
+          [
+            -0.010873621994697494,
+            0.9999347962954546,
+            0.00348819470275033,
+            0.002598506389978588
+          ],
+          [
+            -0.9999393912403116,
+            -0.010879560081785398,
+            0.0016879035463596148,
+            0.0010168794955913818
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 0.5,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 2.0
+      },
+      {
+        "T_link7_camera_optical": [
+          [
+            0.0003972591772099521,
+            -0.002574632460036227,
+            0.9999966067206638,
+            0.06476639529850255
+          ],
+          [
+            -0.0072988227701303,
+            0.9999700414850288,
+            0.0025774635982533586,
+            0.002670973578245256
+          ],
+          [
+            -0.9999732843287947,
+            -0.007299821924254145,
+            0.00037845548989084987,
+            0.0008875285173195801
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "reason": "calibration passed without a holdout set",
+        "rotation_scale_deg": 1.0,
+        "status": "passed",
+        "success": true,
+        "translation_scale_mm": 3.0
+      }
+    ],
+    "translation_mm": {
+      "count": 15,
+      "max": 0.5247889294918072,
+      "median": 0.16260332733249094,
+      "p95": 0.5180535596175257
+    },
+    "trial_count": 6
+  },
+  "safe_for_robot_use": true,
+  "sample_count": 30,
+  "selected_method_counts": {
+    "ROBUST_PAIRWISE_AX_XB": 20
+  },
+  "session_id": "handeye_session_001",
+  "split_count": 20,
+  "split_runs": [
+    {
+      "T_link7_camera_optical": [
+        [
+          0.00290406948997457,
+          -0.002823596896501892,
+          0.9999917968068357,
+          0.06574721213646943
+        ],
+        [
+          -0.00886423455662047,
+          0.9999566526484305,
+          0.0028492402270503428,
+          0.0028796084485993266
+        ],
+        [
+          -0.9999564949167152,
+          -0.008872436233205133,
+          0.0028789145810694805,
+          0.00038393418479934217
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7974350186530463,
+      "ax_xb_translation_p95_mm": 3.4275546984023184,
+      "holdout_rotation_p95_deg": 0.4256025837458427,
+      "holdout_sample_ids": [
+        "pose_003",
+        "pose_005",
+        "pose_011",
+        "pose_012",
+        "pose_022",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 4.337306987871636,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 0,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.45820562296451645,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.789043614578082
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.003550540872615693,
+          -0.004115035821219147,
+          0.999985229960774,
+          0.06431368941232923
+        ],
+        [
+          -0.012512873020616263,
+          0.9999130608902724,
+          0.004159166961821076,
+          0.0024200535356284367
+        ],
+        [
+          -0.9999154072561748,
+          -0.012527455497284897,
+          0.0034987412710469346,
+          0.0009125127045513733
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7712589219524182,
+      "ax_xb_translation_p95_mm": 3.529139548583072,
+      "holdout_rotation_p95_deg": 0.44009520849704314,
+      "holdout_sample_ids": [
+        "pose_002",
+        "pose_004",
+        "pose_008",
+        "pose_017",
+        "pose_022",
+        "pose_029"
+      ],
+      "holdout_translation_p95_mm": 4.810899666019531,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 1,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.43789209897804593,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.4184273213649554
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0012956763208595845,
+          -0.0035833558596930918,
+          0.999992740365476,
+          0.0647342349270786
+        ],
+        [
+          -0.01215753830328524,
+          0.9999196180536476,
+          0.0035988461833821248,
+          0.002829781562160312
+        ],
+        [
+          -0.9999252549492266,
+          -0.01216211298378267,
+          0.0012520073857564817,
+          0.0016170714785079788
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7758776477633743,
+      "ax_xb_translation_p95_mm": 3.615413687576714,
+      "holdout_rotation_p95_deg": 0.4649400808825447,
+      "holdout_sample_ids": [
+        "pose_008",
+        "pose_013",
+        "pose_016",
+        "pose_017",
+        "pose_025",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 4.024556201499912,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 2,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.44149478168764056,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.942600473047079
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0014333588420599175,
+          -0.004422412242335338,
+          0.9999891938178075,
+          0.06359141363681481
+        ],
+        [
+          -0.011214426118056625,
+          0.9999272668117423,
+          0.0044382128431647,
+          0.002640948872470903
+        ],
+        [
+          -0.9999360890223296,
+          -0.011220666484546503,
+          0.001383659773946222,
+          0.0008405285251498686
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7940106581679364,
+      "ax_xb_translation_p95_mm": 3.5171895357779865,
+      "holdout_rotation_p95_deg": 0.42378435021976957,
+      "holdout_sample_ids": [
+        "pose_004",
+        "pose_013",
+        "pose_021",
+        "pose_024",
+        "pose_027",
+        "pose_028"
+      ],
+      "holdout_translation_p95_mm": 3.4750949795955797,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_022",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 3,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.46002349435489515,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_022",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.294667494542245
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0024895683200863994,
+          -0.004756364740949373,
+          0.9999855894181832,
+          0.06530007952251882
+        ],
+        [
+          -0.0131409679551521,
+          0.9999021869503892,
+          0.004788683851645855,
+          0.0027717913222530576
+        ],
+        [
+          -0.9999105545051427,
+          -0.013152700341770194,
+          0.0024268215711730212,
+          0.0002606635868641272
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7279836576926926,
+      "ax_xb_translation_p95_mm": 3.532204734238005,
+      "holdout_rotation_p95_deg": 0.4684350454307682,
+      "holdout_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_008",
+        "pose_009",
+        "pose_012",
+        "pose_029"
+      ],
+      "holdout_translation_p95_mm": 3.512177193138993,
+      "inlier_sample_ids": [
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 4,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4435366837786115,
+      "training_sample_ids": [
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.492297686276585
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          -0.0006415662614290829,
+          -0.002991833356124708,
+          0.999995318651993,
+          0.06420494445017642
+        ],
+        [
+          -0.010176507431535059,
+          0.9999437622061261,
+          0.002985150172716678,
+          0.002199671614803791
+        ],
+        [
+          -0.9999480121932478,
+          -0.010174544620126165,
+          -0.0006719765955404133,
+          0.0018010454139205639
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7684154871086438,
+      "ax_xb_translation_p95_mm": 3.4517697454133516,
+      "holdout_rotation_p95_deg": 0.4752566332603091,
+      "holdout_sample_ids": [
+        "pose_003",
+        "pose_008",
+        "pose_010",
+        "pose_020",
+        "pose_024",
+        "pose_025"
+      ],
+      "holdout_translation_p95_mm": 3.510492984333983,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 5,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4518528339111679,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.574672220486327
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0014962642166675422,
+          -0.002545333332409713,
+          0.999995641226311,
+          0.06384625864395913
+        ],
+        [
+          -0.009565927819789042,
+          0.9999509697062938,
+          0.0025595328458892443,
+          0.0023126195219184318
+        ],
+        [
+          -0.9999531260105848,
+          -0.00956971586148324,
+          0.0014718423794583546,
+          0.0010296024967431977
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7741743269413114,
+      "ax_xb_translation_p95_mm": 3.6831815144193083,
+      "holdout_rotation_p95_deg": 0.46995000973430695,
+      "holdout_sample_ids": [
+        "pose_002",
+        "pose_003",
+        "pose_007",
+        "pose_015",
+        "pose_017",
+        "pose_028"
+      ],
+      "holdout_translation_p95_mm": 5.579205091648526,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 6,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4654945769534791,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.697756213630822
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.001038686797925903,
+          0.0004465928680388166,
+          0.9999993608420688,
+          0.06603266674033084
+        ],
+        [
+          -0.006711924559262426,
+          0.9999773781493639,
+          -0.00043961145883443086,
+          0.003418500038929119
+        ],
+        [
+          -0.999976935333234,
+          -0.006711463650664102,
+          0.0010416607985472282,
+          0.0008572942574158587
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7906832853169187,
+      "ax_xb_translation_p95_mm": 3.6020238936902786,
+      "holdout_rotation_p95_deg": 0.49865833463130704,
+      "holdout_sample_ids": [
+        "pose_005",
+        "pose_013",
+        "pose_015",
+        "pose_023",
+        "pose_025",
+        "pose_029"
+      ],
+      "holdout_translation_p95_mm": 5.669198987558069,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_024",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 7,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.46154470719107993,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_024",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.763550082633336
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.00244828029161126,
+          -0.004619978831454447,
+          0.9999863307661814,
+          0.06555792694803053
+        ],
+        [
+          -0.013951755875489292,
+          0.999891839940265,
+          0.004653700555732412,
+          0.0031820796751970797
+        ],
+        [
+          -0.9998996721829669,
+          -0.01396295872902971,
+          0.0023835586686623556,
+          0.0007336444320437304
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7610134021165276,
+      "ax_xb_translation_p95_mm": 3.694662834572227,
+      "holdout_rotation_p95_deg": 0.441731642858228,
+      "holdout_sample_ids": [
+        "pose_009",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_020",
+        "pose_029"
+      ],
+      "holdout_translation_p95_mm": 4.440363660113264,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_015",
+        "pose_018",
+        "pose_019",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 8,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4590771156119945,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_015",
+        "pose_018",
+        "pose_019",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.95871196705143
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0009288521308843944,
+          -0.0004917062856154872,
+          0.9999994477291714,
+          0.06381039700615038
+        ],
+        [
+          -0.007471701018434248,
+          0.99997196213151,
+          0.0004986328800120122,
+          0.0026417609583447
+        ],
+        [
+          -0.9999716550570872,
+          -0.007472160048244863,
+          0.0009251522054955497,
+          0.0018419765820916769
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7945796800158963,
+      "ax_xb_translation_p95_mm": 3.762283377936996,
+      "holdout_rotation_p95_deg": 0.5060375107640624,
+      "holdout_sample_ids": [
+        "pose_003",
+        "pose_010",
+        "pose_015",
+        "pose_017",
+        "pose_019",
+        "pose_026"
+      ],
+      "holdout_translation_p95_mm": 6.097740972811556,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_018",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 9,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4482213830068031,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_018",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.3327516880121903
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0008290368002253912,
+          -0.004221261928169151,
+          0.9999907467800478,
+          0.0667848774348723
+        ],
+        [
+          -0.012789523570510464,
+          0.9999092570412093,
+          0.004231521019263985,
+          0.0026699276509468657
+        ],
+        [
+          -0.9999178670194985,
+          -0.012792913312881678,
+          0.0007749736420455955,
+          0.000262146684017448
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7811362289337082,
+      "ax_xb_translation_p95_mm": 3.7561734451346704,
+      "holdout_rotation_p95_deg": 0.4610176500048463,
+      "holdout_sample_ids": [
+        "pose_006",
+        "pose_008",
+        "pose_010",
+        "pose_016",
+        "pose_018",
+        "pose_028"
+      ],
+      "holdout_translation_p95_mm": 2.8824731324945687,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_007",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 10,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.46461910769296855,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_007",
+        "pose_009",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.585887489645751
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0013180801794558938,
+          -0.0038099771327754243,
+          0.9999918733364227,
+          0.06668026335862347
+        ],
+        [
+          -0.01100275999241386,
+          0.9999321548821867,
+          0.003824252242704708,
+          0.0026673031554591783
+        ],
+        [
+          -0.9999385990835586,
+          -0.01100771124776733,
+          0.0012760704901823017,
+          4.442737231177882e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.8000548154108605,
+      "ax_xb_translation_p95_mm": 3.6794346096308828,
+      "holdout_rotation_p95_deg": 0.35939848669769126,
+      "holdout_sample_ids": [
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_012",
+        "pose_016",
+        "pose_024"
+      ],
+      "holdout_translation_p95_mm": 3.407830797705942,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 11,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.46659070942356207,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.993407792220779
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0031710307919294856,
+          -0.0032514061409914547,
+          0.9999896864077262,
+          0.06537010213710064
+        ],
+        [
+          -0.009712538574636245,
+          0.9999474459314842,
+          0.0032820678751682023,
+          0.0031868137880657205
+        ],
+        [
+          -0.9999478042168763,
+          -0.009722845941766804,
+          0.003139284733793768,
+          0.00024343085383836516
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7852455846720933,
+      "ax_xb_translation_p95_mm": 3.5419245723970416,
+      "holdout_rotation_p95_deg": 0.456827926350007,
+      "holdout_sample_ids": [
+        "pose_002",
+        "pose_004",
+        "pose_006",
+        "pose_016",
+        "pose_026",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 2.7928961513515818,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_003",
+        "pose_005",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 12,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.46706470530165284,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_003",
+        "pose_005",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 5.01364435421772
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0033823632698460337,
+          -0.005287183918156484,
+          0.9999803024584667,
+          0.06375598456273036
+        ],
+        [
+          -0.011675755077119052,
+          0.9999176500049753,
+          0.00532634507961112,
+          0.0019206525756176403
+        ],
+        [
+          -0.9999261154515818,
+          -0.011693540727408289,
+          0.003320352867771492,
+          0.0006994064360548813
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7264686368968831,
+      "ax_xb_translation_p95_mm": 3.4455645540946525,
+      "holdout_rotation_p95_deg": 0.5018306881861463,
+      "holdout_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_004",
+        "pose_007",
+        "pose_013",
+        "pose_017"
+      ],
+      "holdout_translation_p95_mm": 4.6235905592469635,
+      "inlier_sample_ids": [
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 13,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4230414293706842,
+      "training_sample_ids": [
+        "pose_003",
+        "pose_005",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.28154356859959
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.00043762960381066307,
+          -0.00039229235162016336,
+          0.9999998272935053,
+          0.06638749928449125
+        ],
+        [
+          -0.007500528526298151,
+          0.9999717924027158,
+          0.00039556380763926344,
+          0.0031057292237407818
+        ],
+        [
+          -0.9999717748777492,
+          -0.007500700341340581,
+          0.00043467485935710926,
+          0.00023684245753946402
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7836234816874709,
+      "ax_xb_translation_p95_mm": 3.6212830946801025,
+      "holdout_rotation_p95_deg": 0.5185580577023677,
+      "holdout_sample_ids": [
+        "pose_005",
+        "pose_006",
+        "pose_008",
+        "pose_015",
+        "pose_021",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 5.725568863549119,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 14,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.45163966345454487,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_007",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.805942830260818
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0015928998571772546,
+          -0.0016773055964808075,
+          0.9999973246544119,
+          0.06458383381571581
+        ],
+        [
+          -0.008461663332900216,
+          0.999962770156153,
+          0.0016907262562468554,
+          0.0026308279566977302
+        ],
+        [
+          -0.9999629307747792,
+          -0.00846433385263865,
+          0.0015786477585004732,
+          0.0003662997801062152
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7698006207534528,
+      "ax_xb_translation_p95_mm": 3.5996767079064704,
+      "holdout_rotation_p95_deg": 0.4890829201629234,
+      "holdout_sample_ids": [
+        "pose_001",
+        "pose_012",
+        "pose_015",
+        "pose_016",
+        "pose_023",
+        "pose_024"
+      ],
+      "holdout_translation_p95_mm": 5.173880567496441,
+      "inlier_sample_ids": [
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 15,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4414761042320491,
+      "training_sample_ids": [
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.116642034888565
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0007208981504410183,
+          -0.0019135245409285517,
+          0.9999979093626586,
+          0.0640326353963153
+        ],
+        [
+          -0.008207623008748765,
+          0.9999644748263841,
+          0.0019193774356056799,
+          0.00261222948463148
+        ],
+        [
+          -0.9999660570391392,
+          -0.008208989525228945,
+          0.0007051670523591791,
+          0.0018732104740900334
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7889717799366499,
+      "ax_xb_translation_p95_mm": 3.5311948095938566,
+      "holdout_rotation_p95_deg": 0.44554325534803174,
+      "holdout_sample_ids": [
+        "pose_005",
+        "pose_007",
+        "pose_017",
+        "pose_019",
+        "pose_025",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 4.5493777053766395,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 16,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4567026603699368,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_006",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_018",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 3.5419072182929843
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.0018353242489934085,
+          -0.003697102387573142,
+          0.9999914814731357,
+          0.06686144793868269
+        ],
+        [
+          -0.011341657964074582,
+          0.9999287702646398,
+          0.003717686333044631,
+          0.003176479516136959
+        ],
+        [
+          -0.9999339970115662,
+          -0.011348384509733717,
+          0.001793262248594829,
+          0.000588800746174687
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.8046532061262215,
+      "ax_xb_translation_p95_mm": 3.4387008742533696,
+      "holdout_rotation_p95_deg": 0.3346559510105235,
+      "holdout_sample_ids": [
+        "pose_004",
+        "pose_006",
+        "pose_013",
+        "pose_025",
+        "pose_028",
+        "pose_029"
+      ],
+      "holdout_translation_p95_mm": 2.4683837318940736,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_005",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_027",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 17,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.4707272734551091,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_005",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_026",
+        "pose_027",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.510910446173356
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.002514086749112965,
+          -0.0031112637846833525,
+          0.9999919996707374,
+          0.06455188069285712
+        ],
+        [
+          -0.010401145783000108,
+          0.9999409851584371,
+          0.0031372546558028984,
+          0.0023296513994964236
+        ],
+        [
+          -0.9999427461281065,
+          -0.010408949900767883,
+          0.002481577672487967,
+          0.0001988769089705917
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7689191061821933,
+      "ax_xb_translation_p95_mm": 3.387736644604127,
+      "holdout_rotation_p95_deg": 0.44824118543831504,
+      "holdout_sample_ids": [
+        "pose_001",
+        "pose_003",
+        "pose_009",
+        "pose_022",
+        "pose_023",
+        "pose_026"
+      ],
+      "holdout_translation_p95_mm": 3.8366894594957177,
+      "inlier_sample_ids": [
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_024",
+        "pose_025",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 18,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.449048362400334,
+      "training_sample_ids": [
+        "pose_002",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_024",
+        "pose_025",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.365430452257068
+    },
+    {
+      "T_link7_camera_optical": [
+        [
+          0.000753588711520814,
+          -0.0012048053552620392,
+          0.9999989902735452,
+          0.0643166010087453
+        ],
+        [
+          -0.00981416387102103,
+          0.9999511052524594,
+          0.0012121435136479477,
+          0.0029037130830707834
+        ],
+        [
+          -0.9999515559723714,
+          -0.009815067419068764,
+          0.0007417277078017315,
+          0.0011818796911947258
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "ax_xb_rotation_p95_deg": 0.7812326859477596,
+      "ax_xb_translation_p95_mm": 3.3424559089121355,
+      "holdout_rotation_p95_deg": 0.5139920463008174,
+      "holdout_sample_ids": [
+        "pose_010",
+        "pose_012",
+        "pose_015",
+        "pose_022",
+        "pose_024",
+        "pose_027"
+      ],
+      "holdout_translation_p95_mm": 5.548022409532528,
+      "inlier_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "outlier_sample_ids": [],
+      "reason": "calibration and independent holdout validation passed",
+      "seed": 19,
+      "selected_method": "ROBUST_PAIRWISE_AX_XB",
+      "status": "passed",
+      "success": true,
+      "training_rotation_p95_deg": 0.45209914973454496,
+      "training_sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_011",
+        "pose_013",
+        "pose_014",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_023",
+        "pose_025",
+        "pose_026",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "training_translation_p95_mm": 4.194600426780328
+    }
+  ],
+  "stability_config": {
+    "maximum_pairwise_rotation_deg": 2.0,
+    "maximum_pairwise_translation_mm": 10.0,
+    "maximum_scale_sensitivity_rotation_deg": 2.0,
+    "maximum_scale_sensitivity_translation_mm": 10.0,
+    "minimum_success_fraction": 1.0,
+    "residual_scale_trials": [
+      [
+        1.0,
+        0.125
+      ],
+      [
+        1.0,
+        0.25
+      ],
+      [
+        1.0,
+        0.5
+      ],
+      [
+        2.0,
+        0.25
+      ],
+      [
+        2.0,
+        0.5
+      ],
+      [
+        3.0,
+        1.0
+      ]
+    ],
+    "split_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "status": "passed",
+  "success": true,
+  "successful_split_count": 20,
+  "successful_split_fraction": 1.0,
+  "transform_convention": {
+    "T_base_link7": "maps a point expressed in link7 into base_link; p_base = T_base_link7 p_link7",
+    "T_camera_checkerboard": "maps a checkerboard point into camera optical coordinates; p_camera = T_camera_checkerboard p_checkerboard",
+    "camera_optical_axes": "+X right, +Y down, +Z forward",
+    "matrix_layout": "row-major homogeneous 4x4",
+    "result_T_link7_camera_optical": "maps a camera optical point into link7; p_link7 = T_link7_camera_optical p_camera",
+    "units": "metres and radians unless a field name states otherwise"
+  }
+}

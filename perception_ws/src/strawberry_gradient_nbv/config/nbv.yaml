@@ -7,3 +7,5 @@
     compute_action: /strawberry/nbv/compute_next_view
     device: auto
     observation_cache_size: 32
+    # Empty by default. Set a directory to save one NPZ voxel snapshot per update.
+    map_snapshot_directory: ""

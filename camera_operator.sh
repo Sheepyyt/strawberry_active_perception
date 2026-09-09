@@ -60,7 +60,8 @@ print_help() {
   ./camera_operator.sh stop      正常停止由本脚本启动的相机
   ./camera_operator.sh view      打开实时彩色画面
   ./camera_operator.sh status    检查相机程序和深度数据是否正在工作
-  ./camera_operator.sh test-red  检查画面中是否有足够清楚的红色物体
+  ./camera_operator.sh test-strawberry  检查真实草莓能否通过 HSV 规则生成 mask
+  ./camera_operator.sh test-red         上一命令的兼容别名
 
 停止相机：运行 ./camera_operator.sh stop，或回到执行 start 的终端按 Ctrl+C 一次。
 EOF
@@ -150,13 +151,13 @@ case "${1:-help}" in
       exit 1
     fi
     ;;
-  test-red)
+  test-strawberry|test-red)
     if ! ros2 service list 2>/dev/null |
       grep -qx '/strawberry/perception/capture_observation'; then
       echo "相机程序没有运行。请先在另一个终端执行 ./camera_operator.sh start"
       exit 1
     fi
-    echo "正在检查红色物体，请保持相机和物体静止几秒……"
+    echo "正在用 HSV 颜色规则检查真实草莓，请保持相机和草莓静止几秒……"
     set +e
     result="$(timeout 10 ros2 service call \
       /strawberry/perception/capture_observation \
@@ -171,13 +172,13 @@ case "${1:-help}" in
       exit 1
     fi
     if grep -q 'success=True' <<<"$result"; then
-      echo "红色目标测试：成功。系统已经生成一份可供 NBV 使用的真实观测。"
+      echo "HSV 草莓候选 mask：成功。系统已经生成一份可供 NBV 使用的真实观测。"
     elif grep -q 'code=15' <<<"$result"; then
-      echo "红色目标测试：尚未识别到足够清楚的红色物体。"
-      echo "请让红色物体更靠近画面中央、适当靠近相机，并避免强反光，再试一次。"
+      echo "HSV 草莓候选 mask：尚未识别到足够清楚的草莓。"
+      echo "请让草莓更靠近画面中央、适当靠近相机，并避免强反光，再试一次。"
       exit 3
     else
-      echo "红色目标测试：未通过。请把下面内容发给我："
+      echo "HSV 草莓候选 mask：未通过。请把下面内容发给我："
       echo "$result"
       exit 1
     fi

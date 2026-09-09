@@ -25,12 +25,28 @@ from .transforms import (
 
 MIN_CAMERA_STEP_M = 0.001
 MAX_CAMERA_STEP_M = 0.005
+MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M = 1.0e-6
 MAX_SELECTED_CAMERA_ROTATION_RAD = math.radians(10.0)
 MAX_IK_JOINT_DELTA_RAD = 0.08
 MAX_IK_POSITION_ERROR_M = 0.003
 MAX_IK_ORIENTATION_ERROR_RAD = math.radians(2.0)
 MIN_IK_SIGMA = 0.10
 MAX_IK_CONDITION = 20.0
+MIN_IK_JOINT_LIMIT_CLEARANCE_RAD = 0.001
+# The research controller intersects the stock NERO SDK and URDF limits, then
+# removes exactly two degrees at each end.  Keep the resulting limits explicit
+# here so the hardware supervisor can reject an otherwise valid IK solution
+# that sits on a controller boundary.  This does not widen the controller's
+# limits; the extra clearance makes the supervisor stricter.
+NERO_RESEARCH_SAFE_JOINT_LIMITS_RAD = (
+    (-2.670353414960113, 2.670353414960113),
+    (-1.7050934149601134, 1.7050934149601134),
+    (-2.7150934149601134, 2.7150934149601134),
+    (-0.9750934149601134, 2.1050934149601134),
+    (-2.7150934149601134, 2.7150934149601134),
+    (-0.6950934149601134, 0.9150934149601134),
+    (-1.5358897149601133, 1.5358897149601133),
+)
 DEFAULT_ALPHAS = (1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125)
 ALLOWED_SESSION_MOTION_STEPS = (1, 3)
 MAX_SESSION_TRANSLATION_M = 0.015
@@ -40,6 +56,8 @@ SCIENCE_STEP_COVERAGE_DELTA = 0.01
 SCIENCE_FINAL_COVERAGE_DELTA = 0.20
 NERO_JOINT_NAMES = tuple(f"joint{index}" for index in range(1, 8))
 _EPS = 1.0e-12
+TARGET_DEPTH_CLUSTER_GAP_M = 0.05
+TARGET_DEPTH_CLUSTER_SEED_PIXELS = 20
 
 
 @dataclass(frozen=True)
@@ -49,6 +67,10 @@ class TargetEstimate:
     camera_xyz_m: np.ndarray
     mask_pixels: int
     valid_mask_pixels: int
+    depth_layer_count: int
+    selected_layer_pixels: int
+    selected_layer_min_depth_m: float
+    selected_layer_max_depth_m: float
     retained_pixels: int
     median_depth_m: float
     depth_mad_m: float
@@ -118,6 +140,8 @@ class IKValidation:
     orientation_error_rad: float
     sigma_min: float
     condition_number: float
+    minimum_joint_limit_clearance_rad: float
+    limiting_joint_name: str
 
 
 @dataclass(frozen=True)
@@ -199,8 +223,8 @@ class MotionSessionLedger:
         self.minimum_target_pixels = int(minimum_target_pixels)
         self.steps: list[SessionStepEvidence] = []
         self.termination_reason: str | None = None
+        self.convergence_reason: str | None = None
         self.gates_closed_at_termination: bool | None = None
-        self._last_planned_camera = self.initial_camera.copy()
         self._last_actual_camera = self.initial_camera.copy()
         self._planned_translation_total_m = 0.0
         self._planned_rotation_total_rad = 0.0
@@ -220,6 +244,7 @@ class MotionSessionLedger:
     def record_closed_step(
         self,
         *,
+        planned_start_camera: np.ndarray | None = None,
         planned_camera: np.ndarray,
         actual_camera: np.ndarray,
         coverage_after: float,
@@ -249,13 +274,27 @@ class MotionSessionLedger:
         actual_transform = validate_rigid_transform(
             actual_camera, "actual step camera"
         )
+        # Every target is checked from the fresh measured pose immediately
+        # before its execution gate.  Falling back to the preceding measured
+        # post-motion pose keeps this ROS-free class convenient in unit tests.
+        # In either case, never measure a dynamic target from the preceding
+        # ideal target: accepted terminal error or encoder jitter can otherwise
+        # make an exactly clamped 5 mm command appear longer than 5 mm.
+        planned_start = (
+            self._last_actual_camera
+            if planned_start_camera is None
+            else validate_rigid_transform(
+                planned_start_camera, "planned step start camera"
+            )
+        )
         planned_step = camera_motion(
-            self._last_planned_camera, planned_transform
+            planned_start, planned_transform
         )
         actual_step = camera_motion(self._last_actual_camera, actual_transform)
         if not (
             planned_step.translation_m > MIN_CAMERA_STEP_M
-            and planned_step.translation_m <= MAX_CAMERA_STEP_M + 1.0e-9
+            and planned_step.translation_m
+            <= MAX_CAMERA_STEP_M + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M + _EPS
         ):
             raise ValueError("planned camera step must be in (1, 5] mm")
         if (
@@ -284,7 +323,15 @@ class MotionSessionLedger:
             ),
             ("actual", actual_translation_total, actual_rotation_total),
         ):
-            if translation_total > MAX_SESSION_TRANSLATION_M + 1.0e-9:
+            numeric_total_tolerance = (
+                self.max_motion_steps * MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+                if label == "planned"
+                else _EPS
+            )
+            if (
+                translation_total
+                > MAX_SESSION_TRANSLATION_M + numeric_total_tolerance
+            ):
                 raise ValueError(
                     f"{label} cumulative camera translation exceeds 15 mm"
                 )
@@ -316,7 +363,6 @@ class MotionSessionLedger:
             target_valid_mask_depth_pixels=int(target_valid_mask_depth_pixels),
             converged=delta < CONVERGENCE_COVERAGE_DELTA,
         )
-        self._last_planned_camera = planned_transform.copy()
         self._last_actual_camera = actual_transform.copy()
         self._planned_translation_total_m = planned_translation_total
         self._planned_rotation_total_rad = planned_rotation_total
@@ -333,6 +379,20 @@ class MotionSessionLedger:
         if self.termination_reason is None:
             self.termination_reason = text
             self.gates_closed_at_termination = bool(gates_closed)
+
+    def mark_converged(self, reason: str) -> None:
+        """Record a successful early stop after at least one closed motion."""
+        text = str(reason).strip()
+        if not text:
+            raise ValueError("session convergence reason must be non-empty")
+        if not self.steps:
+            raise ValueError(
+                "session cannot converge before a motion goal is completed"
+            )
+        if self.termination_reason is not None:
+            raise ValueError("terminated session cannot be marked converged")
+        if self.convergence_reason is None:
+            self.convergence_reason = text
 
     def summary(self) -> dict[str, Any]:
         """Return deterministic scientific and authorization-consumption facts."""
@@ -355,7 +415,11 @@ class MotionSessionLedger:
             "steps_with_at_least_one_percentage_point_gain": sum(
                 delta >= SCIENCE_STEP_COVERAGE_DELTA for delta in deltas
             ),
-            "converged_early": bool(self.steps and self.steps[-1].converged),
+            "converged_early": bool(
+                self.convergence_reason is not None
+                or (self.steps and self.steps[-1].converged)
+            ),
+            "convergence_reason": self.convergence_reason,
             "scientific_acceptance_required": science_required,
             "scientific_acceptance_passed": (
                 science_passed if science_required else None
@@ -812,8 +876,11 @@ def estimate_target_center(
 ) -> TargetEstimate:
     """Robustly back-project the masked target centre in optical coordinates.
 
-    A median/MAD depth trim removes isolated mask or depth-edge contamination;
-    the retained 3-D points are then reduced component-wise by median.
+    Transparent or perforated red targets may expose a second, distant layer
+    of background inside the 2-D mask.  Split masked depths at material gaps,
+    discard tiny isolated layers, and select the nearest supported layer before
+    applying the median/MAD trim.  This prevents a larger background layer
+    from being mistaken for the physical target.
     """
     depth = np.asarray(depth_m, dtype=float)
     target_mask = np.asarray(mask)
@@ -850,6 +917,28 @@ def estimate_target_center(
             f"only {valid_count} target pixels have valid depth; "
             f"need at least {minimum_pixels}"
         )
+    ordered = np.sort(values)
+    split_indices = np.flatnonzero(
+        np.diff(ordered) > TARGET_DEPTH_CLUSTER_GAP_M
+    ) + 1
+    layers = np.split(ordered, split_indices)
+    seed_pixels = min(TARGET_DEPTH_CLUSTER_SEED_PIXELS, valid_count)
+    supported_layers = [layer for layer in layers if layer.size >= seed_pixels]
+    if not supported_layers:
+        raise ValueError("target depth has no spatially supported layer")
+    selected_layer = supported_layers[0]
+    layer_low = float(selected_layer[0])
+    layer_high = float(selected_layer[-1])
+    selected = (values >= layer_low) & (values <= layer_high)
+    selected_count = int(np.count_nonzero(selected))
+    if selected_count < minimum_pixels:
+        raise ValueError(
+            f"nearest target-depth layer has {selected_count} pixels; "
+            f"need at least {minimum_pixels}"
+        )
+    rows = rows[selected]
+    columns = columns[selected]
+    values = values[selected]
     median_depth = float(np.median(values))
     mad = float(np.median(np.abs(values - median_depth)))
     trim_radius = max(3.0 * 1.4826 * mad, 0.005)
@@ -873,6 +962,10 @@ def estimate_target_center(
         camera_xyz_m=centre,
         mask_pixels=mask_pixels,
         valid_mask_pixels=valid_count,
+        depth_layer_count=len(layers),
+        selected_layer_pixels=selected_count,
+        selected_layer_min_depth_m=layer_low,
+        selected_layer_max_depth_m=layer_high,
         retained_pixels=int(points.shape[0]),
         median_depth_m=median_depth,
         depth_mad_m=mad,
@@ -958,6 +1051,7 @@ def validate_raw_next_view(
     gain: float,
     *,
     max_step_m: float = MAX_CAMERA_STEP_M,
+    overshoot_tolerance_m: float = MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M,
 ) -> CameraMotion:
     """Validate the raw Gradient-NBV result and its strict-gain proxy.
 
@@ -974,12 +1068,59 @@ def validate_raw_next_view(
         raise ValueError(
             "raw NextView camera translation must exceed the 1 mm deadband"
         )
-    if motion.translation_m > float(max_step_m) + 1.0e-9:
+    tolerance = float(overshoot_tolerance_m)
+    if not math.isfinite(tolerance) or tolerance < 0.0:
+        raise ValueError(
+            "overshoot_tolerance_m must be finite and non-negative"
+        )
+    if motion.translation_m > float(max_step_m) + tolerance + _EPS:
         raise ValueError(
             f"raw NextView camera translation {motion.translation_m:.9f} m "
-            f"exceeds {float(max_step_m):.9f} m"
+            f"exceeds {float(max_step_m):.9f} m beyond the "
+            f"{tolerance:.9f} m numerical tolerance"
         )
     return motion
+
+
+def project_numerical_step_overshoot(
+    current: np.ndarray,
+    target: np.ndarray,
+    *,
+    max_step_m: float = MAX_CAMERA_STEP_M,
+    overshoot_tolerance_m: float = MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M,
+) -> tuple[np.ndarray, float]:
+    """Project only a sub-micrometre numeric overshoot back to ``max_step``.
+
+    Gradient-NBV optimizes in float32, while the supervisor recomputes motion
+    in float64 from TF.  A mathematically clamped 5 mm step can consequently
+    arrive a few hundred nanometres above the bound.  Material overshoot still
+    fails closed; an accepted numeric overshoot is shortened exactly along the
+    original translation direction and its correction is returned for audit.
+    Orientation is never changed here.
+    """
+    current_transform = validate_rigid_transform(current, "current transform")
+    target_transform = validate_rigid_transform(target, "target transform")
+    maximum = float(max_step_m)
+    tolerance = float(overshoot_tolerance_m)
+    if not math.isfinite(maximum) or maximum <= 0.0:
+        raise ValueError("max_step_m must be finite and positive")
+    if not math.isfinite(tolerance) or tolerance < 0.0:
+        raise ValueError(
+            "overshoot_tolerance_m must be finite and non-negative"
+        )
+    delta = target_transform[:3, 3] - current_transform[:3, 3]
+    distance = float(np.linalg.norm(delta))
+    overshoot = distance - maximum
+    if overshoot <= 0.0:
+        return target_transform.copy(), 0.0
+    if overshoot > tolerance + _EPS:
+        raise ValueError(
+            f"raw NextView camera translation {distance:.9f} m exceeds "
+            f"{maximum:.9f} m beyond the {tolerance:.9f} m numerical tolerance"
+        )
+    projected = target_transform.copy()
+    projected[:3, 3] = current_transform[:3, 3] + delta * (maximum / distance)
+    return projected, overshoot
 
 
 def segmented_camera_candidates(
@@ -1001,6 +1142,53 @@ def segmented_camera_candidates(
         previous = alpha
         candidate = interpolate_transform(current, raw_target, alpha)
         output.append((alpha, candidate, camera_motion(current, candidate)))
+    return tuple(output)
+
+
+def independently_segmented_camera_candidates(
+    current: np.ndarray,
+    raw_target: np.ndarray,
+    alphas: Sequence[float] = DEFAULT_ALPHAS,
+) -> tuple[tuple[float, float, np.ndarray, CameraMotion], ...]:
+    """Segment translation and rotation independently toward one NBV pose.
+
+    A shared interpolation factor can leave no feasible point even when safe
+    translations and rotations both exist: reducing it enough for the joint or
+    rotation gate can push translation into the 1 mm deadband. This Cartesian,
+    deterministic search retains the audited alpha sequence for each component.
+    Every candidate stays on the straight translation and shortest rotation
+    paths toward the raw NBV pose.
+    """
+    coupled = segmented_camera_candidates(current, raw_target, alphas)
+    current_transform = validate_rigid_transform(current, "current transform")
+    raw_transform = validate_rigid_transform(raw_target, "raw target transform")
+    # Preserve-current-orientation is an intentional final fallback.  For a
+    # 1--5 mm translational NBV step, forcing even a small look-at rotation can
+    # consume the last available wrist-joint margin although the useful
+    # camera-position change itself remains reachable.  Positive rotation
+    # fractions stay preferred; zero is tried only after all of them for each
+    # translation fraction.
+    rotation_options = [
+        (rotation_alpha, rotation_candidate)
+        for rotation_alpha, rotation_candidate, _ in coupled
+    ]
+    rotation_options.append((0.0, current_transform.copy()))
+    output = []
+    for translation_alpha, _, _ in coupled:
+        translation = current_transform[:3, 3] + translation_alpha * (
+            raw_transform[:3, 3] - current_transform[:3, 3]
+        )
+        for rotation_alpha, rotation_candidate in rotation_options:
+            candidate = rotation_candidate.copy()
+            candidate[:3, 3] = translation
+            output.append(
+                (
+                    translation_alpha,
+                    rotation_alpha,
+                    candidate,
+                    camera_motion(current_transform, candidate),
+                )
+            )
     return tuple(output)
 
 
@@ -1033,6 +1221,9 @@ def validate_ik_solution(
     sigma_min: float,
     condition_number: float,
     max_joint_delta_rad: float = MAX_IK_JOINT_DELTA_RAD,
+    minimum_joint_limit_clearance_rad: float = (
+        MIN_IK_JOINT_LIMIT_CLEARANCE_RAD
+    ),
     reported_delta_tolerance_rad: float = 1.0e-4,
 ) -> IKValidation:
     """Apply independent precision, continuity, and singularity gates."""
@@ -1074,6 +1265,24 @@ def validate_ik_solution(
         raise ValueError(
             "reported max_joint_delta_rad does not match the returned solution"
         )
+    safe_limits = np.asarray(NERO_RESEARCH_SAFE_JOINT_LIMITS_RAD, dtype=float)
+    clearances = np.minimum(
+        solution - safe_limits[:, 0], safe_limits[:, 1] - solution
+    )
+    limiting_index = int(np.argmin(clearances))
+    minimum_clearance = float(clearances[limiting_index])
+    required_clearance = float(minimum_joint_limit_clearance_rad)
+    if not math.isfinite(required_clearance) or required_clearance < 0.0:
+        raise ValueError(
+            "minimum_joint_limit_clearance_rad must be finite and non-negative"
+        )
+    if minimum_clearance < required_clearance - 1.0e-12:
+        raise ValueError(
+            "IK solution is too close to a conservative joint limit: "
+            f"{NERO_JOINT_NAMES[limiting_index]} clearance="
+            f"{minimum_clearance:.9f} rad, required="
+            f"{required_clearance:.9f} rad"
+        )
     if position_error > MAX_IK_POSITION_ERROR_M + 1.0e-12:
         raise ValueError("IK position residual exceeds 3 mm")
     if orientation_error > MAX_IK_ORIENTATION_ERROR_RAD + 1.0e-12:
@@ -1089,6 +1298,8 @@ def validate_ik_solution(
         orientation_error_rad=float(orientation_error),
         sigma_min=float(sigma),
         condition_number=float(condition),
+        minimum_joint_limit_clearance_rad=minimum_clearance,
+        limiting_joint_name=NERO_JOINT_NAMES[limiting_index],
     )
 
 

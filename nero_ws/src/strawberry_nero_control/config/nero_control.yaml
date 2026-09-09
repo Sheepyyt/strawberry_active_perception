@@ -6,8 +6,9 @@
     model_tip_frame: link7
     default_controlled_frame: link7
 
-    # The camera is physically mounted, but its precise link7 -> optical-frame
-    # calibration is not part of week one. Camera-frame goals stay rejected.
+    # Keep generic controller-side camera goals disabled. The formally
+    # calibrated link7 -> optical transform is loaded and SHA-checked by the
+    # active-perception bridge, not duplicated as an unchecked YAML matrix.
     camera_transform_valid: false
 
     joint_names:
@@ -108,7 +109,11 @@
     tracking_pause_error_rad: 0.08
     tracking_abort_error_rad: 0.15
     tracking_abort_duration_sec: 0.50
-    feedback_timeout_sec: 0.20
+    # The real CAN feedback normally arrives much faster than this, but host
+    # scheduling has occasionally produced a single ~0.22 s delivery gap.
+    # Keep a 0.50 s watchdog so a genuine feedback outage still aborts the
+    # action promptly without turning one delayed callback into an e-stop.
+    feedback_timeout_sec: 0.50
     settle_joint_tolerance_rad: 0.020
     settle_velocity_tolerance_rad_s: 0.020
     settle_duration_sec: 0.25

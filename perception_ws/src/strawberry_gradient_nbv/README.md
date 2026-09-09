@@ -77,3 +77,44 @@ wrapper 订阅 `/strawberry/perception/observation`，提供 `/strawberry/nbv/co
 `/strawberry/nbv/reset_map` 和 `/strawberry/nbv/compute_next_view`，并在
 `/strawberry/nbv/next_view` 发布 Reliable + TransientLocal 的结构化结果。同一
 `(scene_id, observation_id)` 只融合一次；重复 Action goal 返回缓存结果。
+
+真实机械臂闭环不能使用上面的默认话题，因为相机 adapter 的原始消息还没有
+`base_link` 位姿。此时必须用 `.venv-nbv` 启动并选择真实专用配置：
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source perception_ws/install/setup.bash
+.venv-nbv/bin/python -m strawberry_gradient_nbv.ros_node --ros-args \
+  --params-file perception_ws/install/strawberry_gradient_nbv/share/\
+strawberry_gradient_nbv/config/real_nbv.yaml
+```
+
+该配置只监听 `/strawberry/perception/real_nbv_observation`。这个话题由真实监督器在取得
+每帧曝光时刻的机械臂 TF 并应用正式手眼外参后发布，避免把 `camera_session` 单位位姿
+误当成 `base_link` 位姿。
+
+## 体素地图快照与可视化
+
+`map_snapshot_directory` 为空时不写文件；真实配置默认写入
+`artifacts/nbv_map_snapshots/`。每个成功且唯一的 Observation 会保存一份 pickle-free NPZ，
+包含 observed/occupied/target 三类体素、地图原点/尺寸、ROI、coverage、已知相机路径和下一
+建议位姿。Configure 或 Reset 会开启新的 generation，避免把两张地图混在一起。
+
+离线生成五视角示例：
+
+```bash
+PYTHONPATH=perception_ws/src/strawberry_gradient_nbv \
+  .venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization \
+  demo --device cpu --output-dir /tmp/nbv-map-demo
+```
+
+渲染真实快照：
+
+```bash
+.venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization \
+  render --output-dir /tmp/real-map artifacts/nbv_map_snapshots/SCENE/generation_001/*.npz
+```
+
+输出包括逐步 PNG、最终 PNG、动态 GIF 和带 SHA-256 的 manifest。蓝色是曾被有效射线触及
+的空间，深灰是测量表面，红色是 mask 支持的目标体素；这仍是 ROI 射线覆盖的诊断图，
+不是草莓表面真值模型。

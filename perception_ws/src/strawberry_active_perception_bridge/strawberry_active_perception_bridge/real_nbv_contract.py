@@ -23,11 +23,81 @@ from .transforms import (
 )
 
 
-MIN_CAMERA_STEP_M = 0.001
-MAX_CAMERA_STEP_M = 0.005
+SMALL_MOTION_PROFILE = "small_verified"
+LARGE_MOTION_PROFILE = "large_workspace_experimental"
+
+
+@dataclass(frozen=True)
+class MotionLimits:
+    """Physical motion envelope selected before a preview is frozen."""
+
+    profile: str
+    minimum_camera_step_m: float
+    minimum_step_inclusive: bool
+    maximum_camera_step_m: float
+    maximum_camera_rotation_rad: float
+    maximum_ik_joint_delta_rad: float
+    maximum_session_translation_m: float
+    maximum_session_rotation_rad: float
+    maximum_motion_steps: int
+
+
+SMALL_MOTION_LIMITS = MotionLimits(
+    profile=SMALL_MOTION_PROFILE,
+    minimum_camera_step_m=0.001,
+    minimum_step_inclusive=False,
+    maximum_camera_step_m=0.005,
+    maximum_camera_rotation_rad=math.radians(10.0),
+    maximum_ik_joint_delta_rad=0.08,
+    maximum_session_translation_m=0.015,
+    maximum_session_rotation_rad=math.radians(30.0),
+    maximum_motion_steps=10,
+)
+LARGE_MOTION_LIMITS = MotionLimits(
+    profile=LARGE_MOTION_PROFILE,
+    minimum_camera_step_m=0.050,
+    minimum_step_inclusive=True,
+    maximum_camera_step_m=0.100,
+    maximum_camera_rotation_rad=math.radians(15.0),
+    # This remains at the normal research controller ceiling.  It is much
+    # tighter than the exhibition-only 1.50 rad profile, while allowing the
+    # roughly 0.15--0.29 rad solutions seen in the 50 mm offline preflight.
+    maximum_ik_joint_delta_rad=0.35,
+    maximum_session_translation_m=0.300,
+    maximum_session_rotation_rad=math.radians(45.0),
+    maximum_motion_steps=3,
+)
+MOTION_LIMITS_BY_PROFILE = {
+    SMALL_MOTION_PROFILE: SMALL_MOTION_LIMITS,
+    LARGE_MOTION_PROFILE: LARGE_MOTION_LIMITS,
+}
+
+
+def motion_limits_for_profile(profile: str) -> MotionLimits:
+    """Resolve one explicit, audited profile without silent fallback."""
+    try:
+        return MOTION_LIMITS_BY_PROFILE[str(profile)]
+    except KeyError as error:
+        choices = ", ".join(sorted(MOTION_LIMITS_BY_PROFILE))
+        raise ValueError(
+            f"unknown motion profile {profile!r}; choose one of {choices}"
+        ) from error
+
+
+def camera_step_above_minimum(step_m: float, limits: MotionLimits) -> bool:
+    """Apply the profile's intentional inclusive/exclusive lower bound."""
+    value = float(step_m)
+    if limits.minimum_step_inclusive:
+        return value + _EPS >= limits.minimum_camera_step_m
+    return value > limits.minimum_camera_step_m + _EPS
+
+
+# Backward-compatible names for the already validated small-motion profile.
+MIN_CAMERA_STEP_M = SMALL_MOTION_LIMITS.minimum_camera_step_m
+MAX_CAMERA_STEP_M = SMALL_MOTION_LIMITS.maximum_camera_step_m
 MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M = 1.0e-6
-MAX_SELECTED_CAMERA_ROTATION_RAD = math.radians(10.0)
-MAX_IK_JOINT_DELTA_RAD = 0.08
+MAX_SELECTED_CAMERA_ROTATION_RAD = SMALL_MOTION_LIMITS.maximum_camera_rotation_rad
+MAX_IK_JOINT_DELTA_RAD = SMALL_MOTION_LIMITS.maximum_ik_joint_delta_rad
 MAX_IK_POSITION_ERROR_M = 0.003
 MAX_IK_ORIENTATION_ERROR_RAD = math.radians(2.0)
 MIN_IK_SIGMA = 0.10
@@ -53,8 +123,8 @@ MAX_SESSION_MOTION_STEPS = 10
 ALLOWED_SESSION_MOTION_STEPS = tuple(
     range(MIN_SESSION_MOTION_STEPS, MAX_SESSION_MOTION_STEPS + 1)
 )
-MAX_SESSION_TRANSLATION_M = 0.015
-MAX_SESSION_ROTATION_RAD = math.radians(30.0)
+MAX_SESSION_TRANSLATION_M = SMALL_MOTION_LIMITS.maximum_session_translation_m
+MAX_SESSION_ROTATION_RAD = SMALL_MOTION_LIMITS.maximum_session_rotation_rad
 CONVERGENCE_COVERAGE_DELTA = 0.005
 DEFAULT_COVERAGE_PLATEAU_PATIENCE = 2
 SCIENCE_STEP_COVERAGE_DELTA = 0.01
@@ -211,16 +281,24 @@ class MotionSessionLedger:
         max_motion_steps: int,
         initial_camera: np.ndarray,
         initial_coverage: float,
+        motion_limits: MotionLimits = SMALL_MOTION_LIMITS,
         minimum_target_pixels: int = 200,
         coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
         coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
         coverage_target: float | None = None,
     ) -> None:
+        if not isinstance(motion_limits, MotionLimits):
+            raise ValueError("motion_limits must be a MotionLimits instance")
         if (
             isinstance(max_motion_steps, bool)
             or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
+            or max_motion_steps > motion_limits.maximum_motion_steps
         ):
-            raise ValueError("max_motion_steps must be an integer in [1, 10]")
+            raise ValueError(
+                "max_motion_steps must be an integer in [1, "
+                f"{motion_limits.maximum_motion_steps}] for profile "
+                f"{motion_limits.profile}"
+            )
         coverage = float(initial_coverage)
         if not math.isfinite(coverage) or not 0.0 <= coverage <= 1.0:
             raise ValueError("initial coverage must be finite and in [0, 1]")
@@ -247,6 +325,7 @@ class MotionSessionLedger:
                 raise ValueError("initial coverage already meets the coverage target")
             normalized_target = target
         self.max_motion_steps = int(max_motion_steps)
+        self.motion_limits = motion_limits
         self.initial_camera = validate_rigid_transform(
             initial_camera, "session initial camera"
         )
@@ -301,26 +380,38 @@ class MotionSessionLedger:
             planned_camera, "planned step camera"
         )
         step = camera_motion(start, target)
-        if not (
-            step.translation_m > MIN_CAMERA_STEP_M
-            and step.translation_m
-            <= MAX_CAMERA_STEP_M + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M + _EPS
+        limits = self.motion_limits
+        if not camera_step_above_minimum(step.translation_m, limits) or (
+            step.translation_m
+            > limits.maximum_camera_step_m
+            + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+            + _EPS
         ):
-            raise ValueError("planned camera step must be in (1, 5] mm")
-        if step.rotation_rad > MAX_SELECTED_CAMERA_ROTATION_RAD + 1.0e-9:
-            raise ValueError("planned camera step rotation exceeds 10 degrees")
+            raise ValueError(
+                "planned camera step is outside the selected motion profile"
+            )
+        if step.rotation_rad > limits.maximum_camera_rotation_rad + 1.0e-9:
+            raise ValueError(
+                "planned camera step rotation exceeds the selected motion profile"
+            )
         translation_total = self._planned_translation_total_m + step.translation_m
         translation_tolerance = (
             self.max_motion_steps * MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
         )
-        if translation_total > MAX_SESSION_TRANSLATION_M + translation_tolerance:
+        if (
+            translation_total
+            > limits.maximum_session_translation_m + translation_tolerance
+        ):
             raise MotionBudgetExhausted(
-                "planned cumulative camera translation exceeds 15 mm"
+                "planned cumulative camera translation exceeds "
+                f"{limits.maximum_session_translation_m * 1000:g} mm "
+                "motion profile"
             )
         rotation_total = self._planned_rotation_total_rad + step.rotation_rad
-        if rotation_total > MAX_SESSION_ROTATION_RAD + 1.0e-9:
+        if rotation_total > limits.maximum_session_rotation_rad + 1.0e-9:
             raise MotionBudgetExhausted(
-                "planned cumulative camera rotation exceeds 30 degrees"
+                "planned cumulative camera rotation exceeds the selected "
+                "motion profile"
             )
         return step
 
@@ -376,17 +467,23 @@ class MotionSessionLedger:
             planned_start, planned_transform
         )
         actual_step = camera_motion(self._last_actual_camera, actual_transform)
-        if not (
-            planned_step.translation_m > MIN_CAMERA_STEP_M
-            and planned_step.translation_m
-            <= MAX_CAMERA_STEP_M + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M + _EPS
+        limits = self.motion_limits
+        if not camera_step_above_minimum(planned_step.translation_m, limits) or (
+            planned_step.translation_m
+            > limits.maximum_camera_step_m
+            + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+            + _EPS
         ):
-            raise ValueError("planned camera step must be in (1, 5] mm")
+            raise ValueError(
+                "planned camera step is outside the selected motion profile"
+            )
         if (
             planned_step.rotation_rad
-            > MAX_SELECTED_CAMERA_ROTATION_RAD + 1.0e-9
+            > limits.maximum_camera_rotation_rad + 1.0e-9
         ):
-            raise ValueError("planned camera step rotation exceeds 10 degrees")
+            raise ValueError(
+                "planned camera step rotation exceeds the selected motion profile"
+            )
 
         planned_translation_total = (
             self._planned_translation_total_m + planned_step.translation_m
@@ -415,14 +512,17 @@ class MotionSessionLedger:
             )
             if (
                 translation_total
-                > MAX_SESSION_TRANSLATION_M + numeric_total_tolerance
+                > limits.maximum_session_translation_m + numeric_total_tolerance
             ):
                 raise ValueError(
-                    f"{label} cumulative camera translation exceeds 15 mm"
+                    f"{label} cumulative camera translation exceeds "
+                    f"{limits.maximum_session_translation_m * 1000:g} mm "
+                    "motion profile"
                 )
-            if rotation_total > MAX_SESSION_ROTATION_RAD + 1.0e-9:
+            if rotation_total > limits.maximum_session_rotation_rad + 1.0e-9:
                 raise ValueError(
-                    f"{label} cumulative camera rotation exceeds 30 degrees"
+                    f"{label} cumulative camera rotation exceeds the selected "
+                    "motion profile"
                 )
 
         after = float(coverage_after)
@@ -516,6 +616,30 @@ class MotionSessionLedger:
             >= SCIENCE_FINAL_COVERAGE_DELTA
         )
         return {
+            "motion_profile": self.motion_limits.profile,
+            "motion_limits": {
+                "single_step_translation_min_m": (
+                    self.motion_limits.minimum_camera_step_m
+                ),
+                "single_step_translation_min_inclusive": (
+                    self.motion_limits.minimum_step_inclusive
+                ),
+                "single_step_translation_max_m": (
+                    self.motion_limits.maximum_camera_step_m
+                ),
+                "single_step_rotation_max_deg": math.degrees(
+                    self.motion_limits.maximum_camera_rotation_rad
+                ),
+                "maximum_ik_joint_delta_rad": (
+                    self.motion_limits.maximum_ik_joint_delta_rad
+                ),
+                "cumulative_translation_max_m": (
+                    self.motion_limits.maximum_session_translation_m
+                ),
+                "cumulative_rotation_max_deg": math.degrees(
+                    self.motion_limits.maximum_session_rotation_rad
+                ),
+            },
             "requested_max_motion_steps": self.max_motion_steps,
             "motion_goal_count": len(self.steps),
             "initial_coverage": self.initial_coverage,
@@ -569,6 +693,8 @@ CONFIGURE_NBV_REQUEST_KEYS = (
 
 def normalize_nbv_configuration(
     values: Mapping[str, Any],
+    *,
+    max_step_ceiling_m: float = MAX_CAMERA_STEP_M,
 ) -> NBVConfigurationEvidence:
     """Validate and canonicalize every ConfigureNBV request field.
 
@@ -627,8 +753,13 @@ def normalize_nbv_configuration(
     max_step = wire_float32("max_step_m")
     if voxel_size <= 0.0 or not 0.0 <= depth_min < depth_max:
         raise ValueError("ConfigureNBV voxel/depth interval is invalid")
-    if not 0.0 < max_step <= MAX_CAMERA_STEP_M + 1.0e-9:
-        raise ValueError("ConfigureNBV max_step_m is outside (0, 5 mm]")
+    ceiling = float(np.float32(max_step_ceiling_m))
+    if not math.isfinite(ceiling) or ceiling <= 0.0:
+        raise ValueError("ConfigureNBV max-step ceiling must be finite and positive")
+    if not 0.0 < max_step <= ceiling + 1.0e-9:
+        raise ValueError(
+            "ConfigureNBV max_step_m is outside the selected motion profile"
+        )
 
     integers: dict[str, int] = {}
     for key, minimum in (

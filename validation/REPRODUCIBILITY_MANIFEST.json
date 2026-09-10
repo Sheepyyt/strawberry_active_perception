@@ -1,8 +1,8 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
-  "generated_on": "2026-09-09",
-  "scope": "software and tracked evidence through the real strawberry HSV-mask multi-step loop",
-  "source_baseline_before_this_closure": "fa0d2c480785e9a1ee52154e39d0f2a4cd3feaec",
+  "generated_on": "2026-09-10",
+  "scope": "real strawberry HSV loop plus offline preparation for learned masks and an isolated 50-100 mm NBV profile",
+  "source_baseline_before_this_closure": "35ca9665697b2721705a80ca7e22586e41431e96",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
     "nero_ws/src/agx_arm_ros": "22a9cf6c5ad2fd2e0743531936bc5dab007fa5bc"
@@ -36,22 +36,34 @@
     {
       "path": "validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json",
       "sha256": "f79670e3a6f7d1e0deaf6337de710f31557355b8812c3c40214c7f18784c34ae"
+    },
+    {
+      "path": "validation/week6/large_step_ik_preflight.json",
+      "sha256": "50e99876f719dc0eef726258cf2e34c0c1584d4af9bad8b12cb92f6ce1f6db17"
+    },
+    {
+      "path": "validation/week6/mask_model_candidates.json",
+      "sha256": "42d15f801441b52afcd5e3b0fe9972f2fa0c2dced150c1715cc8595f9b314a7d"
     }
   ],
   "offline_regression_at_closure": {
-    "strawberry_nero_control": "105 passed",
+    "strawberry_nero_control": "106 passed",
     "agx_safety_services": "7 passed",
     "nero_exhibition_demo": "6 checks passed including two offline previews",
-    "strawberry_gradient_nbv": "56 passed",
+    "strawberry_gradient_nbv": "57 passed",
     "strawberry_handeye_calibration": "34 passed",
-    "bridge_and_week4": "91 passed",
+    "bridge_and_week4": "96 passed",
     "week2_and_week3_validation_tools": "45 passed",
-    "perception_colcon_test_result": "209 tests, 0 errors, 0 failures, 4 skipped"
+    "week6_mask_boundary_tests": "5 passed",
+    "perception_colcon_test_result": "214 tests, 0 errors, 0 failures, 4 skipped",
+    "clean_builds": "camera 3 packages; NERO 5 packages; perception 5 packages"
   },
   "reproduce_command": "./verify_software.sh",
   "limitations": [
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
     "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
+    "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
+    "the 50-100 mm profile passed deterministic synthetic NBV and READY-pose IK preflight but has not yet moved real hardware",
     "historical real runs did not store dense voxel arrays; new runs can store visualization snapshots",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"

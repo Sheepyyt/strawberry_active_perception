@@ -20,6 +20,8 @@ SAM 3 或其他学习式分割模型。因此它证明的是“真实草莓 + �
 
 ## 下一步
 
-把“产生 mono8 mask”做成可替换的 provider：保留 HSV 作为快速基线，新增 SAM 3.1 文本提示
-`strawberry` 的 provider。先离线比较两种 mask，再让通过质量门的 SAM mask 进入现有
-Observation；NBV、手眼、IK 和运动监督器不需要重写。
+把“产生 mono8 mask”做成可替换的 provider：保留 HSV 作为快速基线，先离线比较
+`LCAS/aoc_fruit_detector` 和一个 Hugging Face YOLOv8 草莓分割候选。后者缺少模型卡、指标
+和许可证，所以不能直接接入真机。候选审计与离线工具见
+[`validation/week6/README.md`](../week6/README.md)。通过同图质量检查的模型以后只替换 mask
+来源；Observation、NBV、手眼、IK 和运动监督器不需要重写。

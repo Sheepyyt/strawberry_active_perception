@@ -51,6 +51,12 @@ cd /home/yyt/strawberry_active_perception
 [`nero_exhibition_demo/config/nero_exhibition.yaml`](../../../nero_exhibition_demo/config/nero_exhibition.yaml)，
 并只由展示启动脚本显式叠加。展示路线、恢复方式和操作说明也只在展示目录维护。
 
+5–10 cm NBV 实验仍属于科研控制，不使用展示参数。它只额外加载
+[`config/large_nbv_experiment.yaml`](config/large_nbv_experiment.yaml)，把 precision 模式的
+关节变化门从 `0.12 rad` 提到科研默认本来就允许的 `0.35 rad`；IK 误差、最终误差、速度、
+奇异性、反馈监控和两道执行门保持科研值。监督器还会在运行时读取并核对这个参数，漏加载
+或误加载展示配置都会在开门前拒绝。
+
 ## 每个终端的公共环境
 
 ```bash

@@ -752,10 +752,14 @@ class GradientNBVCore:
         if not math.isfinite(current_gain) or current_gain <= 0.0:
             raise NBVInputError("current-view gain is non-finite or non-positive")
         best_gain = current_gain
-        # A voxel-scale normalized step is independent of raw gradient magnitude.
-        # Backtracking prevents the large Adam overshoot that previously made the
-        # apparent best candidate collapse exactly to the current camera pose.
-        initial_step = min(self.config.voxel_size, self.config.max_step)
+        # Start each line search at the configured physical motion radius and
+        # backtrack only when that distance does not improve gain.  The former
+        # voxel-sized (3 mm) start made ``max_step=0.10`` mostly cosmetic: ten
+        # iterations could not reach a useful 5--10 cm viewpoint even when the
+        # full-radius candidate had substantially higher gain.  This remains a
+        # monotone optimizer because no candidate is accepted unless its gain
+        # is strictly greater than the current candidate's gain.
+        initial_step = self.config.max_step
         gain_tolerance = max(1.0e-7, abs(current_gain) * 1.0e-6)
         for _ in range(self.config.optimization_steps):
             evaluated_position = position.detach().clone().requires_grad_(True)
@@ -780,7 +784,10 @@ class GradientNBVCore:
             direction = -gradient.detach() / gradient_norm
             accepted = False
             step_length = initial_step
-            for _backtrack in range(5):
+            # Twelve halvings retain the old sub-voxel recovery path for
+            # nearly-converged maps while still testing 10 cm and 5 cm first
+            # in the large-motion profile.
+            for _backtrack in range(12):
                 with torch.no_grad():
                     candidate = position + direction * step_length
                     candidate.clamp_(lower, upper)

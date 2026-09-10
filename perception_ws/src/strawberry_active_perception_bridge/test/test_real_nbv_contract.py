@@ -12,6 +12,8 @@ import pytest
 from strawberry_active_perception_bridge.real_nbv_contract import (
     CONVERGENCE_COVERAGE_DELTA,
     DEFAULT_ALPHAS,
+    LARGE_MOTION_LIMITS,
+    LARGE_MOTION_PROFILE,
     MotionSessionLedger,
     aggregate_depth_mask,
     camera_matrix,
@@ -21,6 +23,7 @@ from strawberry_active_perception_bridge.real_nbv_contract import (
     estimate_target_center,
     five_frame_identity_sha256,
     independently_segmented_camera_candidates,
+    motion_limits_for_profile,
     normalize_nbv_configuration,
     project_numerical_step_overshoot,
     require_unit_quaternion,
@@ -47,6 +50,7 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     _require_v3_execution_plan,
     _session_policy,
     _validate_bound_session_policy,
+    _validate_controller_parameter_values,
     _verify_new_aggregate_batch,
     _verify_new_batch_pair,
 )
@@ -305,6 +309,19 @@ def test_configure_nbv_semantics_freeze_wire_values_and_map_origin() -> None:
         invalid = _nbv_configuration()
         invalid["max_step_m"] = 0.006
         normalize_nbv_configuration(invalid)
+
+
+def test_large_motion_profile_allows_only_a_separate_ten_centimetre_config() -> None:
+    values = _nbv_configuration()
+    values["max_step_m"] = 0.10
+    with pytest.raises(ValueError, match="selected motion profile"):
+        normalize_nbv_configuration(values)
+    evidence = normalize_nbv_configuration(
+        values,
+        max_step_ceiling_m=LARGE_MOTION_LIMITS.maximum_camera_step_m,
+    )
+    assert evidence.request["max_step_m"] == float(np.float32(0.10))
+    assert motion_limits_for_profile(LARGE_MOTION_PROFILE) == LARGE_MOTION_LIMITS
 
 
 def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:
@@ -806,6 +823,71 @@ def test_bounded_session_policy_is_exactly_sha_bound_in_outer_preview(
     digest = _write_exact_json(path, document)
     with pytest.raises(RuntimeError, match="SHA/semantics do not recompute"):
         _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+
+
+def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> None:
+    policy = _session_policy(
+        3,
+        motion_profile=LARGE_MOTION_PROFILE,
+    )
+    assert policy["schema"] == "strawberry_real_nbv_motion_session_policy/v3"
+    assert policy["single_step_translation_min_inclusive_m"] == 0.05
+    assert policy["single_step_translation_max_m"] == 0.10
+    assert policy["cumulative_translation_max_m"] == 0.30
+    assert policy["maximum_ik_joint_delta_rad"] == 0.35
+    assert _authorization_token(
+        3, LARGE_MOTION_PROFILE
+    ) == "EXECUTE_REAL_NBV_LARGE_SESSION_3"
+    assert _validate_bound_session_policy(
+        {"session_policy": policy},
+        3,
+        motion_profile=LARGE_MOTION_PROFILE,
+    ) == policy
+
+    ledger = MotionSessionLedger(
+        max_motion_steps=3,
+        initial_camera=np.eye(4),
+        initial_coverage=0.20,
+        motion_limits=LARGE_MOTION_LIMITS,
+    )
+    accepted = ledger.validate_next_planned_step(
+        planned_start_camera=np.eye(4),
+        planned_camera=_translated_camera(0.05),
+    )
+    assert accepted.translation_m == pytest.approx(0.05)
+    with pytest.raises(ValueError, match="selected motion profile"):
+        ledger.validate_next_planned_step(
+            planned_start_camera=np.eye(4),
+            planned_camera=_translated_camera(0.049),
+        )
+
+
+def _controller_snapshot(precision_joint_delta: float) -> dict[str, object]:
+    return {
+        "simulation_mode": False,
+        "first_motion_test_mode": False,
+        "precision_test_mode": True,
+        "precision_max_joint_delta_rad": precision_joint_delta,
+        "verified_driver_speed_percent": 10,
+        "execution_enabled_on_start": False,
+    }
+
+
+def test_controller_profile_must_match_selected_motion_envelope() -> None:
+    small = _controller_snapshot(0.12)
+    small_limits = motion_limits_for_profile("small_verified")
+    assert _validate_controller_parameter_values(small, small_limits) == small
+    with pytest.raises(SupervisorError, match="incompatible"):
+        _validate_controller_parameter_values(small, LARGE_MOTION_LIMITS)
+
+    large = _controller_snapshot(0.35)
+    assert _validate_controller_parameter_values(
+        large, LARGE_MOTION_LIMITS
+    ) == large
+    with pytest.raises(SupervisorError, match="incompatible"):
+        _validate_controller_parameter_values(
+            _controller_snapshot(0.351), LARGE_MOTION_LIMITS
+        )
 
 
 def test_authorization_receipt_is_written_before_first_goal(tmp_path: Path) -> None:

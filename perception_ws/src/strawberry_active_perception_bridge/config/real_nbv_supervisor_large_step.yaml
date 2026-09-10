@@ -1,0 +1,76 @@
+real_nbv_supervisor:
+  ros__parameters:
+    # Isolated experimental profile. It never changes the verified 1--5 mm
+    # defaults in real_nbv_supervisor.yaml.
+    motion_profile: large_workspace_experimental
+    execute: false
+    max_motion_steps: 3
+    coverage_target: 0.0
+    coverage_plateau_delta: 0.005
+    coverage_plateau_patience: 2
+    operator_workspace_clearance_confirmed: false
+    execution_authorization_token: ""
+    execution_plan_path: ""
+    execution_plan_sha256: ""
+    authorization_receipt_path: ""
+    require_aggregate_execution_plan: true
+    execution_output_path: /home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_execution.json
+
+    base_frame: base_link
+    link_frame: link7
+    camera_frame: camera_color_optical_frame
+    raw_observation_topic: /strawberry/perception/observation
+    corrected_observation_topic: /strawberry/perception/real_nbv_observation
+    capture_service: /strawberry/perception/capture_observation
+    configure_service: /strawberry/nbv/configure
+    compute_action: /strawberry/nbv/compute_next_view
+    solve_ik_service: /strawberry_nero/solve_ik
+    joint_state_topic: /feedback/joint_states
+    motion_command_topic: /control/move_j
+    arm_status_topic: /feedback/arm_status
+    controller_diagnostics_topic: /strawberry_nero/diagnostics
+    controller_parameters_service: /nero_control/get_parameters
+    driver_gate_service: /control_enable
+    controller_gate_service: /strawberry_nero/enable_execution
+    move_action: /strawberry_nero/move_to_pose
+
+    handeye_report_path: /home/yyt/strawberry_active_perception/validation/week3/artifacts/stability_pose001_030_factory_raw_D.json
+    handeye_report_sha256: 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
+    minimum_calibration_samples: 30
+    output_path: /home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_preview.json
+
+    capture_timeout_sec: 5.0
+    capture_discard_frames: 3
+    planning_capture_count: 5
+    aggregate_min_finite_count: 3
+    aggregate_mask_majority_count: 3
+    max_batch_camera_translation_span_m: 0.00050
+    max_batch_camera_rotation_span_deg: 0.10
+    post_motion_camera_settle_delay_sec: 2.0
+    operation_timeout_sec: 20.0
+    tf_timeout_sec: 1.0
+    minimum_target_pixels: 200
+    depth_min_m: 0.20
+    depth_max_m: 2.50
+    voxel_size_m: 0.003
+    map_size_m: 0.30
+    target_roi_size_m: 0.15
+
+    # The NBV optimizer may use the full 10 cm radius. The supervisor accepts
+    # only candidates in [5, 10] cm; shorter alphas are audited and rejected.
+    max_step_m: 0.10
+    observation_bound_half_extent_m: 0.301
+    max_target_drift_m: 0.020
+    max_frozen_target_center_drift_m: 0.005
+    max_plan_start_translation_drift_m: 0.001
+    max_plan_start_rotation_drift_deg: 0.5
+    max_plan_target_translation_drift_m: 0.0015
+    max_plan_target_rotation_drift_deg: 0.5
+    max_plan_solution_drift_rad: 0.010
+    post_target_position_tolerance_m: 0.005
+    post_target_rotation_tolerance_deg: 2.0
+    max_selected_camera_rotation_deg: 15.0
+    # Same as the normal research controller ceiling.  The matching NERO
+    # profile overlay must be loaded explicitly for this experiment.
+    max_ik_joint_delta_rad: 0.35
+    candidate_alphas: [1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125]

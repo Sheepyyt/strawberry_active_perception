@@ -56,6 +56,7 @@ from .real_nbv_contract import (
     CONVERGENCE_COVERAGE_DELTA,
     DEFAULT_ALPHAS,
     DEFAULT_COVERAGE_PLATEAU_PATIENCE,
+    LARGE_MOTION_PROFILE,
     MAX_CAMERA_STEP_M,
     MAX_IK_JOINT_DELTA_RAD,
     MAX_SELECTED_CAMERA_ROTATION_RAD,
@@ -63,17 +64,22 @@ from .real_nbv_contract import (
     MAX_SESSION_TRANSLATION_M,
     MIN_CAMERA_STEP_M,
     MotionBudgetExhausted,
+    MotionLimits,
     MotionSessionLedger,
+    SMALL_MOTION_LIMITS,
+    SMALL_MOTION_PROFILE,
     aggregate_five_frame_depth_mask,
     array_list,
     camera_matrix,
     camera_motion,
+    camera_step_above_minimum,
     compare_gradient_candidates,
     decode_depth_32fc1,
     decode_mask_mono8,
     estimate_target_center,
     five_frame_identity_sha256,
     independently_segmented_camera_candidates,
+    motion_limits_for_profile,
     normalize_nbv_configuration,
     ordered_joint_positions,
     project_numerical_step_overshoot,
@@ -154,6 +160,41 @@ class GateClosureError(SupervisorError):
     """A fatal inability to prove both command gates closed."""
 
 
+def _validate_controller_parameter_values(
+    decoded: dict[str, Any], motion_limits: MotionLimits
+) -> dict[str, Any]:
+    """Require real precision mode and a profile-compatible joint gate."""
+    expected_modes = {
+        "simulation_mode": False,
+        "first_motion_test_mode": False,
+        "precision_test_mode": True,
+        "execution_enabled_on_start": False,
+    }
+    actual_modes = {name: decoded.get(name) for name in expected_modes}
+    if (
+        actual_modes != expected_modes
+        or decoded.get("verified_driver_speed_percent") != 10
+    ):
+        raise SupervisorError(
+            f"nero_control is not in locked real precision mode: {decoded}"
+        )
+    configured_joint_delta = float(
+        decoded.get("precision_max_joint_delta_rad", math.nan)
+    )
+    required_joint_delta = motion_limits.maximum_ik_joint_delta_rad
+    if not (
+        required_joint_delta - 1.0e-12
+        <= configured_joint_delta
+        <= 0.35 + 1.0e-12
+    ):
+        raise SupervisorError(
+            "nero_control precision joint-delta gate is incompatible with "
+            f"{motion_limits.profile}: controller={configured_joint_delta:.6f}rad, "
+            f"required=[{required_joint_delta:.6f}, 0.350000]rad"
+        )
+    return decoded
+
+
 def _failure_gates_closed(node: Any, error: Exception) -> bool:
     """Report closed gates only from the session-wide proven latch."""
     return (
@@ -192,16 +233,25 @@ def _legacy_session_policy(max_motion_steps: int) -> dict[str, Any]:
 def _session_policy(
     max_motion_steps: int,
     *,
+    motion_profile: str = SMALL_MOTION_PROFILE,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
 ) -> dict[str, Any]:
     """Return the exact policy bound by a preview and one operator token."""
+    try:
+        limits = motion_limits_for_profile(motion_profile)
+    except ValueError as error:
+        raise SupervisorError(str(error)) from error
     if (
         isinstance(max_motion_steps, bool)
         or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
+        or max_motion_steps > limits.maximum_motion_steps
     ):
-        raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
+        raise SupervisorError(
+            "max_motion_steps must be an integer in [1, "
+            f"{limits.maximum_motion_steps}] for profile {limits.profile}"
+        )
     if isinstance(coverage_plateau_delta, bool):
         raise SupervisorError("coverage_plateau_delta must be numeric")
     plateau_delta = float(coverage_plateau_delta)
@@ -223,25 +273,47 @@ def _session_policy(
         if not math.isfinite(normalized_target) or not 0.0 < normalized_target <= 1.0:
             raise SupervisorError("coverage_target must be 0 (disabled) or in (0, 1]")
     policy = {
-        "schema": "strawberry_real_nbv_motion_session_policy/v2",
-        "max_motion_steps": int(max_motion_steps),
-        "single_step_translation_min_exclusive_m": MIN_CAMERA_STEP_M,
-        "single_step_translation_max_m": MAX_CAMERA_STEP_M,
-        "single_step_rotation_max_deg": math.degrees(
-            MAX_SELECTED_CAMERA_ROTATION_RAD
+        "schema": (
+            "strawberry_real_nbv_motion_session_policy/v2"
+            if limits.profile == SMALL_MOTION_PROFILE
+            else "strawberry_real_nbv_motion_session_policy/v3"
         ),
-        "cumulative_translation_max_m": MAX_SESSION_TRANSLATION_M,
-        "cumulative_rotation_max_deg": math.degrees(MAX_SESSION_ROTATION_RAD),
+        "max_motion_steps": int(max_motion_steps),
+        "single_step_translation_min_exclusive_m": (
+            limits.minimum_camera_step_m
+            if not limits.minimum_step_inclusive
+            else None
+        ),
+        "single_step_translation_min_inclusive_m": (
+            limits.minimum_camera_step_m
+            if limits.minimum_step_inclusive
+            else None
+        ),
+        "single_step_translation_max_m": limits.maximum_camera_step_m,
+        "single_step_rotation_max_deg": math.degrees(
+            limits.maximum_camera_rotation_rad
+        ),
+        "maximum_ik_joint_delta_rad": limits.maximum_ik_joint_delta_rad,
+        "cumulative_translation_max_m": limits.maximum_session_translation_m,
+        "cumulative_rotation_max_deg": math.degrees(
+            limits.maximum_session_rotation_rad
+        ),
         "coverage_target": normalized_target,
         "coverage_plateau_delta": plateau_delta,
         "coverage_plateau_patience": int(coverage_plateau_patience),
-        "motion_deadband_m": MIN_CAMERA_STEP_M,
+        "motion_deadband_m": limits.minimum_camera_step_m,
         "stop_at_first_reached_condition": True,
         "minimum_valid_mask_depth_pixels": 200,
         "configure_once_and_keep_same_map": True,
         "five_frame_aggregate_after_every_motion": True,
         "automatic_return_or_disable": False,
     }
+    if limits.profile == SMALL_MOTION_PROFILE:
+        # Preserve byte-for-byte v2 policy compatibility with existing plans.
+        policy.pop("single_step_translation_min_inclusive_m")
+        policy.pop("maximum_ik_joint_delta_rad")
+    else:
+        policy["motion_profile"] = limits.profile
     payload = json.dumps(
         policy, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     ).encode("utf-8")
@@ -263,6 +335,7 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
         try:
             expected = _session_policy(
                 steps,
+                motion_profile=SMALL_MOTION_PROFILE,
                 coverage_target=policy.get("coverage_target"),
                 coverage_plateau_delta=policy.get("coverage_plateau_delta"),
                 coverage_plateau_patience=policy.get(
@@ -273,6 +346,21 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
             raise SupervisorError(
                 "execution plan session policy values are invalid"
             ) from error
+    elif schema == "strawberry_real_nbv_motion_session_policy/v3":
+        try:
+            expected = _session_policy(
+                steps,
+                motion_profile=policy.get("motion_profile", ""),
+                coverage_target=policy.get("coverage_target"),
+                coverage_plateau_delta=policy.get("coverage_plateau_delta"),
+                coverage_plateau_patience=policy.get(
+                    "coverage_plateau_patience"
+                ),
+            )
+        except (TypeError, ValueError) as error:
+            raise SupervisorError(
+                "execution plan large-motion policy values are invalid"
+            ) from error
     else:
         raise SupervisorError("unsupported execution plan session policy schema")
     if policy != expected:
@@ -282,13 +370,23 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
     return copy.deepcopy(expected)
 
 
-def _authorization_token(max_motion_steps: int) -> str:
+def _authorization_token(
+    max_motion_steps: int,
+    motion_profile: str = SMALL_MOTION_PROFILE,
+) -> str:
     """Return the explicit token spelling for one bounded session."""
+    try:
+        limits = motion_limits_for_profile(motion_profile)
+    except ValueError as error:
+        raise SupervisorError(str(error)) from error
     if (
         isinstance(max_motion_steps, bool)
         or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
+        or max_motion_steps > limits.maximum_motion_steps
     ):
-        raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
+        raise SupervisorError("max_motion_steps is invalid for the motion profile")
+    if limits.profile == LARGE_MOTION_PROFILE:
+        return f"EXECUTE_REAL_NBV_LARGE_SESSION_{max_motion_steps}"
     if max_motion_steps == 1:
         return ONE_STEP_AUTHORIZATION_TOKEN
     return f"{SESSION_AUTHORIZATION_TOKEN_PREFIX}{max_motion_steps}"
@@ -298,6 +396,7 @@ def _validate_bound_session_policy(
     execution_plan: dict[str, Any],
     max_motion_steps: int,
     *,
+    motion_profile: str = SMALL_MOTION_PROFILE,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
@@ -305,6 +404,7 @@ def _validate_bound_session_policy(
     """Require the runtime convergence policy to match the frozen preview."""
     expected = _session_policy(
         max_motion_steps,
+        motion_profile=motion_profile,
         coverage_target=coverage_target,
         coverage_plateau_delta=coverage_plateau_delta,
         coverage_plateau_patience=coverage_plateau_patience,
@@ -587,6 +687,7 @@ def _load_execution_plan(
     aggregate_v2 = False
     aggregate_schema = ""
     configuration_evidence = None
+    plan_motion_limits: MotionLimits = SMALL_MOTION_LIMITS
     if document.get("schema") == "strawberry_real_nbv_once_supervisor/v1":
         if document.get("status") != "passed_preview_only":
             raise SupervisorError("aggregate preview outer status must be passed_preview_only")
@@ -599,7 +700,15 @@ def _load_execution_plan(
             raise SupervisorError("aggregate preview has no execution_plan_candidate")
         stored_policy = candidate.get("session_policy")
         if stored_policy is not None:
-            _validated_stored_session_policy(stored_policy)
+            validated_policy = _validated_stored_session_policy(stored_policy)
+            try:
+                plan_motion_limits = motion_limits_for_profile(
+                    validated_policy.get(
+                        "motion_profile", SMALL_MOTION_PROFILE
+                    )
+                )
+            except ValueError as error:
+                raise SupervisorError(str(error)) from error
             if document.get("session_policy") != stored_policy:
                 raise SupervisorError(
                     "outer and embedded session policies differ"
@@ -808,7 +917,10 @@ def _load_execution_plan(
             frozen_configuration = document.get("nbv_configuration")
             try:
                 configuration_evidence = normalize_nbv_configuration(
-                    frozen_configuration
+                    frozen_configuration,
+                    max_step_ceiling_m=(
+                        plan_motion_limits.maximum_camera_step_m
+                    ),
                 )
             except (TypeError, ValueError) as error:
                 raise SupervisorError(
@@ -903,10 +1015,22 @@ def _load_execution_plan(
                 raise SupervisorError(
                     f"{label} lies outside frozen observation bounds"
                 )
-    if not MIN_CAMERA_STEP_M < motion.translation_m <= MAX_CAMERA_STEP_M + 1.0e-9:
-        raise SupervisorError("artifact camera translation is outside (1 mm, 5 mm]")
-    if motion.rotation_rad > MAX_SELECTED_CAMERA_ROTATION_RAD + 1.0e-9:
-        raise SupervisorError("artifact camera rotation exceeds 10 degrees")
+    if not camera_step_above_minimum(
+        motion.translation_m, plan_motion_limits
+    ) or (
+        motion.translation_m
+        > plan_motion_limits.maximum_camera_step_m + 1.0e-9
+    ):
+        raise SupervisorError(
+            "artifact camera translation is outside its bound motion profile"
+        )
+    if (
+        motion.rotation_rad
+        > plan_motion_limits.maximum_camera_rotation_rad + 1.0e-9
+    ):
+        raise SupervisorError(
+            "artifact camera rotation exceeds its bound motion profile"
+        )
     if float(selected.get("alpha", math.nan)) not in DEFAULT_ALPHAS:
         raise SupervisorError("artifact selected alpha is not in the audited sequence")
     ik = document.get("ik")
@@ -925,7 +1049,7 @@ def _load_execution_plan(
     if not np.all(np.isfinite(ik_values)):
         raise SupervisorError("artifact IK diagnostics are non-finite")
     if (
-        ik_values[0] > MAX_IK_JOINT_DELTA_RAD
+        ik_values[0] > plan_motion_limits.maximum_ik_joint_delta_rad
         or ik_values[1] > 0.003
         or ik_values[2] > math.radians(2.0)
         or ik_values[3] < 0.10
@@ -947,6 +1071,7 @@ class RealNBVSupervisor(Node):
         """Create observers and read-only clients; defer motion entities."""
         super().__init__("real_nbv_supervisor")
         self.declare_parameter("execute", False)
+        self.declare_parameter("motion_profile", SMALL_MOTION_PROFILE)
         self.declare_parameter("max_motion_steps", 1)
         self.declare_parameter("coverage_target", 0.0)
         self.declare_parameter(
@@ -1058,13 +1183,25 @@ class RealNBVSupervisor(Node):
         self.declare_parameter("candidate_alphas", list(DEFAULT_ALPHAS))
 
         self.execute_requested = bool(self.get_parameter("execute").value)
+        self.motion_profile = str(
+            self.get_parameter("motion_profile").value
+        ).strip()
+        try:
+            self.motion_limits = motion_limits_for_profile(self.motion_profile)
+        except ValueError as error:
+            raise SupervisorError(str(error)) from error
         max_motion_steps_value = self.get_parameter("max_motion_steps").value
         if (
             isinstance(max_motion_steps_value, bool)
             or not isinstance(max_motion_steps_value, int)
             or max_motion_steps_value not in ALLOWED_SESSION_MOTION_STEPS
+            or max_motion_steps_value > self.motion_limits.maximum_motion_steps
         ):
-            raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
+            raise SupervisorError(
+                "max_motion_steps must be an integer in [1, "
+                f"{self.motion_limits.maximum_motion_steps}] for profile "
+                f"{self.motion_profile}"
+            )
         self.max_motion_steps = int(max_motion_steps_value)
         coverage_target_value = float(self.get_parameter("coverage_target").value)
         self.coverage_target = (
@@ -1079,6 +1216,7 @@ class RealNBVSupervisor(Node):
         self.coverage_plateau_patience = int(patience_value)
         self.session_policy = _session_policy(
             self.max_motion_steps,
+            motion_profile=self.motion_profile,
             coverage_target=self.coverage_target,
             coverage_plateau_delta=self.coverage_plateau_delta,
             coverage_plateau_patience=self.coverage_plateau_patience,
@@ -1170,7 +1308,7 @@ class RealNBVSupervisor(Node):
                 "post_motion_camera_settle_delay_sec must be within [0, 10]"
             )
         audited_upper_bounds = {
-            "max_step_m": MAX_CAMERA_STEP_M,
+            "max_step_m": self.motion_limits.maximum_camera_step_m,
             "max_target_drift_m": 0.020,
             "max_frozen_target_center_drift_m": (
                 MAX_FROZEN_TARGET_CENTER_DRIFT_M
@@ -1189,9 +1327,11 @@ class RealNBVSupervisor(Node):
             "post_target_position_tolerance_m": 0.005,
             "post_target_rotation_tolerance_deg": 2.0,
             "max_selected_camera_rotation_deg": math.degrees(
-                MAX_SELECTED_CAMERA_ROTATION_RAD
+                self.motion_limits.maximum_camera_rotation_rad
             ),
-            "max_ik_joint_delta_rad": MAX_IK_JOINT_DELTA_RAD,
+            "max_ik_joint_delta_rad": (
+                self.motion_limits.maximum_ik_joint_delta_rad
+            ),
         }
         for parameter_name, audited_ceiling in audited_upper_bounds.items():
             parameter_value = float(self.get_parameter(parameter_name).value)
@@ -1208,18 +1348,24 @@ class RealNBVSupervisor(Node):
             self.get_parameter("observation_bound_half_extent_m").value
         )
         required_half_extent = (
-            MAX_SESSION_TRANSLATION_M + 0.001
+            self.motion_limits.maximum_session_translation_m + 0.001
             if self.max_motion_steps > 1
-            else MAX_CAMERA_STEP_M + 0.001
+            else self.motion_limits.maximum_camera_step_m + 0.001
+        )
+        maximum_half_extent = (
+            0.016
+            if self.motion_profile == SMALL_MOTION_PROFILE
+            else self.motion_limits.maximum_session_translation_m + 0.001
         )
         if (
             not math.isfinite(observation_half_extent)
             or observation_half_extent < required_half_extent - 1.0e-12
-            or observation_half_extent > 0.016 + 1.0e-12
+            or observation_half_extent > maximum_half_extent + 1.0e-12
         ):
             raise SupervisorError(
                 "observation_bound_half_extent_m must cover the selected session "
-                f"envelope and cannot exceed 0.016 m (need {required_half_extent:g})"
+                "envelope and cannot exceed its audited bound "
+                f"{maximum_half_extent:g} m (need {required_half_extent:g})"
             )
 
         state_qos = QoSProfile(
@@ -1928,7 +2074,12 @@ class RealNBVSupervisor(Node):
             values = copy.deepcopy(frozen_configuration)
             configuration_source = "exact_sha_frozen_v3"
         try:
-            evidence = normalize_nbv_configuration(values)
+            evidence = normalize_nbv_configuration(
+                values,
+                max_step_ceiling_m=(
+                    self.motion_limits.maximum_camera_step_m
+                ),
+            )
         except (TypeError, ValueError) as error:
             raise SupervisorError(
                 f"ConfigureNBV request semantics are invalid: {error}"
@@ -2248,10 +2399,21 @@ class RealNBVSupervisor(Node):
             try:
                 if not result.success or int(result.code) != IKResult.SUCCESS:
                     raise ValueError("SolveIK did not return exact SUCCESS")
-                if motion.translation_m <= MIN_CAMERA_STEP_M + 1.0e-12:
-                    raise ValueError("candidate translation is in the <=1 mm deadband")
-                if motion.translation_m > MAX_CAMERA_STEP_M + 1.0e-9:
-                    raise ValueError("candidate translation exceeds 5 mm")
+                if not camera_step_above_minimum(
+                    motion.translation_m, self.motion_limits
+                ):
+                    raise ValueError(
+                        "candidate translation is below the selected motion "
+                        "profile minimum"
+                    )
+                if (
+                    motion.translation_m
+                    > self.motion_limits.maximum_camera_step_m + 1.0e-9
+                ):
+                    raise ValueError(
+                        "candidate translation exceeds the selected motion "
+                        "profile maximum"
+                    )
                 if motion.rotation_rad > max_rotation + 1.0e-9:
                     raise ValueError(
                         "candidate single-step camera rotation exceeds "
@@ -2298,6 +2460,7 @@ class RealNBVSupervisor(Node):
             "simulation_mode",
             "first_motion_test_mode",
             "precision_test_mode",
+            "precision_max_joint_delta_rad",
             "verified_driver_speed_percent",
             "execution_enabled_on_start",
         ]
@@ -2320,28 +2483,24 @@ class RealNBVSupervisor(Node):
         speed = values["verified_driver_speed_percent"]
         if speed.type != ParameterType.PARAMETER_INTEGER:
             raise SupervisorError("verified_driver_speed_percent is not integer")
+        precision_joint_delta = values["precision_max_joint_delta_rad"]
+        if precision_joint_delta.type != ParameterType.PARAMETER_DOUBLE:
+            raise SupervisorError("precision_max_joint_delta_rad is not a double")
         decoded = {
             "simulation_mode": bool(values["simulation_mode"].bool_value),
             "first_motion_test_mode": bool(
                 values["first_motion_test_mode"].bool_value
             ),
             "precision_test_mode": bool(values["precision_test_mode"].bool_value),
+            "precision_max_joint_delta_rad": float(
+                precision_joint_delta.double_value
+            ),
             "verified_driver_speed_percent": int(speed.integer_value),
             "execution_enabled_on_start": bool(
                 values["execution_enabled_on_start"].bool_value
             ),
         }
-        if decoded != {
-            "simulation_mode": False,
-            "first_motion_test_mode": False,
-            "precision_test_mode": True,
-            "verified_driver_speed_percent": 10,
-            "execution_enabled_on_start": False,
-        }:
-            raise SupervisorError(
-                f"nero_control is not in locked real precision mode: {decoded}"
-            )
-        return decoded
+        return _validate_controller_parameter_values(decoded, self.motion_limits)
 
     def _validate_command_publishers(self) -> dict[str, Any]:
         command_topic = str(self.get_parameter("motion_command_topic").value)
@@ -2799,13 +2958,21 @@ class RealNBVSupervisor(Node):
                 f"step {step_index} camera/link7 targets are inconsistent"
             )
         cumulative = camera_motion(session_initial_camera, camera_target)
-        if cumulative.translation_m > MAX_SESSION_TRANSLATION_M + 1.0e-9:
+        if (
+            cumulative.translation_m
+            > self.motion_limits.maximum_session_translation_m + 1.0e-9
+        ):
             raise SupervisorError(
-                f"step {step_index} planned cumulative translation exceeds 15 mm"
+                f"step {step_index} planned cumulative translation exceeds "
+                "the selected motion profile"
             )
-        if cumulative.rotation_rad > MAX_SESSION_ROTATION_RAD + 1.0e-9:
+        if (
+            cumulative.rotation_rad
+            > self.motion_limits.maximum_session_rotation_rad + 1.0e-9
+        ):
             raise SupervisorError(
-                f"step {step_index} planned cumulative rotation exceeds 30 degrees"
+                f"step {step_index} planned cumulative rotation exceeds "
+                "the selected motion profile"
             )
 
         pre_observation, pre_capture = self._capture(
@@ -2960,7 +3127,9 @@ class RealNBVSupervisor(Node):
             token = str(
                 self.get_parameter("execution_authorization_token").value
             )
-            expected_token = _authorization_token(self.max_motion_steps)
+            expected_token = _authorization_token(
+                self.max_motion_steps, self.motion_profile
+            )
             if token != expected_token:
                 raise SupervisorError(
                     "execution authorization token is missing or incorrect"
@@ -2974,6 +3143,7 @@ class RealNBVSupervisor(Node):
             bound_session_policy = _validate_bound_session_policy(
                 execution_plan,
                 self.max_motion_steps,
+                motion_profile=self.motion_profile,
                 coverage_target=self.coverage_target,
                 coverage_plateau_delta=self.coverage_plateau_delta,
                 coverage_plateau_patience=self.coverage_plateau_patience,
@@ -3605,6 +3775,7 @@ class RealNBVSupervisor(Node):
             max_motion_steps=self.max_motion_steps,
             initial_camera=artifact_current,
             initial_coverage=float(next_view.coverage),
+            motion_limits=self.motion_limits,
             minimum_target_pixels=int(
                 self.get_parameter("minimum_target_pixels").value
             ),
@@ -3789,8 +3960,12 @@ class RealNBVSupervisor(Node):
                 "actual_rotation_deg": math.degrees(
                     evidence.actual_cumulative_rotation_rad
                 ),
-                "translation_limit_m": MAX_SESSION_TRANSLATION_M,
-                "rotation_limit_deg": math.degrees(MAX_SESSION_ROTATION_RAD),
+                "translation_limit_m": (
+                    self.motion_limits.maximum_session_translation_m
+                ),
+                "rotation_limit_deg": math.degrees(
+                    self.motion_limits.maximum_session_rotation_rad
+                ),
             }
             step_record["completed_gates_closed"] = True
             audit["motion_goal_count"] = self._motion_goal_count
@@ -3814,10 +3989,12 @@ class RealNBVSupervisor(Node):
                     f"step {next_step_index} NextView gain is not finite and positive"
                 )
             raw_motion = camera_motion(post_camera, raw_target)
-            if raw_motion.translation_m <= MIN_CAMERA_STEP_M + 1.0e-12:
+            if not camera_step_above_minimum(
+                raw_motion.translation_m, self.motion_limits
+            ):
                 convergence_reason = (
                     "Gradient-NBV requested no additional camera translation "
-                    "above the 1 mm deadband"
+                    "above the selected motion profile minimum"
                 )
                 ledger.mark_converged(convergence_reason)
                 step_record["next_view_convergence"] = {

@@ -39,6 +39,7 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 - [正式手眼标定结果](validation/week3/HAND_EYE_RESULT_CN.md)
 - [红色目标三步真实闭环](validation/week4/README.md)
 - [真实草莓 HSV-mask 多步闭环](validation/week5/README.md)
+- [学习式 mask 候选与 5–10 cm 大步实验准备](validation/week6/README.md)
 - [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
 
 ## 先直观看懂体素地图
@@ -99,11 +100,13 @@ source perception_ws/install/setup.bash
 当前先继续使用 HSV：它已经接入、无需训练、行为可解释，最适合验证“拍照→建图→选视角→
 运动→再拍照”整条链。它的缺点也很明确：它识别的是“红色区域”，不是“草莓”。
 
-通用 COCO Mask R-CNN 权重通常没有草莓这一类别，直接接入并不会自动得到可靠草莓 mask；
-若选择 Mask R-CNN，仍需标注草莓数据并微调。流程稳定后，推荐新增独立 `mask provider`，
-优先比较一个小型实时分割模型和经过微调的 Mask R-CNN：两者都只需输出同尺寸 `mono8`
-黑白 mask，后面的 Observation、NBV、手眼、IK 和运动代码完全复用。暂不使用需要额外权限的
-SAM3，不影响当前阶段推进。
+通用 COCO Mask R-CNN 权重没有草莓这一类别，不能直接产生可靠草莓 mask；但网络上确实有
+草莓专用权重。本项目已核验两个候选：优先评估有 Apache-2.0 许可证、预训练草莓实例分割
+和 ROS 2 代码的 `LCAS/aoc_fruit_detector`；Hugging Face 上另一个 YOLOv8 分割权重缺少
+模型卡、指标和许可证，只允许在隔离环境离线试图，不作为真机默认输入。详情、固定 SHA 和
+离线 mask/叠加图工具见 [Week 6](validation/week6/README.md)。学习模型最终仍只需输出同尺寸
+`mono8` 黑白 mask，后面的 Observation、NBV、手眼、IK 和运动代码完全复用。暂不使用需要
+额外权限的 SAM3，不影响当前阶段推进。
 
 ## 从新电脑复现
 
@@ -219,6 +222,8 @@ artifacts/                    大型 rosbag/现场原始数据（本机保留，
 ```
 
 当前已经完成“目标/平台期决定何时停，最大步数和累计运动只负责兜底”的有限状态循环。
-下一项最小任务是先用 HSV 重跑一次新的多步会话，并保存每一步体素快照和 coverage 曲线；
-随后增加可替换的 `mask provider` 接口和离线录包，用同一批图比较 HSV 与学习式草莓分割。
-双臂、采摘和无人值守连续运动暂不进入本阶段。
+下一项实验使用独立的大步配置：HSV mask 不变，让 Gradient-NBV 每步选择 5–10 cm、最多
+三步，并保存体素快照和 coverage 曲线。READY 姿态的离线 Placo 预检中，5 cm 六个相机
+轴向全部可解，10 cm 六个方向中三个可解；真机仍必须按当时关节状态重新只读 preview。
+与此同时，同一批相机图片会离线比较 HSV 与学习式草莓分割。双臂、采摘和无人值守连续
+运动暂不进入本阶段。

@@ -252,6 +252,32 @@ def test_five_views_increase_ever_observed_roi_coverage() -> None:
         assert np.all(np.isfinite(result.pose))
 
 
+def test_full_radius_line_search_can_plan_a_visible_large_view_change() -> None:
+    """A 10 cm max_step must not be silently reduced to voxel-sized motion."""
+    fixture = make_multiview_fixture(160, 100)
+    observation = next(fixture.observations())
+    values = dict(fixture.config)
+    values.update(
+        scene_id=fixture.scene_id,
+        max_step=0.10,
+        observation_min=[-0.20, -0.20, -0.50],
+        observation_max=[0.20, 0.20, -0.10],
+    )
+    core = GradientNBVCore("cuda" if torch.cuda.is_available() else "cpu")
+    core.configure(values)
+    result = core.update_and_plan(
+        observation.depth,
+        observation.mask,
+        observation.K,
+        observation.pose,
+    )
+    displacement = float(
+        np.linalg.norm(result.pose[:3, 3] - observation.pose[:3, 3])
+    )
+    assert 0.05 <= displacement <= 0.10 + 1.0e-6
+    assert result.planned_gain > result.current_gain
+
+
 def test_target_mask_location_changes_gain_field() -> None:
     fixture = make_multiview_fixture(160, 100)
     observation = next(fixture.observations())

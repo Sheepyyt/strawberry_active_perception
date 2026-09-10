@@ -90,6 +90,51 @@ preview 会把完整 ConfigureNBV 请求、体素维度和地图原点写入 v3 
 完整现场命令和已完成的一步实测证据见
 [`validation/week4/README.md`](../../../validation/week4/README.md)。
 
+### 5–10 cm 独立实验（尚未真机执行）
+
+`large_workspace_experimental` 与上面的 1–5 mm 已验证配置完全分开。它最多执行三步，
+单步只接受 `[5, 10] cm`，累计最多 30 cm / 45°，单步旋转≤15°，IK 最大关节变化≤0.35 rad。
+Gradient-NBV 从 10 cm 开始做增益保持的回溯；Placo 会逐个拒绝不可达候选。
+
+机械臂控制器必须显式加载配套 overlay：
+
+```bash
+ros2 launch strawberry_nero_control real.launch.py \
+  profile_config_file:=/home/yyt/strawberry_active_perception/nero_ws/install/strawberry_nero_control/share/strawberry_nero_control/config/large_nbv_experiment.yaml \
+  can_port:=can0 speed_percent:=10 startup_enable:=true \
+  precision_test_mode:=true first_motion_test_mode:=false \
+  allow_limit_recovery_execution:=false launch_rviz:=false
+```
+
+这条命令只应在现场清场、观察员就位后运行。它会使能电机以取得反馈，但两道运动门仍从
+关闭状态启动，不会自行发送目标。先启动 Gradient-NBV，再生成无运动 preview：
+
+```bash
+ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
+  --ros-args \
+  --params-file /home/yyt/strawberry_active_perception/perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor_large_step.yaml \
+  -p execute:=false
+sha256sum artifacts/week6/large_step_nbv_preview.json
+```
+
+preview 必须明确为 `passed_preview_only`，而且要查看实际相机距离、旋转、关节变化和画面
+边界。之后才允许使用同一配置执行；下面的 SHA 必须换成刚生成的完整 64 位值：
+
+```bash
+ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
+  --ros-args \
+  --params-file /home/yyt/strawberry_active_perception/perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor_large_step.yaml \
+  -p execute:=true \
+  -p execution_plan_path:=/home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_preview.json \
+  -p execution_plan_sha256:=<刚生成的64位SHA> \
+  -p operator_workspace_clearance_confirmed:=true \
+  -p execution_authorization_token:=EXECUTE_REAL_NBV_LARGE_SESSION_3
+```
+
+这不是对历史小步授权的放宽：profile 名、距离范围、累计范围、控制器 joint gate、preview
+文件和新授权词都进入审计。默认小步配置及授权词不变。离线证据和 mask 候选见
+[`validation/week6/README.md`](../../../validation/week6/README.md)。
+
 ## 重要安全边界
 
 控制器当前没有环境碰撞检查。软件只限制目标、IK、反馈和命令来源，不能识别桌面、支架、

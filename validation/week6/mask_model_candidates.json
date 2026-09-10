@@ -1,0 +1,64 @@
+{
+  "schema": "strawberry_mask_model_candidate_audit/v1",
+  "checked_at": "2026-09-10T20:28:00+08:00",
+  "decision": {
+    "current_real_motion_mask": "HSV red threshold (already hardware-validated)",
+    "first_learned_candidate": "LCAS/aoc_fruit_detector",
+    "huggingface_candidate_role": "offline diagnostic only",
+    "reason": "Do not let an undocumented third-party checkpoint become a robot-control input before same-image mask evaluation."
+  },
+  "candidates": [
+    {
+      "name": "LCAS/aoc_fruit_detector",
+      "url": "https://github.com/LCAS/aoc_fruit_detector",
+      "task": "Detectron2 Mask R-CNN strawberry fruit instance segmentation and 3D pose",
+      "license": "Apache-2.0",
+      "model_card_or_readme": true,
+      "strawberry_specific": true,
+      "mask_output": true,
+      "ros2_integration": true,
+      "status": "preferred learned candidate; isolate legacy Detectron2 dependencies and validate weights before ROS integration"
+    },
+    {
+      "name": "Ibrahim-Hegazi/strawberry-segmentation",
+      "url": "https://huggingface.co/Ibrahim-Hegazi/strawberry-segmentation",
+      "task": "Ultralytics YOLOv8 segmentation of healthy plant parts and disease classes",
+      "checkpoint_filename": "best.pt",
+      "checkpoint_size_bytes": 6766701,
+      "checkpoint_sha256": "e89a33b2b53c89fad0deac0d7922ce53cfe780c230c593f569d0dd4852062adc",
+      "checkpoint_embedded_ultralytics_version": "8.3.120",
+      "classes": [
+        "angular_leafspot",
+        "anthracnose_fruit_rot",
+        "blossom_blight",
+        "gray_mold",
+        "leaf_spot",
+        "powdery_mildew_fruit",
+        "powdery_mildew_leaf",
+        "Healthy Flower",
+        "Healthy Leaf",
+        "Healthy Strawberry"
+      ],
+      "license": null,
+      "model_card_or_readme": false,
+      "published_metrics": false,
+      "strawberry_specific": true,
+      "mask_output": true,
+      "status": "offline diagnostic only; untrusted pickle-bearing weight, no documented license or accuracy"
+    }
+  ],
+  "rejected_as_direct_mask_sources": [
+    {
+      "name": "shivamjha98/yolo11s-strawberry-detection",
+      "reason": "bounding boxes only, no pixel mask"
+    },
+    {
+      "name": "theonegareth/strawberryPicker",
+      "reason": "detector/classifier, no pixel mask"
+    },
+    {
+      "name": "generic COCO Mask R-CNN",
+      "reason": "the standard COCO label set has no strawberry class"
+    }
+  ]
+}

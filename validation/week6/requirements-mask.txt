@@ -1,0 +1,7 @@
+# Isolated offline diagnostic environment for mask_model_evaluator.py.
+# Do not install these packages into .venv or .venv-nbv.
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+torch==2.5.1
+torchvision==0.20.1
+ultralytics==8.3.120

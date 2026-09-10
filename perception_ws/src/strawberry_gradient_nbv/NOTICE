@@ -31,6 +31,9 @@ measured endpoints; unknown occupancy is transparent until a ray observes it;
 gain is restricted to the configured target ROI and weights unseen voxels near
 mask-derived target evidence.  Camera position is optimized with normalized,
 projected gradient steps and bounded backtracking rather than the reference
-AdamW update.  Acceptance therefore reports both current-view and planned-view
-gain and requires a measured positive improvement; these values should not be
-compared numerically with the upstream implementation.
+AdamW update.  The line search starts at the configured maximum camera step and
+backtracks only while preserving a measured gain improvement; this makes the
+configured 50--100 mm experimental envelope effective without changing the
+verified 1--5 mm profile.  Acceptance therefore reports both current-view and
+planned-view gain and requires a measured positive improvement; these values
+should not be compared numerically with the upstream implementation.

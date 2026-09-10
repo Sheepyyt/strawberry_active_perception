@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    # Experimental overlay for the 50--100 mm NBV validation only.
+    #
+    # The normal research controller already limits generic IK to 0.35 rad.
+    # Precision mode is normally tighter (0.12 rad), which is appropriate for
+    # the previously validated 1--5 mm experiment but rejects otherwise sound
+    # 50 mm candidates.  This overlay raises only that precision-mode ceiling
+    # to the normal research limit.  It does not change speed, trajectory,
+    # final-error, singularity, feedback, execution, or collision gates.
+    precision_max_joint_delta_rad: 0.35

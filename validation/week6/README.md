@@ -1,4 +1,45 @@
-# Week 6：学习式 mask 候选与 5–10 cm 大步 NBV 准备
+# Week 6：学习式 mask 候选与 5–10 cm 大步 NBV 实验
+
+## 2026-09-10 真机结果
+
+本轮继续使用 HSV 红色 mask，在真实草莓模型、真实 Gemini 2 XL 和真实 NERO 上完成了
+一个约 5 cm 的 Gradient-NBV 动作：
+
+- 冻结 preview SHA-256：
+  `b7d7155379f2fb0611c2de86fce64d71583806e02400715600eb19f273e1a1df`；
+- 计划/实际相机平移 `50.00 / 48.95 mm`，实际旋转 `2.78°`；
+- 末端最终位置误差 `1.12 mm`、姿态误差 `0.023°`；
+- 同一张体素地图的 ROI 有效射线 coverage 从 `2.0856%` 增至 `4.1400%`，
+  增加 `2.0544` 个百分点；
+- 本步只发出 1 个高层 MoveToPose，控制器按约 50 Hz 生成 61 个轨迹采样点；
+  动作完成后两道执行门均已关闭，机械臂、CAN 和 7 个关节反馈正常；
+- 第二步 Gradient-NBV 给出了约 10 cm 的建议，但从当时关节姿态出发没有通过可达性门，
+  因而会话安全停止，没有强行执行第二、第三步。
+
+这里的 `status=failed` 指“最多三步的整场科学验收未完成”，不代表第一步运动失败。
+第一步已经成功到达并更新地图；停止暴露出的工程问题是：当前监督器只会把同一 NBV 方向
+逐级缩短，还不会在原方向不可达时比较其他高收益、可达的备用观察方向。
+
+可复核文件：
+
+- [冻结的只读 preview](artifacts/real_large_step_nbv_preview.json)
+- [完整真实执行审计](artifacts/real_large_step_nbv_execution.json)
+- [运动前地图快照](artifacts/real_large_step_nbv_map_step_001.npz)
+- [运动后地图快照](artifacts/real_large_step_nbv_map_step_002.npz)
+- [最终体素地图](artifacts/real_large_step_nbv_map_final.png)
+- [运动前后动态对比](artifacts/real_large_step_nbv_map_progress.gif)
+
+重新渲染（只读，不连接硬件）：
+
+```bash
+cd /home/yyt/strawberry_active_perception
+PYTHONPATH=perception_ws/src/strawberry_gradient_nbv \
+  .venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization render \
+  --output-dir /tmp/real-large-nbv-map \
+  validation/week6/artifacts/real_large_step_nbv_map_step_001.npz \
+  validation/week6/artifacts/real_large_step_nbv_map_step_002.npz
+xdg-open /tmp/real-large-nbv-map/nbv_map_final.png
+```
 
 本阶段同时处理两个问题，但不把两项风险混在同一次首次实验里：
 
@@ -52,7 +93,10 @@ python3 -m venv .venv-mask
 - 每个被接受的相机动作 5–10 cm，最多 3 步；
 - 累计平移不超过 30 cm、累计旋转不超过 45°；
 - 单步相机旋转不超过 15°；
-- Placo 最大关节变化不超过 0.35 rad，仍采用 3 mm / 2°、`sigma≥0.10`、条件数≤20；
+- Placo 最大关节变化不超过 0.35 rad；大步探索单独采用 5 mm / 2°，
+  `sigma≥0.10`、条件数≤20（原小步配置仍是 2 mm 求解、3 mm 监督门）；
+- HSV 连通域仍至少 200 像素；其中通过深度离群点剔除的像素在本配置中至少 100 个，
+  用于容忍小草莓边缘的深度缺失（原 1–5 mm 配置仍要求 200 个）；
 - 控制速度仍为 10%，两道执行门、五帧聚合、SHA 冻结和一次性授权全部保留。
 
 Gradient-NBV 的线搜索也已修正：以前第一步固定只试一个体素（3 mm），所以即使配置写成

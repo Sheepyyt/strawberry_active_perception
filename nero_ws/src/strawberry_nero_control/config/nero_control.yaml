@@ -70,6 +70,8 @@
     max_joint_delta_rad: 0.35
     # Formal 30-pose acceptance only; still far below the general 0.35 limit.
     precision_max_joint_delta_rad: 0.12
+    precision_max_ik_position_error_m: 0.003
+    precision_final_position_tolerance_m: 0.003
 
     # Quintic trajectory limits, joint1 through joint7.
     trajectory_velocity_limits: [0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.30]

@@ -1,0 +1,27 @@
+{
+  "schema": "strawberry_gradient_nbv_visualization/v1",
+  "scene_id": "real_nbv_once_20260910T134557Z",
+  "snapshot_count": 2,
+  "coverage": [
+    0.020856,
+    0.0414
+  ],
+  "snapshot_sha256": [
+    "dcab6e2196b184505cb1013ce863217c412697ccaf1df8b06fe2812326c6adef",
+    "295b99f59c09cb4a51724ef4a5dd8f7c8fa2cc3fd85882a8722194f03363ac7b"
+  ],
+  "step_png": [
+    "/tmp/week6-real-map-render.d53NQf/map_step_001.png",
+    "/tmp/week6-real-map-render.d53NQf/map_step_002.png"
+  ],
+  "final_png": "/tmp/week6-real-map-render.d53NQf/nbv_map_final.png",
+  "animated_gif": "/tmp/week6-real-map-render.d53NQf/nbv_map_progress.gif",
+  "legend": {
+    "unknown": "gray: no valid ray has touched this voxel",
+    "observed": "blue: seen by at least one valid depth ray",
+    "occupied": "dark: a measured depth surface endpoint",
+    "target": "red: a mask-supported target endpoint",
+    "camera": "green: measured camera path",
+    "next": "orange ring: proposed next camera position"
+  }
+}

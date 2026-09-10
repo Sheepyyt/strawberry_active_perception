@@ -1,8 +1,8 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
   "generated_on": "2026-09-10",
-  "scope": "real strawberry HSV loop plus offline preparation for learned masks and an isolated 50-100 mm NBV profile",
-  "source_baseline_before_this_closure": "35ca9665697b2721705a80ca7e22586e41431e96",
+  "scope": "real strawberry HSV loop, one audited 50 mm Gradient-NBV motion, voxel-map visualization, and offline preparation for learned masks",
+  "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
     "nero_ws/src/agx_arm_ros": "22a9cf6c5ad2fd2e0743531936bc5dab007fa5bc"
@@ -44,6 +44,30 @@
     {
       "path": "validation/week6/mask_model_candidates.json",
       "sha256": "42d15f801441b52afcd5e3b0fe9972f2fa0c2dced150c1715cc8595f9b314a7d"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_preview.json",
+      "sha256": "b7d7155379f2fb0611c2de86fce64d71583806e02400715600eb19f273e1a1df"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_execution.json",
+      "sha256": "e531c1f35c6d93600e86e5acb9ee15257ebd187132ddd7ced79a50811380a8a0"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_map_step_001.npz",
+      "sha256": "dcab6e2196b184505cb1013ce863217c412697ccaf1df8b06fe2812326c6adef"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_map_step_002.npz",
+      "sha256": "295b99f59c09cb4a51724ef4a5dd8f7c8fa2cc3fd85882a8722194f03363ac7b"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_map_final.png",
+      "sha256": "fedb893247d35124a820a0b0bfcb46eb8ad0f7f4314cee0fdd7410c25b3c9181"
+    },
+    {
+      "path": "validation/week6/artifacts/real_large_step_nbv_map_progress.gif",
+      "sha256": "4b0286969248d35cf4601eeece5e6aad4a9eb25239a65b6e497cc75835f9676e"
     }
   ],
   "offline_regression_at_closure": {
@@ -52,7 +76,7 @@
     "nero_exhibition_demo": "6 checks passed including two offline previews",
     "strawberry_gradient_nbv": "57 passed",
     "strawberry_handeye_calibration": "34 passed",
-    "bridge_and_week4": "96 passed",
+    "bridge_and_week4": "97 passed",
     "week2_and_week3_validation_tools": "45 passed",
     "week6_mask_boundary_tests": "5 passed",
     "perception_colcon_test_result": "214 tests, 0 errors, 0 failures, 4 skipped",
@@ -63,7 +87,7 @@
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
     "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
     "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
-    "the 50-100 mm profile passed deterministic synthetic NBV and READY-pose IK preflight but has not yet moved real hardware",
+    "the 50-100 mm profile completed one real 48.95 mm camera motion; its second preferred view was unreachable from that joint posture, so a multi-direction reachable fallback is still required",
     "historical real runs did not store dense voxel arrays; new runs can store visualization snapshots",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"

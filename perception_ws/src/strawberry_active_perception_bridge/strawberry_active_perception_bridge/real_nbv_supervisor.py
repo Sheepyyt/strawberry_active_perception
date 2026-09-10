@@ -192,6 +192,26 @@ def _validate_controller_parameter_values(
             f"{motion_limits.profile}: controller={configured_joint_delta:.6f}rad, "
             f"required=[{required_joint_delta:.6f}, 0.350000]rad"
         )
+    solver_position_tolerance = float(
+        decoded.get("ik_position_tolerance_m", math.nan)
+    )
+    precision_position_error = float(
+        decoded.get("precision_max_ik_position_error_m", math.nan)
+    )
+    precision_final_tolerance = float(
+        decoded.get("precision_final_position_tolerance_m", math.nan)
+    )
+    required_position_error = motion_limits.maximum_ik_position_error_m
+    required_final_tolerance = motion_limits.maximum_final_position_error_m
+    if not (
+        0.0 < solver_position_tolerance <= required_position_error + 1.0e-12
+        and abs(precision_position_error - required_position_error) <= 1.0e-12
+        and abs(precision_final_tolerance - required_final_tolerance) <= 1.0e-12
+    ):
+        raise SupervisorError(
+            "nero_control Cartesian error gates are incompatible with "
+            f"{motion_limits.profile}: {decoded}"
+        )
     return decoded
 
 
@@ -234,6 +254,7 @@ def _session_policy(
     max_motion_steps: int,
     *,
     motion_profile: str = SMALL_MOTION_PROFILE,
+    minimum_target_pixels: int = 200,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
@@ -251,6 +272,19 @@ def _session_policy(
         raise SupervisorError(
             "max_motion_steps must be an integer in [1, "
             f"{limits.maximum_motion_steps}] for profile {limits.profile}"
+        )
+    if (
+        isinstance(minimum_target_pixels, bool)
+        or not isinstance(minimum_target_pixels, int)
+    ):
+        raise SupervisorError("minimum_target_pixels must be an integer")
+    minimum_pixels_floor = (
+        200 if limits.profile == SMALL_MOTION_PROFILE else 100
+    )
+    if minimum_target_pixels < minimum_pixels_floor:
+        raise SupervisorError(
+            "minimum_target_pixels must be at least "
+            f"{minimum_pixels_floor} for profile {limits.profile}"
         )
     if isinstance(coverage_plateau_delta, bool):
         raise SupervisorError("coverage_plateau_delta must be numeric")
@@ -294,6 +328,10 @@ def _session_policy(
             limits.maximum_camera_rotation_rad
         ),
         "maximum_ik_joint_delta_rad": limits.maximum_ik_joint_delta_rad,
+        "maximum_ik_position_error_m": limits.maximum_ik_position_error_m,
+        "maximum_final_position_error_m": (
+            limits.maximum_final_position_error_m
+        ),
         "cumulative_translation_max_m": limits.maximum_session_translation_m,
         "cumulative_rotation_max_deg": math.degrees(
             limits.maximum_session_rotation_rad
@@ -303,7 +341,7 @@ def _session_policy(
         "coverage_plateau_patience": int(coverage_plateau_patience),
         "motion_deadband_m": limits.minimum_camera_step_m,
         "stop_at_first_reached_condition": True,
-        "minimum_valid_mask_depth_pixels": 200,
+        "minimum_valid_mask_depth_pixels": int(minimum_target_pixels),
         "configure_once_and_keep_same_map": True,
         "five_frame_aggregate_after_every_motion": True,
         "automatic_return_or_disable": False,
@@ -312,6 +350,8 @@ def _session_policy(
         # Preserve byte-for-byte v2 policy compatibility with existing plans.
         policy.pop("single_step_translation_min_inclusive_m")
         policy.pop("maximum_ik_joint_delta_rad")
+        policy.pop("maximum_ik_position_error_m")
+        policy.pop("maximum_final_position_error_m")
     else:
         policy["motion_profile"] = limits.profile
     payload = json.dumps(
@@ -336,6 +376,9 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
             expected = _session_policy(
                 steps,
                 motion_profile=SMALL_MOTION_PROFILE,
+                minimum_target_pixels=policy.get(
+                    "minimum_valid_mask_depth_pixels"
+                ),
                 coverage_target=policy.get("coverage_target"),
                 coverage_plateau_delta=policy.get("coverage_plateau_delta"),
                 coverage_plateau_patience=policy.get(
@@ -351,6 +394,9 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
             expected = _session_policy(
                 steps,
                 motion_profile=policy.get("motion_profile", ""),
+                minimum_target_pixels=policy.get(
+                    "minimum_valid_mask_depth_pixels"
+                ),
                 coverage_target=policy.get("coverage_target"),
                 coverage_plateau_delta=policy.get("coverage_plateau_delta"),
                 coverage_plateau_patience=policy.get(
@@ -397,6 +443,7 @@ def _validate_bound_session_policy(
     max_motion_steps: int,
     *,
     motion_profile: str = SMALL_MOTION_PROFILE,
+    minimum_target_pixels: int = 200,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
@@ -405,6 +452,7 @@ def _validate_bound_session_policy(
     expected = _session_policy(
         max_motion_steps,
         motion_profile=motion_profile,
+        minimum_target_pixels=minimum_target_pixels,
         coverage_target=coverage_target,
         coverage_plateau_delta=coverage_plateau_delta,
         coverage_plateau_patience=coverage_plateau_patience,
@@ -1214,9 +1262,19 @@ class RealNBVSupervisor(Node):
         if isinstance(patience_value, bool) or not isinstance(patience_value, int):
             raise SupervisorError("coverage_plateau_patience must be an integer")
         self.coverage_plateau_patience = int(patience_value)
+        minimum_target_pixels_value = self.get_parameter(
+            "minimum_target_pixels"
+        ).value
+        if (
+            isinstance(minimum_target_pixels_value, bool)
+            or not isinstance(minimum_target_pixels_value, int)
+        ):
+            raise SupervisorError("minimum_target_pixels must be an integer")
+        self.minimum_target_pixels = int(minimum_target_pixels_value)
         self.session_policy = _session_policy(
             self.max_motion_steps,
             motion_profile=self.motion_profile,
+            minimum_target_pixels=self.minimum_target_pixels,
             coverage_target=self.coverage_target,
             coverage_plateau_delta=self.coverage_plateau_delta,
             coverage_plateau_patience=self.coverage_plateau_patience,
@@ -1690,7 +1748,7 @@ class RealNBVSupervisor(Node):
                 # A five-frame aggregate is specifically allowed to recover
                 # pixels missing from as many as two member frames.  Member
                 # centres are diagnostic only; the resulting aggregate is
-                # still required to pass the full 200-pixel session gate.
+                # still required to pass the profile-bound session gate.
                 minimum_pixels=1,
             )
             session_minimum = int(
@@ -2433,6 +2491,9 @@ class RealNBVSupervisor(Node):
                     sigma_min=result.sigma_min,
                     condition_number=result.condition_number,
                     max_joint_delta_rad=max_joint_delta,
+                    max_position_error_m=(
+                        self.motion_limits.maximum_ik_position_error_m
+                    ),
                 )
                 record["independent_max_joint_delta_rad"] = (
                     validation.max_joint_delta_rad
@@ -2461,6 +2522,9 @@ class RealNBVSupervisor(Node):
             "first_motion_test_mode",
             "precision_test_mode",
             "precision_max_joint_delta_rad",
+            "ik_position_tolerance_m",
+            "precision_max_ik_position_error_m",
+            "precision_final_position_tolerance_m",
             "verified_driver_speed_percent",
             "execution_enabled_on_start",
         ]
@@ -2486,6 +2550,13 @@ class RealNBVSupervisor(Node):
         precision_joint_delta = values["precision_max_joint_delta_rad"]
         if precision_joint_delta.type != ParameterType.PARAMETER_DOUBLE:
             raise SupervisorError("precision_max_joint_delta_rad is not a double")
+        for name in (
+            "ik_position_tolerance_m",
+            "precision_max_ik_position_error_m",
+            "precision_final_position_tolerance_m",
+        ):
+            if values[name].type != ParameterType.PARAMETER_DOUBLE:
+                raise SupervisorError(f"nero_control parameter {name} is not a double")
         decoded = {
             "simulation_mode": bool(values["simulation_mode"].bool_value),
             "first_motion_test_mode": bool(
@@ -2494,6 +2565,15 @@ class RealNBVSupervisor(Node):
             "precision_test_mode": bool(values["precision_test_mode"].bool_value),
             "precision_max_joint_delta_rad": float(
                 precision_joint_delta.double_value
+            ),
+            "ik_position_tolerance_m": float(
+                values["ik_position_tolerance_m"].double_value
+            ),
+            "precision_max_ik_position_error_m": float(
+                values["precision_max_ik_position_error_m"].double_value
+            ),
+            "precision_final_position_tolerance_m": float(
+                values["precision_final_position_tolerance_m"].double_value
             ),
             "verified_driver_speed_percent": int(speed.integer_value),
             "execution_enabled_on_start": bool(
@@ -2745,6 +2825,9 @@ class RealNBVSupervisor(Node):
             max_joint_delta_rad=float(
                 self.get_parameter("max_ik_joint_delta_rad").value
             ),
+            max_position_error_m=(
+                self.motion_limits.maximum_ik_position_error_m
+            ),
             reported_delta_tolerance_rad=0.002,
         )
         record = {
@@ -2903,6 +2986,9 @@ class RealNBVSupervisor(Node):
             max_joint_delta_rad=float(
                 self.get_parameter("max_ik_joint_delta_rad").value
             ),
+            max_position_error_m=(
+                self.motion_limits.maximum_ik_position_error_m
+            ),
             reported_delta_tolerance_rad=0.002,
         )
         final_values = np.asarray(
@@ -2911,8 +2997,14 @@ class RealNBVSupervisor(Node):
         )
         if not np.all(np.isfinite(final_values)) or np.any(final_values < 0.0):
             raise SupervisorError("MoveToPose returned invalid final errors")
-        if final_values[0] > 0.003 or final_values[1] > math.radians(2.0):
-            raise SupervisorError("MoveToPose final residual exceeds 3 mm / 2 degrees")
+        if (
+            final_values[0]
+            > self.motion_limits.maximum_final_position_error_m
+            or final_values[1] > math.radians(2.0)
+        ):
+            raise SupervisorError(
+                "MoveToPose final residual exceeds selected motion profile"
+            )
         return {
             "goal_count": self._motion_goal_count,
             "action_status": int(wrapped.status),
@@ -3144,6 +3236,7 @@ class RealNBVSupervisor(Node):
                 execution_plan,
                 self.max_motion_steps,
                 motion_profile=self.motion_profile,
+                minimum_target_pixels=self.minimum_target_pixels,
                 coverage_target=self.coverage_target,
                 coverage_plateau_delta=self.coverage_plateau_delta,
                 coverage_plateau_patience=self.coverage_plateau_patience,

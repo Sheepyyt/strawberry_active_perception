@@ -37,6 +37,8 @@ class MotionLimits:
     maximum_camera_step_m: float
     maximum_camera_rotation_rad: float
     maximum_ik_joint_delta_rad: float
+    maximum_ik_position_error_m: float
+    maximum_final_position_error_m: float
     maximum_session_translation_m: float
     maximum_session_rotation_rad: float
     maximum_motion_steps: int
@@ -49,6 +51,8 @@ SMALL_MOTION_LIMITS = MotionLimits(
     maximum_camera_step_m=0.005,
     maximum_camera_rotation_rad=math.radians(10.0),
     maximum_ik_joint_delta_rad=0.08,
+    maximum_ik_position_error_m=0.003,
+    maximum_final_position_error_m=0.003,
     maximum_session_translation_m=0.015,
     maximum_session_rotation_rad=math.radians(30.0),
     maximum_motion_steps=10,
@@ -63,6 +67,8 @@ LARGE_MOTION_LIMITS = MotionLimits(
     # tighter than the exhibition-only 1.50 rad profile, while allowing the
     # roughly 0.15--0.29 rad solutions seen in the 50 mm offline preflight.
     maximum_ik_joint_delta_rad=0.35,
+    maximum_ik_position_error_m=0.005,
+    maximum_final_position_error_m=0.005,
     maximum_session_translation_m=0.300,
     maximum_session_rotation_rad=math.radians(45.0),
     maximum_motion_steps=3,
@@ -71,6 +77,7 @@ MOTION_LIMITS_BY_PROFILE = {
     SMALL_MOTION_PROFILE: SMALL_MOTION_LIMITS,
     LARGE_MOTION_PROFILE: LARGE_MOTION_LIMITS,
 }
+MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M = 1.0e-6
 
 
 def motion_limits_for_profile(profile: str) -> MotionLimits:
@@ -88,14 +95,20 @@ def camera_step_above_minimum(step_m: float, limits: MotionLimits) -> bool:
     """Apply the profile's intentional inclusive/exclusive lower bound."""
     value = float(step_m)
     if limits.minimum_step_inclusive:
-        return value + _EPS >= limits.minimum_camera_step_m
+        # The GPU planner uses float32 positions.  A nominal 50 mm half-step
+        # can therefore arrive at this float64 boundary a few 1e-10 metres
+        # short.  Use the same 1 micrometre numerical tolerance already used
+        # for the maximum-step check; this is not a physical range relaxation.
+        return (
+            value + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+            >= limits.minimum_camera_step_m
+        )
     return value > limits.minimum_camera_step_m + _EPS
 
 
 # Backward-compatible names for the already validated small-motion profile.
 MIN_CAMERA_STEP_M = SMALL_MOTION_LIMITS.minimum_camera_step_m
 MAX_CAMERA_STEP_M = SMALL_MOTION_LIMITS.maximum_camera_step_m
-MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M = 1.0e-6
 MAX_SELECTED_CAMERA_ROTATION_RAD = SMALL_MOTION_LIMITS.maximum_camera_rotation_rad
 MAX_IK_JOINT_DELTA_RAD = SMALL_MOTION_LIMITS.maximum_ik_joint_delta_rad
 MAX_IK_POSITION_ERROR_M = 0.003
@@ -304,9 +317,9 @@ class MotionSessionLedger:
             raise ValueError("initial coverage must be finite and in [0, 1]")
         if (
             isinstance(minimum_target_pixels, bool)
-            or int(minimum_target_pixels) < 200
+            or int(minimum_target_pixels) < 100
         ):
-            raise ValueError("minimum target pixels must be at least 200")
+            raise ValueError("minimum target pixels must be at least 100")
         plateau_delta = float(coverage_plateau_delta)
         if not math.isfinite(plateau_delta) or not 0.0 < plateau_delta <= 1.0:
             raise ValueError("coverage plateau delta must be finite and in (0, 1]")
@@ -442,7 +455,10 @@ class MotionSessionLedger:
             isinstance(target_valid_mask_depth_pixels, bool)
             or int(target_valid_mask_depth_pixels) < self.minimum_target_pixels
         ):
-            raise ValueError("red target has fewer than 200 valid mask-depth pixels")
+            raise ValueError(
+                "target has fewer than "
+                f"{self.minimum_target_pixels} valid mask-depth pixels"
+            )
 
         planned_transform = validate_rigid_transform(
             planned_camera, "planned step camera"
@@ -1470,6 +1486,7 @@ def validate_ik_solution(
     sigma_min: float,
     condition_number: float,
     max_joint_delta_rad: float = MAX_IK_JOINT_DELTA_RAD,
+    max_position_error_m: float = MAX_IK_POSITION_ERROR_M,
     minimum_joint_limit_clearance_rad: float = (
         MIN_IK_JOINT_LIMIT_CLEARANCE_RAD
     ),
@@ -1532,8 +1549,19 @@ def validate_ik_solution(
             f"{minimum_clearance:.9f} rad, required="
             f"{required_clearance:.9f} rad"
         )
-    if position_error > MAX_IK_POSITION_ERROR_M + 1.0e-12:
-        raise ValueError("IK position residual exceeds 3 mm")
+    position_error_limit = float(max_position_error_m)
+    if (
+        not math.isfinite(position_error_limit)
+        or not 0.0 < position_error_limit <= 0.005
+    ):
+        raise ValueError(
+            "max_position_error_m must be finite and in (0, 0.005]"
+        )
+    if position_error > position_error_limit + 1.0e-12:
+        raise ValueError(
+            "IK position residual exceeds "
+            f"{position_error_limit * 1000.0:g} mm"
+        )
     if orientation_error > MAX_IK_ORIENTATION_ERROR_RAD + 1.0e-12:
         raise ValueError("IK orientation residual exceeds 2 degrees")
     if sigma < MIN_IK_SIGMA - 1.0e-12:

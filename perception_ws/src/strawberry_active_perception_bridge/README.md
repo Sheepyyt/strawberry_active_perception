@@ -90,11 +90,16 @@ preview 会把完整 ConfigureNBV 请求、体素维度和地图原点写入 v3 
 完整现场命令和已完成的一步实测证据见
 [`validation/week4/README.md`](../../../validation/week4/README.md)。
 
-### 5–10 cm 独立实验（尚未真机执行）
+### 5–10 cm 独立实验
 
 `large_workspace_experimental` 与上面的 1–5 mm 已验证配置完全分开。它最多执行三步，
 单步只接受 `[5, 10] cm`，累计最多 30 cm / 45°，单步旋转≤15°，IK 最大关节变化≤0.35 rad。
 Gradient-NBV 从 10 cm 开始做增益保持的回溯；Placo 会逐个拒绝不可达候选。
+这项流程优先实验单独允许 5 mm / 2° 的 IK 与最终位置误差；默认小步科研配置仍保持
+2 mm 求解和 3 mm 监督门，二者不会相互覆盖。
+相机适配器仍要求 HSV 目标区域至少 200 像素；大步配置只把其中“通过深度离群点剔除”的
+门槛设为 100（约一个 10×10 样本区域），以容忍小草莓轮廓上的深度缺失。原 1–5 mm
+配置继续使用 200。
 
 机械臂控制器必须显式加载配套 overlay：
 
@@ -134,6 +139,10 @@ ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
 这不是对历史小步授权的放宽：profile 名、距离范围、累计范围、控制器 joint gate、preview
 文件和新授权词都进入审计。默认小步配置及授权词不变。离线证据和 mask 候选见
 [`validation/week6/README.md`](../../../validation/week6/README.md)。
+
+2026-09-10 已按上述入口完成一次真实大步：计划 50.00 mm、实际 48.95 mm，coverage 从
+2.0856% 增至 4.1400%，动作后两道门关闭。第二步约 10 cm 的原始建议在当时关节姿态下
+不可达，因此会话在 1 个高层运动后停止。完整审计、地图快照和可视化见 Week 6 文档。
 
 ## 重要安全边界
 

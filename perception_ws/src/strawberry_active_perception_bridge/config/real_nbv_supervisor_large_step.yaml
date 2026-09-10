@@ -49,7 +49,11 @@ real_nbv_supervisor:
     post_motion_camera_settle_delay_sec: 2.0
     operation_timeout_sec: 20.0
     tf_timeout_sec: 1.0
-    minimum_target_pixels: 200
+    # The HSV component must still contain at least 200 pixels in the camera
+    # adapter.  Here 100 means that at least 100 of them must also survive the
+    # registered-depth outlier trim; this tolerates the missing-depth rim of
+    # the small fruit while retaining a 10x10-equivalent robust sample.
+    minimum_target_pixels: 100
     depth_min_m: 0.20
     depth_max_m: 2.50
     voxel_size_m: 0.003

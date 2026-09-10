@@ -462,6 +462,8 @@ class NeroControlNode(Node):
             "orientation_deadband_rad": math.radians(0.5),
             "max_joint_delta_rad": 0.35,
             "precision_max_joint_delta_rad": 0.12,
+            "precision_max_ik_position_error_m": 0.003,
+            "precision_final_position_tolerance_m": 0.003,
             "trajectory_velocity_limits": [0.30] * 7,
             "trajectory_acceleration_limits": [0.50] * 7,
             "trajectory_rate_hz": 50.0,
@@ -555,6 +557,12 @@ class NeroControlNode(Node):
         self._max_joint_delta = float(value("max_joint_delta_rad"))
         self._precision_max_joint_delta = float(
             value("precision_max_joint_delta_rad")
+        )
+        self._precision_max_ik_position_error = float(
+            value("precision_max_ik_position_error_m")
+        )
+        self._precision_final_position_tolerance = float(
+            value("precision_final_position_tolerance_m")
         )
         self._trajectory_velocity_limits = tuple(
             float(item) for item in value("trajectory_velocity_limits")
@@ -677,7 +685,8 @@ class NeroControlNode(Node):
                 self._settle_joint_tolerance, 0.005
             )
             self._final_position_tolerance = min(
-                self._final_position_tolerance, 0.003
+                self._final_position_tolerance,
+                self._precision_final_position_tolerance,
             )
             self._final_orientation_tolerance = min(
                 self._final_orientation_tolerance, math.radians(2.0)
@@ -709,6 +718,24 @@ class NeroControlNode(Node):
             raise ValueError(
                 "precision joint delta must be positive and no larger than "
                 "the general IK joint delta"
+            )
+        if not (
+            self._ik_position_tolerance
+            <= self._precision_max_ik_position_error
+            <= 0.005
+        ):
+            raise ValueError(
+                "precision IK position error must cover the solver tolerance "
+                "and be no larger than 5 mm"
+            )
+        if not (
+            0.0 < self._precision_final_position_tolerance <= 0.005
+            and self._precision_final_position_tolerance
+            <= self._final_position_tolerance
+        ):
+            raise ValueError(
+                "precision final position tolerance must be positive, no larger "
+                "than 5 mm, and no larger than the general final tolerance"
             )
         recovery_values = (
             self._recovery_raw_margin,
@@ -1274,8 +1301,12 @@ class NeroControlNode(Node):
         )
         if not all(np.isfinite(value) for value in strict_values):
             return IKResultMsg.INVALID_TARGET, "精度测试 IK 诊断包含无效数值"
-        if result.position_error_m > 0.003:
-            return IKResultMsg.UNREACHABLE, "精度测试 IK 位置残差超过 3mm"
+        if result.position_error_m > self._precision_max_ik_position_error:
+            return (
+                IKResultMsg.UNREACHABLE,
+                "精度测试 IK 位置残差超过 "
+                f"{self._precision_max_ik_position_error * 1000.0:g}mm",
+            )
         if result.orientation_error_rad > math.radians(2.0):
             return IKResultMsg.UNREACHABLE, "精度测试 IK 姿态残差超过 2°"
         if result.max_joint_delta_rad > self._precision_max_joint_delta:

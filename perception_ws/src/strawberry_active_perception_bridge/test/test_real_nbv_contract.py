@@ -829,12 +829,16 @@ def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> Non
     policy = _session_policy(
         3,
         motion_profile=LARGE_MOTION_PROFILE,
+        minimum_target_pixels=100,
     )
     assert policy["schema"] == "strawberry_real_nbv_motion_session_policy/v3"
     assert policy["single_step_translation_min_inclusive_m"] == 0.05
     assert policy["single_step_translation_max_m"] == 0.10
     assert policy["cumulative_translation_max_m"] == 0.30
     assert policy["maximum_ik_joint_delta_rad"] == 0.35
+    assert policy["maximum_ik_position_error_m"] == 0.005
+    assert policy["maximum_final_position_error_m"] == 0.005
+    assert policy["minimum_valid_mask_depth_pixels"] == 100
     assert _authorization_token(
         3, LARGE_MOTION_PROFILE
     ) == "EXECUTE_REAL_NBV_LARGE_SESSION_3"
@@ -842,6 +846,7 @@ def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> Non
         {"session_policy": policy},
         3,
         motion_profile=LARGE_MOTION_PROFILE,
+        minimum_target_pixels=100,
     ) == policy
 
     ledger = MotionSessionLedger(
@@ -849,25 +854,56 @@ def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> Non
         initial_camera=np.eye(4),
         initial_coverage=0.20,
         motion_limits=LARGE_MOTION_LIMITS,
+        minimum_target_pixels=100,
     )
     accepted = ledger.validate_next_planned_step(
         planned_start_camera=np.eye(4),
         planned_camera=_translated_camera(0.05),
     )
     assert accepted.translation_m == pytest.approx(0.05)
+    rounded_gpu_step = ledger.validate_next_planned_step(
+        planned_start_camera=np.eye(4),
+        planned_camera=_translated_camera(0.05 - 5.0e-10),
+    )
+    assert rounded_gpu_step.translation_m == pytest.approx(0.05, abs=1.0e-6)
     with pytest.raises(ValueError, match="selected motion profile"):
         ledger.validate_next_planned_step(
             planned_start_camera=np.eye(4),
-            planned_camera=_translated_camera(0.049),
+            planned_camera=_translated_camera(0.05 - 2.0e-6),
+        )
+
+    with pytest.raises(ValueError, match="at least 100"):
+        MotionSessionLedger(
+            max_motion_steps=3,
+            initial_camera=np.eye(4),
+            initial_coverage=0.20,
+            motion_limits=LARGE_MOTION_LIMITS,
+            minimum_target_pixels=99,
         )
 
 
-def _controller_snapshot(precision_joint_delta: float) -> dict[str, object]:
+def test_small_motion_policy_keeps_two_hundred_pixel_floor() -> None:
+    with pytest.raises(RuntimeError, match="at least 200"):
+        _session_policy(1, minimum_target_pixels=199)
+
+
+def _controller_snapshot(
+    precision_joint_delta: float,
+    *,
+    solver_position_tolerance_m: float = 0.002,
+    precision_position_error_m: float = 0.003,
+    precision_final_position_tolerance_m: float = 0.003,
+) -> dict[str, object]:
     return {
         "simulation_mode": False,
         "first_motion_test_mode": False,
         "precision_test_mode": True,
         "precision_max_joint_delta_rad": precision_joint_delta,
+        "ik_position_tolerance_m": solver_position_tolerance_m,
+        "precision_max_ik_position_error_m": precision_position_error_m,
+        "precision_final_position_tolerance_m": (
+            precision_final_position_tolerance_m
+        ),
         "verified_driver_speed_percent": 10,
         "execution_enabled_on_start": False,
     }
@@ -880,7 +916,12 @@ def test_controller_profile_must_match_selected_motion_envelope() -> None:
     with pytest.raises(SupervisorError, match="incompatible"):
         _validate_controller_parameter_values(small, LARGE_MOTION_LIMITS)
 
-    large = _controller_snapshot(0.35)
+    large = _controller_snapshot(
+        0.35,
+        solver_position_tolerance_m=0.005,
+        precision_position_error_m=0.005,
+        precision_final_position_tolerance_m=0.005,
+    )
     assert _validate_controller_parameter_values(
         large, LARGE_MOTION_LIMITS
     ) == large

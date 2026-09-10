@@ -1,10 +1,19 @@
 real_nbv_supervisor:
   ros__parameters:
     # Default is read-only. True additionally requires the exact plan SHA,
-    # onsite-clearance boolean, and the matching one-/three-step token.
+    # onsite-clearance boolean, and the matching bounded-session token.
     execute: false
-    # The audited controller accepts exactly 1 (legacy-safe default) or 3.
+    # 1 keeps the historically validated one-step behavior. Values 2--10 run
+    # the same persistent map until a stop condition or this hard cap is met.
     max_motion_steps: 1
+    # 0 disables an absolute coverage target. Coverage here means the fraction
+    # of target-ROI voxels touched by valid rays, not true strawberry surface.
+    coverage_target: 0.0
+    # Stop after this many consecutive completed views each improve coverage
+    # by less than 0.005 (half a percentage point). One weak view alone is not
+    # enough to declare convergence because real depth has small frame noise.
+    coverage_plateau_delta: 0.005
+    coverage_plateau_patience: 2
     operator_workspace_clearance_confirmed: false
     execution_authorization_token: ""
     # Fill both explicitly only after a new execute=false aggregate preview.

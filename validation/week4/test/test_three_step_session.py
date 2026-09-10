@@ -1,4 +1,4 @@
-"""Acceptance-level checks for the bounded three-step NBV session."""
+"""Acceptance checks for bounded persistent-map NBV sessions."""
 
 import hashlib
 import json
@@ -38,13 +38,16 @@ def _camera(x_m: float) -> np.ndarray:
     return transform
 
 
-def test_default_remains_one_step_and_three_is_explicit() -> None:
+def test_default_remains_one_step_and_bounded_convergence_is_explicit() -> None:
     values = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))[
         "real_nbv_supervisor"
     ]["ros__parameters"]
     assert values["max_motion_steps"] == 1
+    assert values["coverage_target"] == 0.0
+    assert values["coverage_plateau_delta"] == pytest.approx(0.005)
+    assert values["coverage_plateau_patience"] == 2
     source = SUPERVISOR.read_text(encoding="utf-8")
-    assert "EXECUTE_REAL_NBV_SESSION_3" in source
+    assert "EXECUTE_REAL_NBV_SESSION_" in source
     assert source.count("move_client.send_goal_async(goal)") == 1
     assert "ConfigureNBV may be called only once" in source
 

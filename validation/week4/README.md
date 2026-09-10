@@ -44,21 +44,22 @@ Placo SolveIK、一个真实小步、关门、再次拍摄并更新同一张体�
 旧的单帧、v1 和 v2 规划工具及失败 artifact 已删除；它们已被五帧聚合和冻结完整
 ConfigureNBV 语义的 v3 流程取代。
 
-## 现在新增的最多三步会话
+## 现在的有界收敛会话
 
 仍使用同一个 `real_nbv_supervisor`，没有复制第二套控制程序。默认
-`max_motion_steps=1`，只有明确设置为 `3` 并使用三步授权词时才允许最多三个 Goal。
+`max_motion_steps=1`，因此旧的一步验证行为不变。可将上限设置为 `2` 到 `10`；程序达到
+停止条件会提前结束，步数只是防止无限循环的最后保险。
 
-三步模式的行为是：
+多步模式的行为是：
 
 1. 先生成新的只读 v3 preview。文件 SHA 同时绑定第一步目标、唯一地图配置，以及
-   三步会话策略。
+   完整会话策略（最大步数、停止条件和累计运动上限）。
 2. 真机 execution 用新拍的两批五帧复核目标身份、起点和现场，但第一步只能执行 SHA
    中冻结的目标。单视角可能有多个近似等价的 NBV 方向，因此 fresh optimizer 是否再次
    选中同一方向只记录为诊断，不会替换或否决已冻结目标；即时 IK 和所有运动安全门仍是
    强制条件。
 3. 第一步关门并静止后，在新姿态再固定拍五帧；这组 Observation 只融合一次。
-4. 第二、第三步目标由同一张、未 reset 的地图动态产生。每个目标及其 IK 会在开门前
+4. 后续目标都由同一张、未 reset 的地图动态产生。每个目标及其 IK 会在开门前
    原子写入会话 JSON。
 5. 每一步只发一个 Goal，随后两道门各关闭两次并复核静止。任一错误会终止整个会话；
    不自动回位，也不自动失能。
@@ -66,7 +67,8 @@ ConfigureNBV 语义的 v3 流程取代。
 固定硬门包括：每步相机平移 `(1, 5] mm`、旋转不超过 `10°`、IK 最大关节变化
 `0.08 rad`、残差 `3 mm / 2°`、`sigma_min≥0.10`、条件数不超过 20，且 IK 目标的
 任一关节必须离科研安全限位至少 `0.001 rad`；整个会话相对起点累计不超过
-`15 mm / 30°`。红色目标必须始终有至少 200 个有效 mask 深度像素。平移和旋转分别
+`15 mm / 30°`；即使把上限设为 10 步，也不会突破这个总运动范围。红色目标必须始终有
+至少 200 个有效 mask 深度像素。平移和旋转分别
 沿原始 NBV 的直线与最短旋转弧缩短，二者独立使用同一组确定性比例；这样不会因共用
 一个比例而错过本来满足全部硬门的小步候选，也不会把目标留在编码器微小波动会反复
 跨越的限位边界上。
@@ -81,8 +83,10 @@ artifact。超过这项纯数值容差仍会拒绝，最终运动上限没有放
 的目标深度先按大于 50 mm 的间隔分层，再选取离相机最近且具有连续像素支持的一层；
 透明或镂空目标后方的远处背景不能用于凑满 200 个目标像素。
 
-每步 coverage 不得下降。如果单步增量低于 `0.5` 个百分点，程序会认为接近收敛并
-提前停止，不为凑满三步而继续运动。正式科学验收还要求至少两步各增加 1 个百分点，
+每步 coverage 不得下降。默认连续 `2` 个完成的视角，其 coverage 增量都低于 `0.5`
+个百分点时，程序才认为进入平台期并停止；一次偶然的小增量不会立刻结束。也可以设置
+`coverage_target`，达到该值即停止；`0` 表示暂不使用绝对目标。正式科学验收还要求至少
+两步各增加 1 个百分点，
 且最终比第一帧增加至少 20 个百分点；未达到时 artifact 会明确写
 `scientific_acceptance_not_met`，不会伪装成通过。
 
@@ -117,6 +121,16 @@ export PYTHONPATH="$PWD/perception_ws/src/strawberry_active_perception_bridge:$P
 功能门，也没有通过大规模格式化去改写厂商源码。项目对 AGX 的 7 项安全服务测试和固定版本
 补丁复核均已通过。
 
+2026-09-10 在未启动硬件的情况下完成停止策略升级：
+
+- `max_motion_steps` 从固定的 `1/3` 扩展为 `1..10`，默认仍为 `1`；
+- coverage 平台期默认需要连续 `2` 次小增量，不再因单次噪声提前停止；
+- 新增可选 `coverage_target`，并把全部停止参数写入 preview 的 session-policy SHA；
+- bridge 与 Week 4 直接回归 `93 passed`；临时空目录 clean build 成功，安装后包内
+  `85 tests / 0 failures`；
+- NERO 主控制 `105 passed`、Gradient-NBV `56 passed`、手眼与 Week 2/3 工具
+  `79 passed`、相机包 `40 tests / 0 failures / 4 tool skips`。
+
 ## 每次新实验的操作顺序
 
 先按根目录 `CAMERA_GUIDE_CN.md` 和机械臂说明启动相机、adapter、只读 TF、NERO 驱动和
@@ -134,7 +148,9 @@ export ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
 strawberry_gradient_nbv/config/real_nbv.yaml
 ```
 
-确认 `/gradient_nbv` 已启动后，再运行根目录状态命令并生成三步 preview：
+确认 `/gradient_nbv` 已启动后，再运行根目录状态命令并生成自适应会话 preview。以下示例
+最多 10 步，未设置未经标定的绝对 coverage 目标，使用“连续两步增量低于 0.5 个百分点”
+作为正常停止条件：
 
 ```bash
 cd /home/yyt/strawberry_active_perception
@@ -148,10 +164,13 @@ ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
   --ros-args \
   --params-file perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor.yaml \
   -p execute:=false \
-  -p max_motion_steps:=3 \
-  -p output_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_three_step_preview.json
+  -p max_motion_steps:=10 \
+  -p coverage_target:=0.0 \
+  -p coverage_plateau_delta:=0.005 \
+  -p coverage_plateau_patience:=2 \
+  -p output_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_convergence_preview.json
 
-sha256sum artifacts/week4/real_nbv_three_step_preview.json
+sha256sum artifacts/week4/real_nbv_convergence_preview.json
 ```
 
 只读文件必须为 `status=passed_preview_only`。在人工复核该文件并再次确认清场后，才把
@@ -162,17 +181,22 @@ ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
   --ros-args \
   --params-file perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor.yaml \
   -p execute:=true \
-  -p max_motion_steps:=3 \
-  -p execution_plan_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_three_step_preview.json \
+  -p max_motion_steps:=10 \
+  -p coverage_target:=0.0 \
+  -p coverage_plateau_delta:=0.005 \
+  -p coverage_plateau_patience:=2 \
+  -p execution_plan_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_convergence_preview.json \
   -p execution_plan_sha256:=<填入刚才的64位SHA> \
-  -p execution_output_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_three_step_execution.json \
+  -p execution_output_path:=/home/yyt/strawberry_active_perception/artifacts/week4/real_nbv_convergence_execution.json \
   -p operator_workspace_clearance_confirmed:=true \
-  -p execution_authorization_token:=EXECUTE_REAL_NBV_SESSION_3
+  -p execution_authorization_token:=EXECUTE_REAL_NBV_SESSION_10
 ```
 
-不要提前运行最后一条命令。三步授权只对这一个 preview SHA 和最多三个动作有效；一旦
+不要提前运行最后一条命令。授权词末尾数字必须和 preview 的 `max_motion_steps` 一致；例如
+3 步仍用 `EXECUTE_REAL_NBV_SESSION_3`。授权只对这一个 preview SHA 和相应的最大动作数有效；一旦
 至少一个 Goal 被发送，artifact 会锁存 `authorization_consumed=true`。完成后的同一
-授权文件不能再次执行。监督器会在第一个 Goal 发送前，在 preview 旁边原子写入
+授权文件不能再次执行。停止参数也写进 preview 的 SHA，执行时不能临时更改。监督器会在
+第一个 Goal 发送前，在 preview 旁边原子写入
 `<preview文件名>.consumed.json`；即使换一个 execution 输出路径，也不能绕过这张消费凭据。
 
 新版本的真实 NBV 配置还会把每次地图更新保存到 `artifacts/nbv_map_snapshots/`。会话结束后

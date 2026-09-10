@@ -48,16 +48,25 @@ NERO_RESEARCH_SAFE_JOINT_LIMITS_RAD = (
     (-1.5358897149601133, 1.5358897149601133),
 )
 DEFAULT_ALPHAS = (1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125)
-ALLOWED_SESSION_MOTION_STEPS = (1, 3)
+MIN_SESSION_MOTION_STEPS = 1
+MAX_SESSION_MOTION_STEPS = 10
+ALLOWED_SESSION_MOTION_STEPS = tuple(
+    range(MIN_SESSION_MOTION_STEPS, MAX_SESSION_MOTION_STEPS + 1)
+)
 MAX_SESSION_TRANSLATION_M = 0.015
 MAX_SESSION_ROTATION_RAD = math.radians(30.0)
 CONVERGENCE_COVERAGE_DELTA = 0.005
+DEFAULT_COVERAGE_PLATEAU_PATIENCE = 2
 SCIENCE_STEP_COVERAGE_DELTA = 0.01
 SCIENCE_FINAL_COVERAGE_DELTA = 0.20
 NERO_JOINT_NAMES = tuple(f"joint{index}" for index in range(1, 8))
 _EPS = 1.0e-12
 TARGET_DEPTH_CLUSTER_GAP_M = 0.05
 TARGET_DEPTH_CLUSTER_SEED_PIXELS = 20
+
+
+class MotionBudgetExhausted(ValueError):
+    """The next valid segment would exceed the session motion envelope."""
 
 
 @dataclass(frozen=True)
@@ -183,11 +192,13 @@ class SessionStepEvidence:
     actual_cumulative_translation_m: float
     actual_cumulative_rotation_rad: float
     target_valid_mask_depth_pixels: int
+    coverage_plateau_count: int
+    coverage_target_reached: bool
     converged: bool
 
 
 class MotionSessionLedger:
-    """Fail-closed, ROS-free accounting for a one- or three-step session.
+    """Fail-closed, ROS-free accounting for a bounded NBV session.
 
     The supervisor owns all hardware interactions.  This ledger independently
     enforces the cumulative pose, coverage, target-pixel, goal-count, and
@@ -201,12 +212,15 @@ class MotionSessionLedger:
         initial_camera: np.ndarray,
         initial_coverage: float,
         minimum_target_pixels: int = 200,
+        coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
+        coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
+        coverage_target: float | None = None,
     ) -> None:
         if (
             isinstance(max_motion_steps, bool)
             or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
         ):
-            raise ValueError("max_motion_steps must be exactly 1 or 3")
+            raise ValueError("max_motion_steps must be an integer in [1, 10]")
         coverage = float(initial_coverage)
         if not math.isfinite(coverage) or not 0.0 <= coverage <= 1.0:
             raise ValueError("initial coverage must be finite and in [0, 1]")
@@ -215,12 +229,32 @@ class MotionSessionLedger:
             or int(minimum_target_pixels) < 200
         ):
             raise ValueError("minimum target pixels must be at least 200")
+        plateau_delta = float(coverage_plateau_delta)
+        if not math.isfinite(plateau_delta) or not 0.0 < plateau_delta <= 1.0:
+            raise ValueError("coverage plateau delta must be finite and in (0, 1]")
+        if (
+            isinstance(coverage_plateau_patience, bool)
+            or not isinstance(coverage_plateau_patience, int)
+            or not 1 <= coverage_plateau_patience <= MAX_SESSION_MOTION_STEPS
+        ):
+            raise ValueError("coverage plateau patience must be in [1, 10]")
+        normalized_target: float | None = None
+        if coverage_target is not None:
+            target = float(coverage_target)
+            if not math.isfinite(target) or not 0.0 < target <= 1.0:
+                raise ValueError("coverage target must be finite and in (0, 1]")
+            if target <= coverage + _EPS:
+                raise ValueError("initial coverage already meets the coverage target")
+            normalized_target = target
         self.max_motion_steps = int(max_motion_steps)
         self.initial_camera = validate_rigid_transform(
             initial_camera, "session initial camera"
         )
         self.initial_coverage = coverage
         self.minimum_target_pixels = int(minimum_target_pixels)
+        self.coverage_plateau_delta = plateau_delta
+        self.coverage_plateau_patience = int(coverage_plateau_patience)
+        self.coverage_target = normalized_target
         self.steps: list[SessionStepEvidence] = []
         self.termination_reason: str | None = None
         self.convergence_reason: str | None = None
@@ -230,6 +264,7 @@ class MotionSessionLedger:
         self._planned_rotation_total_rad = 0.0
         self._actual_translation_total_m = 0.0
         self._actual_rotation_total_rad = 0.0
+        self._coverage_plateau_count = 0
 
     @property
     def motion_goal_count(self) -> int:
@@ -240,6 +275,54 @@ class MotionSessionLedger:
         if not self.steps:
             return self.initial_coverage
         return self.steps[-1].coverage_after
+
+    def validate_next_planned_step(
+        self,
+        *,
+        planned_start_camera: np.ndarray,
+        planned_camera: np.ndarray,
+    ) -> CameraMotion:
+        """Reject a target that would exceed any per-step or path budget.
+
+        This check is intended for the final pre-gate boundary.  It is repeated
+        when the closed step is recorded, but calling it before motion is
+        essential when a session may contain more than three short segments.
+        """
+        if self.termination_reason is not None:
+            raise ValueError("terminated session cannot accept another goal")
+        if self.convergence_reason is not None:
+            raise ValueError("converged session cannot accept another goal")
+        if len(self.steps) >= self.max_motion_steps:
+            raise ValueError("session motion-goal limit is already exhausted")
+        start = validate_rigid_transform(
+            planned_start_camera, "planned step start camera"
+        )
+        target = validate_rigid_transform(
+            planned_camera, "planned step camera"
+        )
+        step = camera_motion(start, target)
+        if not (
+            step.translation_m > MIN_CAMERA_STEP_M
+            and step.translation_m
+            <= MAX_CAMERA_STEP_M + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M + _EPS
+        ):
+            raise ValueError("planned camera step must be in (1, 5] mm")
+        if step.rotation_rad > MAX_SELECTED_CAMERA_ROTATION_RAD + 1.0e-9:
+            raise ValueError("planned camera step rotation exceeds 10 degrees")
+        translation_total = self._planned_translation_total_m + step.translation_m
+        translation_tolerance = (
+            self.max_motion_steps * MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+        )
+        if translation_total > MAX_SESSION_TRANSLATION_M + translation_tolerance:
+            raise MotionBudgetExhausted(
+                "planned cumulative camera translation exceeds 15 mm"
+            )
+        rotation_total = self._planned_rotation_total_rad + step.rotation_rad
+        if rotation_total > MAX_SESSION_ROTATION_RAD + 1.0e-9:
+            raise MotionBudgetExhausted(
+                "planned cumulative camera rotation exceeds 30 degrees"
+            )
+        return step
 
     def record_closed_step(
         self,
@@ -255,6 +338,8 @@ class MotionSessionLedger:
         """Record exactly one completed goal only after both gates are closed."""
         if self.termination_reason is not None:
             raise ValueError("terminated session cannot accept another goal")
+        if self.convergence_reason is not None:
+            raise ValueError("converged session cannot accept another goal")
         expected_index = len(self.steps) + 1
         if expected_index > self.max_motion_steps:
             raise ValueError("session motion-goal limit is already exhausted")
@@ -347,6 +432,28 @@ class MotionSessionLedger:
         delta = after - before
         if delta < -1.0e-6:
             raise ValueError("NBV map coverage decreased")
+        if delta < self.coverage_plateau_delta:
+            next_plateau_count = self._coverage_plateau_count + 1
+        else:
+            next_plateau_count = 0
+        target_reached = bool(
+            self.coverage_target is not None
+            and after + _EPS >= self.coverage_target
+        )
+        converged = bool(
+            target_reached
+            or next_plateau_count >= self.coverage_plateau_patience
+        )
+        if converged and self.convergence_reason is None:
+            if target_reached:
+                self.convergence_reason = (
+                    f"coverage target {self.coverage_target:.6f} reached"
+                )
+            else:
+                self.convergence_reason = (
+                    f"coverage gain stayed below {self.coverage_plateau_delta:.6f} "
+                    f"for {next_plateau_count} consecutive completed views"
+                )
         evidence = SessionStepEvidence(
             step_index=expected_index,
             coverage_before=before,
@@ -361,13 +468,16 @@ class MotionSessionLedger:
             actual_cumulative_translation_m=actual_translation_total,
             actual_cumulative_rotation_rad=actual_rotation_total,
             target_valid_mask_depth_pixels=int(target_valid_mask_depth_pixels),
-            converged=delta < CONVERGENCE_COVERAGE_DELTA,
+            coverage_plateau_count=next_plateau_count,
+            coverage_target_reached=target_reached,
+            converged=converged,
         )
         self._last_actual_camera = actual_transform.copy()
         self._planned_translation_total_m = planned_translation_total
         self._planned_rotation_total_rad = planned_rotation_total
         self._actual_translation_total_m = actual_translation_total
         self._actual_rotation_total_rad = actual_rotation_total
+        self._coverage_plateau_count = next_plateau_count
         self.steps.append(evidence)
         return evidence
 
@@ -398,7 +508,7 @@ class MotionSessionLedger:
         """Return deterministic scientific and authorization-consumption facts."""
         deltas = [step.coverage_delta for step in self.steps]
         final_coverage = self.current_coverage
-        science_required = self.max_motion_steps == 3
+        science_required = self.max_motion_steps > 1
         science_passed = (
             len(self.steps) >= 2
             and sum(delta >= SCIENCE_STEP_COVERAGE_DELTA for delta in deltas) >= 2
@@ -415,6 +525,14 @@ class MotionSessionLedger:
             "steps_with_at_least_one_percentage_point_gain": sum(
                 delta >= SCIENCE_STEP_COVERAGE_DELTA for delta in deltas
             ),
+            "coverage_target": self.coverage_target,
+            "coverage_target_reached": bool(
+                self.coverage_target is not None
+                and final_coverage + _EPS >= self.coverage_target
+            ),
+            "coverage_plateau_delta": self.coverage_plateau_delta,
+            "coverage_plateau_patience": self.coverage_plateau_patience,
+            "coverage_plateau_count": self._coverage_plateau_count,
             "converged_early": bool(
                 self.convergence_reason is not None
                 or (self.steps and self.steps[-1].converged)

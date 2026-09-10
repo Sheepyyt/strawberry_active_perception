@@ -41,6 +41,7 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     MAX_FROZEN_TARGET_CENTER_DRIFT_M,
     RealNBVSupervisor,
     SupervisorError,
+    _authorization_token,
     _failure_gates_closed,
     _load_execution_plan,
     _require_v3_execution_plan,
@@ -767,13 +768,18 @@ def test_v3_plan_rejects_changed_config_or_derived_origin(tmp_path: Path) -> Non
         _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
 
 
-def test_three_step_policy_is_exactly_sha_bound_in_outer_preview(
+def test_bounded_session_policy_is_exactly_sha_bound_in_outer_preview(
     tmp_path: Path,
 ) -> None:
     document = _minimal_frozen_config_v3_outer_preview()
-    policy = _session_policy(3)
+    policy = _session_policy(
+        10,
+        coverage_target=0.65,
+        coverage_plateau_delta=0.004,
+        coverage_plateau_patience=3,
+    )
     document["session_policy"] = copy.deepcopy(policy)
-    document["max_motion_steps"] = 3
+    document["max_motion_steps"] = 10
     document["execution_plan_candidate"]["session_policy"] = copy.deepcopy(
         policy
     )
@@ -782,7 +788,16 @@ def test_three_step_policy_is_exactly_sha_bound_in_outer_preview(
     candidate, _actual, _resolved = _load_execution_plan(
         path, digest, DEFAULT_REPORT_SHA256
     )
-    assert _validate_bound_session_policy(candidate, 3) == policy
+    assert _validate_bound_session_policy(
+        candidate,
+        10,
+        coverage_target=0.65,
+        coverage_plateau_delta=0.004,
+        coverage_plateau_patience=3,
+    ) == policy
+    assert _authorization_token(1) == "EXECUTE_REAL_NBV_ONCE"
+    assert _authorization_token(3) == "EXECUTE_REAL_NBV_SESSION_3"
+    assert _authorization_token(10) == "EXECUTE_REAL_NBV_SESSION_10"
 
     document["session_policy"]["cumulative_translation_max_m"] = 0.020
     document["execution_plan_candidate"]["session_policy"] = copy.deepcopy(
@@ -1041,13 +1056,13 @@ def test_session_ledger_accepts_same_sub_micrometre_step_tolerance() -> None:
         )
 
 
-def test_session_stops_when_coverage_gain_is_below_half_percentage_point() -> None:
+def test_session_stops_after_two_consecutive_small_coverage_gains() -> None:
     ledger = MotionSessionLedger(
         max_motion_steps=3,
         initial_camera=np.eye(4),
         initial_coverage=0.40,
     )
-    evidence = ledger.record_closed_step(
+    first = ledger.record_closed_step(
         planned_camera=_translated_camera(0.004),
         actual_camera=_translated_camera(0.0039),
         coverage_after=0.40 + CONVERGENCE_COVERAGE_DELTA - 0.0001,
@@ -1055,8 +1070,72 @@ def test_session_stops_when_coverage_gain_is_below_half_percentage_point() -> No
         reported_motion_goal_count=1,
         gates_closed=True,
     )
-    assert evidence.converged is True
-    assert ledger.summary()["converged_early"] is True
+    assert first.coverage_plateau_count == 1
+    assert first.converged is False
+    second = ledger.record_closed_step(
+        planned_start_camera=_translated_camera(0.0039),
+        planned_camera=_translated_camera(0.0079),
+        actual_camera=_translated_camera(0.0078),
+        coverage_after=0.40 + 2 * (CONVERGENCE_COVERAGE_DELTA - 0.0001),
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=2,
+        gates_closed=True,
+    )
+    assert second.coverage_plateau_count == 2
+    assert second.converged is True
+    summary = ledger.summary()
+    assert summary["converged_early"] is True
+    assert "2 consecutive" in summary["convergence_reason"]
+
+
+def test_large_gain_resets_plateau_and_absolute_target_stops_session() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=5,
+        initial_camera=np.eye(4),
+        initial_coverage=0.40,
+        coverage_target=0.50,
+    )
+    first = ledger.record_closed_step(
+        planned_camera=_translated_camera(0.003),
+        actual_camera=_translated_camera(0.003),
+        coverage_after=0.404,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=1,
+        gates_closed=True,
+    )
+    assert first.coverage_plateau_count == 1
+    second = ledger.record_closed_step(
+        planned_start_camera=_translated_camera(0.003),
+        planned_camera=_translated_camera(0.006),
+        actual_camera=_translated_camera(0.006),
+        coverage_after=0.46,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=2,
+        gates_closed=True,
+    )
+    assert second.coverage_plateau_count == 0
+    final = ledger.record_closed_step(
+        planned_start_camera=_translated_camera(0.006),
+        planned_camera=_translated_camera(0.009),
+        actual_camera=_translated_camera(0.009),
+        coverage_after=0.51,
+        target_valid_mask_depth_pixels=300,
+        reported_motion_goal_count=3,
+        gates_closed=True,
+    )
+    assert final.coverage_target_reached is True
+    assert final.converged is True
+    assert ledger.summary()["coverage_target_reached"] is True
+    with pytest.raises(ValueError, match="converged session"):
+        ledger.record_closed_step(
+            planned_start_camera=_translated_camera(0.009),
+            planned_camera=_translated_camera(0.012),
+            actual_camera=_translated_camera(0.012),
+            coverage_after=0.52,
+            target_valid_mask_depth_pixels=300,
+            reported_motion_goal_count=4,
+            gates_closed=True,
+        )
 
 
 def test_session_can_converge_on_next_view_motion_deadband() -> None:
@@ -1171,10 +1250,26 @@ def test_session_rejects_second_step_without_closed_gates_and_bad_target() -> No
         )
 
 
-def test_session_rejects_unreviewed_step_count_and_cumulative_motion() -> None:
-    with pytest.raises(ValueError, match="exactly 1 or 3"):
+def test_session_accepts_one_to_ten_steps_and_enforces_cumulative_motion() -> None:
+    MotionSessionLedger(
+        max_motion_steps=2,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    MotionSessionLedger(
+        max_motion_steps=10,
+        initial_camera=np.eye(4),
+        initial_coverage=0.30,
+    )
+    with pytest.raises(ValueError, match=r"\[1, 10\]"):
         MotionSessionLedger(
-            max_motion_steps=2,
+            max_motion_steps=0,
+            initial_camera=np.eye(4),
+            initial_coverage=0.30,
+        )
+    with pytest.raises(ValueError, match=r"\[1, 10\]"):
+        MotionSessionLedger(
+            max_motion_steps=11,
             initial_camera=np.eye(4),
             initial_coverage=0.30,
         )
@@ -1207,4 +1302,38 @@ def test_session_rejects_unreviewed_step_count_and_cumulative_motion() -> None:
             target_valid_mask_depth_pixels=400,
             reported_motion_goal_count=3,
             gates_closed=True,
+        )
+
+
+def test_ten_step_session_rejects_path_budget_before_fourth_motion() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=10,
+        initial_camera=np.eye(4),
+        initial_coverage=0.20,
+    )
+    positions = (0.005, 0.010, 0.015)
+    coverages = (0.25, 0.30, 0.35)
+    previous = np.eye(4)
+    for index, (position, coverage) in enumerate(
+        zip(positions, coverages), start=1
+    ):
+        target = _translated_camera(position)
+        ledger.validate_next_planned_step(
+            planned_start_camera=previous,
+            planned_camera=target,
+        )
+        ledger.record_closed_step(
+            planned_start_camera=previous,
+            planned_camera=target,
+            actual_camera=target,
+            coverage_after=coverage,
+            target_valid_mask_depth_pixels=400,
+            reported_motion_goal_count=index,
+            gates_closed=True,
+        )
+        previous = target
+    with pytest.raises(ValueError, match="exceeds 15 mm"):
+        ledger.validate_next_planned_step(
+            planned_start_camera=previous,
+            planned_camera=_translated_camera(0.010),
         )

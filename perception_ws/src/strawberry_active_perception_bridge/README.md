@@ -60,27 +60,31 @@ ros2 run strawberry_active_perception_bridge real_handeye_preview \
 preview 会把完整 ConfigureNBV 请求、体素维度和地图原点写入 v3 候选，并由整个 JSON
 文件 SHA 绑定。execution 的新照片只能复核现场，不能替换第一步冻结目标。
 
-### 最多三步的持久地图
+### 由停止条件控制的持久地图
 
-设置 `max_motion_steps:=3` 后，一个授权最多允许三个高层 `MoveToPose` Goal：
+`max_motion_steps` 可设为 `1` 到 `10`。它是硬上限，不是要求必须运动这么多次。一个授权
+允许程序在这个上限内持续观察，直到达到停止条件：
 
-- 只在开始时调用一次 ConfigureNBV；三个动作共用同一 scene、配置 SHA、体素原点和地图；
+- 只在开始时调用一次 ConfigureNBV；全部动作共用同一 scene、配置 SHA、体素原点和地图；
 - 每个动作关门并静止后，再采固定五帧并只融合一次；
-- 第二、第三步目标来自累积地图，并在开门前原子写入 execution JSON；
+- 后续目标来自累积地图，并在开门前原子写入 execution JSON；
 - 每步相机平移 `(1, 5] mm`、旋转 `≤10°`、IK 最大关节变化 `≤0.08 rad`、
   残差 `≤3 mm / 2°`、`sigma_min≥0.10`、条件数 `≤20`；
 - 相对会话起点累计相机变化 `≤15 mm / 30°`；
 - 每一步结束都要让控制器门和驱动门分别获得两次关闭回执，并重新证明健康、静止；
 - 目标少于 200 个有效 mask 深度像素、IK 失败、重复 Observation、coverage 下降、
   额外命令发布者或关门失败都会立即终止后续 Goal；不自动回位或失能；
-- coverage 增量小于 0.5 个百分点时提前停止。
+- 达到可选的 `coverage_target` 时停止；设为 `0` 时禁用此条件；
+- 默认连续两步 coverage 增量都小于 0.5 个百分点时停止；
+- 下一位移不超过 1 mm 时停止；任何错误则立即停止。
 
-三步实验的科学验收要求：coverage 单调不降；至少两步各增加 1 个百分点；最终比第一帧
+多步实验的科学验收要求：coverage 单调不降；至少两步各增加 1 个百分点；最终比第一帧
 增加至少 20 个百分点。安全完成但未达到这些数字时，artifact 会写明未通过科学验收。
 
-默认的一步模式继续使用授权词 `EXECUTE_REAL_NBV_ONCE`。三步 preview 必须显式设置
-`max_motion_steps:=3`，其 session policy 会进入 SHA；执行时必须使用
-`EXECUTE_REAL_NBV_SESSION_3`。旧单帧/v1/v2 工具和 artifact 已删除，v2 schema 只保留
+默认的一步模式继续使用授权词 `EXECUTE_REAL_NBV_ONCE`。多步授权词为
+`EXECUTE_REAL_NBV_SESSION_N`，其中 `N` 必须与 preview 的 `max_motion_steps` 完全相同，
+例如 10 步上限使用 `EXECUTE_REAL_NBV_SESSION_10`。最大步数、coverage 目标、平台期阈值和
+连续次数都进入 SHA，执行时不能临时改动。旧单帧/v1/v2 工具和 artifact 已删除，v2 schema 只保留
 读取历史证据的兼容代码，永远不能执行。
 
 完整现场命令和已完成的一步实测证据见

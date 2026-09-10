@@ -4,9 +4,9 @@ The default ``execute:=false`` path is motion-free.  Physical execution is a
 separate branch that must bind the exact accepted preview artifact
 and SHA, re-check the current camera pose and SolveIK, pass the controller and
 driver safety gates, and receive an explicit operator authorization token.
-It defaults to one MoveToPose goal and permits exactly three only under the
-session authorization contract.  Any inability to prove both software gates
-closed is a fatal onsite-stop condition.
+It defaults to one MoveToPose goal and permits a SHA-bound convergence session
+of at most ten goals under an explicit session authorization contract.  Any
+inability to prove both software gates closed is a fatal onsite-stop condition.
 
 Gradient-NBV runs in its separate ``.venv-nbv`` ROS process.  This system-
 Python node republishes a copy of the real Observation with the exposure-time
@@ -55,12 +55,14 @@ from .real_nbv_contract import (
     ALLOWED_SESSION_MOTION_STEPS,
     CONVERGENCE_COVERAGE_DELTA,
     DEFAULT_ALPHAS,
+    DEFAULT_COVERAGE_PLATEAU_PATIENCE,
     MAX_CAMERA_STEP_M,
     MAX_IK_JOINT_DELTA_RAD,
     MAX_SELECTED_CAMERA_ROTATION_RAD,
     MAX_SESSION_ROTATION_RAD,
     MAX_SESSION_TRANSLATION_M,
     MIN_CAMERA_STEP_M,
+    MotionBudgetExhausted,
     MotionSessionLedger,
     aggregate_five_frame_depth_mask,
     array_list,
@@ -110,7 +112,7 @@ DEFAULT_PLAN_SHA256 = (
     "8e3d032a794a9a5a37dfed4e24964daffefde32fd17df11d97fba529f14e256f"
 )
 ONE_STEP_AUTHORIZATION_TOKEN = "EXECUTE_REAL_NBV_ONCE"
-THREE_STEP_AUTHORIZATION_TOKEN = "EXECUTE_REAL_NBV_SESSION_3"
+SESSION_AUTHORIZATION_TOKEN_PREFIX = "EXECUTE_REAL_NBV_SESSION_"
 FEEDBACK_MAX_AGE_SEC = 0.20
 STATIONARY_SPEED_RAD_SEC = 0.020
 FORBIDDEN_COMMAND_TOPICS = (
@@ -160,10 +162,10 @@ def _failure_gates_closed(node: Any, error: Exception) -> bool:
     )
 
 
-def _session_policy(max_motion_steps: int) -> dict[str, Any]:
-    """Return the exact policy bound by a preview and one operator token."""
-    if max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS:
-        raise SupervisorError("max_motion_steps must be exactly 1 or 3")
+def _legacy_session_policy(max_motion_steps: int) -> dict[str, Any]:
+    """Recompute the historical one-/three-step policy for old evidence."""
+    if isinstance(max_motion_steps, bool) or max_motion_steps not in (1, 3):
+        raise SupervisorError("legacy max_motion_steps must be exactly 1 or 3")
     policy = {
         "schema": "strawberry_real_nbv_motion_session_policy/v1",
         "max_motion_steps": int(max_motion_steps),
@@ -187,14 +189,141 @@ def _session_policy(max_motion_steps: int) -> dict[str, Any]:
     return policy
 
 
-def _validate_bound_session_policy(
-    execution_plan: dict[str, Any], max_motion_steps: int
+def _session_policy(
+    max_motion_steps: int,
+    *,
+    coverage_target: float | None = None,
+    coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
+    coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
 ) -> dict[str, Any]:
-    """Require an exact policy for three-step use; retain legacy one-step v3."""
-    expected = _session_policy(max_motion_steps)
+    """Return the exact policy bound by a preview and one operator token."""
+    if (
+        isinstance(max_motion_steps, bool)
+        or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
+    ):
+        raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
+    if isinstance(coverage_plateau_delta, bool):
+        raise SupervisorError("coverage_plateau_delta must be numeric")
+    plateau_delta = float(coverage_plateau_delta)
+    if not math.isfinite(plateau_delta) or not 0.0 < plateau_delta <= 0.05:
+        raise SupervisorError(
+            "coverage_plateau_delta must be finite and in (0, 0.05]"
+        )
+    if (
+        isinstance(coverage_plateau_patience, bool)
+        or not isinstance(coverage_plateau_patience, int)
+        or not 1 <= coverage_plateau_patience <= 10
+    ):
+        raise SupervisorError("coverage_plateau_patience must be in [1, 10]")
+    normalized_target = None
+    if isinstance(coverage_target, bool):
+        raise SupervisorError("coverage_target must be numeric")
+    if coverage_target is not None and float(coverage_target) != 0.0:
+        normalized_target = float(coverage_target)
+        if not math.isfinite(normalized_target) or not 0.0 < normalized_target <= 1.0:
+            raise SupervisorError("coverage_target must be 0 (disabled) or in (0, 1]")
+    policy = {
+        "schema": "strawberry_real_nbv_motion_session_policy/v2",
+        "max_motion_steps": int(max_motion_steps),
+        "single_step_translation_min_exclusive_m": MIN_CAMERA_STEP_M,
+        "single_step_translation_max_m": MAX_CAMERA_STEP_M,
+        "single_step_rotation_max_deg": math.degrees(
+            MAX_SELECTED_CAMERA_ROTATION_RAD
+        ),
+        "cumulative_translation_max_m": MAX_SESSION_TRANSLATION_M,
+        "cumulative_rotation_max_deg": math.degrees(MAX_SESSION_ROTATION_RAD),
+        "coverage_target": normalized_target,
+        "coverage_plateau_delta": plateau_delta,
+        "coverage_plateau_patience": int(coverage_plateau_patience),
+        "motion_deadband_m": MIN_CAMERA_STEP_M,
+        "stop_at_first_reached_condition": True,
+        "minimum_valid_mask_depth_pixels": 200,
+        "configure_once_and_keep_same_map": True,
+        "five_frame_aggregate_after_every_motion": True,
+        "automatic_return_or_disable": False,
+    }
+    payload = json.dumps(
+        policy, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+    ).encode("utf-8")
+    policy["sha256"] = hashlib.sha256(payload).hexdigest()
+    return policy
+
+
+def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
+    """Recompute a policy SHA, retaining read-only support for v1 evidence."""
+    if not isinstance(policy, dict):
+        raise SupervisorError("execution plan session policy is invalid")
+    schema = policy.get("schema")
+    steps = policy.get("max_motion_steps")
+    if isinstance(steps, bool) or not isinstance(steps, int):
+        raise SupervisorError("execution plan session policy step count is invalid")
+    if schema == "strawberry_real_nbv_motion_session_policy/v1":
+        expected = _legacy_session_policy(steps)
+    elif schema == "strawberry_real_nbv_motion_session_policy/v2":
+        try:
+            expected = _session_policy(
+                steps,
+                coverage_target=policy.get("coverage_target"),
+                coverage_plateau_delta=policy.get("coverage_plateau_delta"),
+                coverage_plateau_patience=policy.get(
+                    "coverage_plateau_patience"
+                ),
+            )
+        except (TypeError, ValueError) as error:
+            raise SupervisorError(
+                "execution plan session policy values are invalid"
+            ) from error
+    else:
+        raise SupervisorError("unsupported execution plan session policy schema")
+    if policy != expected:
+        raise SupervisorError(
+            "execution plan session policy SHA/semantics do not recompute"
+        )
+    return copy.deepcopy(expected)
+
+
+def _authorization_token(max_motion_steps: int) -> str:
+    """Return the explicit token spelling for one bounded session."""
+    if (
+        isinstance(max_motion_steps, bool)
+        or max_motion_steps not in ALLOWED_SESSION_MOTION_STEPS
+    ):
+        raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
+    if max_motion_steps == 1:
+        return ONE_STEP_AUTHORIZATION_TOKEN
+    return f"{SESSION_AUTHORIZATION_TOKEN_PREFIX}{max_motion_steps}"
+
+
+def _validate_bound_session_policy(
+    execution_plan: dict[str, Any],
+    max_motion_steps: int,
+    *,
+    coverage_target: float | None = None,
+    coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
+    coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
+) -> dict[str, Any]:
+    """Require the runtime convergence policy to match the frozen preview."""
+    expected = _session_policy(
+        max_motion_steps,
+        coverage_target=coverage_target,
+        coverage_plateau_delta=coverage_plateau_delta,
+        coverage_plateau_patience=coverage_plateau_patience,
+    )
     stored = execution_plan.get("session_policy")
     if stored is None and max_motion_steps == 1:
-        return {**expected, "legacy_v3_policy_inferred": True}
+        if (
+            coverage_target is not None
+            or abs(
+                float(coverage_plateau_delta) - CONVERGENCE_COVERAGE_DELTA
+            ) > 1.0e-12
+            or coverage_plateau_patience
+            != DEFAULT_COVERAGE_PLATEAU_PATIENCE
+        ):
+            raise SupervisorError(
+                "legacy one-step plan cannot bind custom convergence settings"
+            )
+        legacy = _legacy_session_policy(1)
+        return {**legacy, "legacy_v3_policy_inferred": True}
     if stored != expected:
         raise SupervisorError(
             "execution plan session policy differs from requested runtime policy"
@@ -470,18 +599,7 @@ def _load_execution_plan(
             raise SupervisorError("aggregate preview has no execution_plan_candidate")
         stored_policy = candidate.get("session_policy")
         if stored_policy is not None:
-            if not isinstance(stored_policy, dict):
-                raise SupervisorError("execution plan session policy is invalid")
-            policy_steps = stored_policy.get("max_motion_steps")
-            if (
-                isinstance(policy_steps, bool)
-                or not isinstance(policy_steps, int)
-                or policy_steps not in ALLOWED_SESSION_MOTION_STEPS
-                or stored_policy != _session_policy(policy_steps)
-            ):
-                raise SupervisorError(
-                    "execution plan session policy SHA/semantics do not recompute"
-                )
+            _validated_stored_session_policy(stored_policy)
             if document.get("session_policy") != stored_policy:
                 raise SupervisorError(
                     "outer and embedded session policies differ"
@@ -823,13 +941,20 @@ def _load_execution_plan(
 
 
 class RealNBVSupervisor(Node):
-    """Preview once, then optionally run one bounded one- or three-step session."""
+    """Preview once, then optionally run one bounded convergence session."""
 
     def __init__(self) -> None:
         """Create observers and read-only clients; defer motion entities."""
         super().__init__("real_nbv_supervisor")
         self.declare_parameter("execute", False)
         self.declare_parameter("max_motion_steps", 1)
+        self.declare_parameter("coverage_target", 0.0)
+        self.declare_parameter(
+            "coverage_plateau_delta", CONVERGENCE_COVERAGE_DELTA
+        )
+        self.declare_parameter(
+            "coverage_plateau_patience", DEFAULT_COVERAGE_PLATEAU_PATIENCE
+        )
         self.declare_parameter("operator_workspace_clearance_confirmed", False)
         self.declare_parameter("execution_authorization_token", "")
         self.declare_parameter("execution_plan_path", DEFAULT_PLAN_PATH)
@@ -939,8 +1064,25 @@ class RealNBVSupervisor(Node):
             or not isinstance(max_motion_steps_value, int)
             or max_motion_steps_value not in ALLOWED_SESSION_MOTION_STEPS
         ):
-            raise SupervisorError("max_motion_steps must be exactly 1 or 3")
+            raise SupervisorError("max_motion_steps must be an integer in [1, 10]")
         self.max_motion_steps = int(max_motion_steps_value)
+        coverage_target_value = float(self.get_parameter("coverage_target").value)
+        self.coverage_target = (
+            None if coverage_target_value == 0.0 else coverage_target_value
+        )
+        self.coverage_plateau_delta = float(
+            self.get_parameter("coverage_plateau_delta").value
+        )
+        patience_value = self.get_parameter("coverage_plateau_patience").value
+        if isinstance(patience_value, bool) or not isinstance(patience_value, int):
+            raise SupervisorError("coverage_plateau_patience must be an integer")
+        self.coverage_plateau_patience = int(patience_value)
+        self.session_policy = _session_policy(
+            self.max_motion_steps,
+            coverage_target=self.coverage_target,
+            coverage_plateau_delta=self.coverage_plateau_delta,
+            coverage_plateau_patience=self.coverage_plateau_patience,
+        )
         if self.get_parameter("require_aggregate_execution_plan").value is not True:
             raise SupervisorError(
                 "require_aggregate_execution_plan is a fixed safety invariant"
@@ -1067,7 +1209,7 @@ class RealNBVSupervisor(Node):
         )
         required_half_extent = (
             MAX_SESSION_TRANSLATION_M + 0.001
-            if self.max_motion_steps == 3
+            if self.max_motion_steps > 1
             else MAX_CAMERA_STEP_M + 0.001
         )
         if (
@@ -2783,7 +2925,7 @@ class RealNBVSupervisor(Node):
             "safe_to_execute": False,
             "execute_requested": self.execute_requested,
             "max_motion_steps": self.max_motion_steps,
-            "session_policy": _session_policy(self.max_motion_steps),
+            "session_policy": copy.deepcopy(self.session_policy),
             "motion_api_owned": bool(self.execute_requested),
             "command_publisher_owned": False,
             "scene_id": self.scene_id,
@@ -2818,11 +2960,7 @@ class RealNBVSupervisor(Node):
             token = str(
                 self.get_parameter("execution_authorization_token").value
             )
-            expected_token = (
-                ONE_STEP_AUTHORIZATION_TOKEN
-                if self.max_motion_steps == 1
-                else THREE_STEP_AUTHORIZATION_TOKEN
-            )
+            expected_token = _authorization_token(self.max_motion_steps)
             if token != expected_token:
                 raise SupervisorError(
                     "execution authorization token is missing or incorrect"
@@ -2834,7 +2972,11 @@ class RealNBVSupervisor(Node):
             )
             _require_v3_execution_plan(execution_plan)
             bound_session_policy = _validate_bound_session_policy(
-                execution_plan, self.max_motion_steps
+                execution_plan,
+                self.max_motion_steps,
+                coverage_target=self.coverage_target,
+                coverage_plateau_delta=self.coverage_plateau_delta,
+                coverage_plateau_patience=self.coverage_plateau_patience,
             )
             receipt_parameter = str(
                 self.get_parameter("authorization_receipt_path").value
@@ -2886,7 +3028,9 @@ class RealNBVSupervisor(Node):
                 "operator_workspace_clearance_confirmed": True,
                 "authorization_token_matched": True,
                 "authorization_token_kind": (
-                    "one_step" if self.max_motion_steps == 1 else "three_step_session"
+                    "one_step"
+                    if self.max_motion_steps == 1
+                    else "bounded_convergence_session"
                 ),
                 "bound_session_policy": bound_session_policy,
                 "authorization_receipt_path": str(receipt_path),
@@ -3050,6 +3194,18 @@ class RealNBVSupervisor(Node):
             "T_base_camera_optical": array_list(final_camera),
         }
         next_view, audit["raw_next_view"] = self._publish_and_compute(corrected)
+        initial_coverage = float(next_view.coverage)
+        if (
+            self.coverage_target is not None
+            and initial_coverage + 1.0e-12 >= self.coverage_target
+        ):
+            audit["initial_stop_condition"] = {
+                "reason": "configured coverage target was already reached",
+                "coverage": initial_coverage,
+                "coverage_target": self.coverage_target,
+                "motion_goal_sent": False,
+            }
+            raise SupervisorError("COVERAGE_TARGET_ALREADY_REACHED")
         raw_target = _strict_pose_matrix(next_view.pose, "raw NextView")
         selected, audit["ik_candidates"] = self._solve_candidates(
             final_camera, raw_target, final_observation.header.stamp
@@ -3096,7 +3252,7 @@ class RealNBVSupervisor(Node):
                 "schema_version": AGGREGATE_PLAN_V3,
                 "status": "passed",
                 "scene_id": self.scene_id,
-                "session_policy": _session_policy(self.max_motion_steps),
+                "session_policy": copy.deepcopy(self.session_policy),
                 "nbv_configuration": copy.deepcopy(
                     audit["configuration"]["request_semantics"]
                 ),
@@ -3236,7 +3392,7 @@ class RealNBVSupervisor(Node):
             audit["diagnostic_note"] = (
                 "Preview evidence is not execution authorization. Run execute=true "
                 "only with the exact accepted artifact SHA, onsite clearance, and "
-                "the matching one- or three-step authorization token."
+                "the matching bounded-session authorization token."
             )
             audit["freeze_instruction"] = (
                 "Freeze the complete output JSON bytes with sha256sum; execution "
@@ -3452,6 +3608,9 @@ class RealNBVSupervisor(Node):
             minimum_target_pixels=int(
                 self.get_parameter("minimum_target_pixels").value
             ),
+            coverage_plateau_delta=self.coverage_plateau_delta,
+            coverage_plateau_patience=self.coverage_plateau_patience,
+            coverage_target=self.coverage_target,
         )
         self._session_ledger = ledger
         audit["persistent_map_session"] = {
@@ -3482,6 +3641,15 @@ class RealNBVSupervisor(Node):
             ),
             "plan_sha256_binding": plan_sha,
             "dynamic_target_sha256": None,
+        }
+        first_budget_step = ledger.validate_next_planned_step(
+            planned_start_camera=execution_pre_camera,
+            planned_camera=execution_camera_target,
+        )
+        first_step["session_motion_budget_preflight"] = {
+            "translation_m": first_budget_step.translation_m,
+            "rotation_deg": math.degrees(first_budget_step.rotation_rad),
+            "passed_before_gate_open": True,
         }
         audit["motion_steps"] = [first_step]
         audit["active_step_index"] = 1
@@ -3593,7 +3761,11 @@ class RealNBVSupervisor(Node):
                 "after": evidence.coverage_after,
                 "delta": evidence.coverage_delta,
                 "nondecreasing": True,
-                "convergence_threshold": CONVERGENCE_COVERAGE_DELTA,
+                "plateau_delta_threshold": self.coverage_plateau_delta,
+                "plateau_patience": self.coverage_plateau_patience,
+                "plateau_count": evidence.coverage_plateau_count,
+                "coverage_target": self.coverage_target,
+                "coverage_target_reached": evidence.coverage_target_reached,
                 "converged": evidence.converged,
             }
             step_record["cumulative_camera_motion"] = {
@@ -3679,6 +3851,37 @@ class RealNBVSupervisor(Node):
                 raise SupervisorError(
                     f"step {next_step_index} has no reachable segmented view"
                 )
+            dynamic_camera_target = validate_rigid_transform(
+                np.asarray(dynamic_selected["T_base_camera"], dtype=float),
+                f"step {next_step_index} selected camera",
+            )
+            try:
+                dynamic_budget_step = ledger.validate_next_planned_step(
+                    planned_start_camera=post_camera,
+                    planned_camera=dynamic_camera_target,
+                )
+            except MotionBudgetExhausted:
+                convergence_reason = (
+                    "the next useful view would exceed the audited cumulative "
+                    "camera-motion envelope"
+                )
+                ledger.mark_converged(convergence_reason)
+                step_record["next_view_convergence"] = {
+                    "next_step_index": next_step_index,
+                    "reason": convergence_reason,
+                    "raw_translation_m": raw_motion.translation_m,
+                    "raw_rotation_deg": math.degrees(raw_motion.rotation_rad),
+                    "planned_gain": raw_gain,
+                    "source_observation_id": str(post_view.observation_id),
+                    "source_map_coverage": float(post_view.coverage),
+                    "motion_goal_sent": False,
+                }
+                audit["session_progress"] = ledger.summary()
+                audit["active_step_index"] = None
+                self._checkpoint_execution_audit(
+                    f"converged_before_step_{next_step_index}_motion_envelope"
+                )
+                break
             dynamic_link7, dynamic_joints, dynamic_audit = (
                 self._prepare_dynamic_session_step(
                     step_index=next_step_index,
@@ -3722,6 +3925,11 @@ class RealNBVSupervisor(Node):
                 "ik_candidates": dynamic_candidates,
                 "dynamic_target_payload": target_payload,
                 "dynamic_target_sha256": target_digest,
+            }
+            next_step["session_motion_budget_preflight"] = {
+                "translation_m": dynamic_budget_step.translation_m,
+                "rotation_deg": math.degrees(dynamic_budget_step.rotation_rad),
+                "passed_before_gate_open": True,
             }
             audit["motion_steps"].append(next_step)
             self._checkpoint_execution_audit(
@@ -3768,8 +3976,8 @@ class RealNBVSupervisor(Node):
         elif audit["session_progress"]["scientific_acceptance_passed"]:
             audit["status"] = "executed_session_scientific_acceptance_passed"
             audit["reason"] = (
-                "bounded three-step session completed with persistent-map coverage "
-                "meeting all scientific acceptance thresholds"
+                "bounded convergence session completed with persistent-map "
+                "coverage meeting all scientific acceptance thresholds"
             )
         elif audit["session_progress"]["converged_early"]:
             audit["status"] = "executed_session_converged_scientific_acceptance_not_met"
@@ -3778,14 +3986,14 @@ class RealNBVSupervisor(Node):
             )
             if convergence_reason:
                 audit["reason"] = (
-                    "session stopped safely because Gradient-NBV reached its "
-                    f"motion deadband ({convergence_reason}); scientific "
+                    "session stopped safely after reaching a configured stop "
+                    f"condition ({convergence_reason}); scientific "
                     "acceptance was not met"
                 )
             else:
                 audit["reason"] = (
-                    "session stopped safely because coverage gain fell below 0.5 "
-                    "percentage point; scientific acceptance was not met"
+                    "session stopped safely at its bounded motion limit; "
+                    "scientific acceptance was not met"
                 )
         else:
             audit["status"] = "executed_session_scientific_acceptance_not_met"

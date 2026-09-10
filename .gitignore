@@ -57,6 +57,15 @@ validation/week4/artifacts/*
 validation/week5/artifacts/*
 !validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json
 !validation/week5/artifacts/real_strawberry_hsv_multistep_summary.json
+!validation/week6/artifacts/
+validation/week6/artifacts/*
+!validation/week6/artifacts/real_large_step_nbv_preview.json
+!validation/week6/artifacts/real_large_step_nbv_execution.json
+!validation/week6/artifacts/real_large_step_nbv_map_step_001.npz
+!validation/week6/artifacts/real_large_step_nbv_map_step_002.npz
+!validation/week6/artifacts/real_large_step_nbv_map_final.png
+!validation/week6/artifacts/real_large_step_nbv_map_progress.gif
+!validation/week6/artifacts/real_large_step_nbv_map_manifest.json
 validation/week2/artifacts/camera_*.json
 validation/week2/artifacts/cold_start_*.json
 validation/week2/artifacts/known_plane*.json

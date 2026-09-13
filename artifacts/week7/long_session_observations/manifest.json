@@ -1,0 +1,60 @@
+{
+  "schema": "strawberry_observation_recording/v1",
+  "topic": "/strawberry/perception/real_nbv_observation",
+  "scene_filter": "real_nbv_once_20260913T092956Z",
+  "read_only": true,
+  "records": [
+    {
+      "index": 1,
+      "scene_id": "real_nbv_once_20260913T092956Z",
+      "observation_id": "agg5_9389f559b9616a06edafb4eb",
+      "stamp_ns": 1789291927551770880,
+      "path": "observation_001_agg5_9389f559b9616a06edafb4eb.npz",
+      "sha256": "08683099f2aeaa9d10571f009b391e5baa8096c72b8f11d7241c1a0ac6ce2b3a",
+      "rgb_shape": [
+        400,
+        640,
+        3
+      ],
+      "finite_depth_fraction": 0.65390234375,
+      "mask_pixels": 446,
+      "valid_mask_depth_pixels": 264
+    },
+    {
+      "index": 2,
+      "scene_id": "real_nbv_once_20260913T092956Z",
+      "observation_id": "agg5_7c36b7d96ccf43530d5726ee",
+      "stamp_ns": 1789291940885492992,
+      "path": "observation_002_agg5_7c36b7d96ccf43530d5726ee.npz",
+      "sha256": "c95acaa6831accb20052de8acfe7ff2d7ceeca3d7eaef4255d3605f00d68a01c",
+      "rgb_shape": [
+        400,
+        640,
+        3
+      ],
+      "finite_depth_fraction": 0.64616015625,
+      "mask_pixels": 564,
+      "valid_mask_depth_pixels": 395
+    },
+    {
+      "index": 3,
+      "scene_id": "real_nbv_once_20260913T092956Z",
+      "observation_id": "agg5_d9d036445713eafd91636754",
+      "stamp_ns": 1789291954021812992,
+      "path": "observation_003_agg5_d9d036445713eafd91636754.npz",
+      "sha256": "c5bec3f83385ca764bae5f498bc81b57e99ca3eb04447c9f606ecaf6efb456bb",
+      "rgb_shape": [
+        400,
+        640,
+        3
+      ],
+      "finite_depth_fraction": 0.56575,
+      "mask_pixels": 830,
+      "valid_mask_depth_pixels": 625
+    }
+  ],
+  "errors": [],
+  "elapsed_sec": 201.23842642595991,
+  "record_count": 3,
+  "finished_cleanly": true
+}

@@ -16,6 +16,13 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 
 截至 2026-09-13：
 
+- 最新“停止条件驱动、最多 8 步”真实实验实际执行了 3 个约 10 cm 的高层动作；前两次
+  动作后的观测成功加入同一张体素地图，coverage `4.94% → 11.05% → 17.77%`，两步分别
+  增加 `6.11 / 6.71` 个百分点。第三次动作正常到达、累计产生 256 个平滑轨迹采样点，
+  但动作后草莓 mask 与有效深度的交集变成 0，随后检查发现 Gemini USB 设备已经从电脑
+  消失。监督器因此关闭两道执行门并停止，没有继续盲目运动。本次证明了“大动作连续重规划
+  + 同图更新 + 输入失效即停”，但没有达到 20% coverage，所以诚实标记为未完成科学验收。
+  [打开本次中文报告](artifacts/week7/presentation_run_20260913/REPORT_CN.md)。
 - Placo 单臂 IK、轨迹、ROS 2 服务/Action 和真机安全门已完成；主控制测试 `106 passed`。
 - Gemini 2 XL 在 `640×400@10 Hz` 下已通过 3 次冷启动和 30 分钟稳定性测试。当前线缆
   即使协商为 USB 2/480M，也足以继续这一低带宽实验。
@@ -85,6 +92,7 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 - [红色目标三步真实闭环](validation/week4/README.md)
 - [真实草莓 HSV-mask 多步闭环](validation/week5/README.md)
 - [学习式 mask 候选与 5–10 cm 大步真机实验](validation/week6/README.md)
+- [停止条件驱动的长闭环、最新实验与展示材料](validation/week7/README.md)
 - [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
 
 ## 先直观看懂体素地图
@@ -103,6 +111,15 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 
 [打开真实三步动态 GIF](artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_progress.gif) ·
 [打开可达候选点图](artifacts/week6/reachable_large_step_candidates_r30_20260913.png)
+
+下面是最新长闭环中真实保存的三维体素云。淡蓝点是射线已经经过的体素，黑点是深度相机
+实际测到的表面，红点是草莓 mask 支持的目标体素，绿线是相机路径，绿色线框是目标 ROI：
+
+![最新真实三维体素云](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_final_3d.png)
+
+[旋转查看三维地图](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_spin.gif) ·
+[查看三次地图更新动画](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_growth.gif) ·
+[打开整套实验网页](artifacts/week7/presentation_run_20260913/index.html)
 
 离线复现这张图（不会连接相机或机械臂）：
 
@@ -129,15 +146,17 @@ source perception_ws/install/setup.bash
 ## NBV 现在怎样决定停止
 
 “三步”只是第一轮真机验证用的上限。当前监督器已经改成有限的收敛循环：默认仍只允许
-一步，以保持历史安全行为；显式配置后可在同一张地图内最多运行 10 步，但满足停止条件会
-提前结束。
+一步，以保持历史调用行为；大空间实验配置可在同一张地图内最多运行 8 步，但满足停止条件
+会提前结束。
 
 当前停止条件是：
 
 1. 达到可选的 `coverage_target`；`0` 表示暂不启用绝对目标；
 2. 默认连续 2 个视角的 coverage 增量都小于 `0.5` 个百分点；
 3. 下一动作不超过 `1 mm`，已经没有值得执行的位移；
-4. 达到最多 10 步、累计 `15 mm / 30°`，或出现任何输入/IK/控制错误。
+4. 大空间实验达到最多 8 步、累计 `600 mm / 90°`，或出现任何相机输入、目标深度、IK、
+   关节余量、控制门或硬件反馈错误。单步候选距离从大到小为
+   `100 / 75 / 50 / 25 / 10 / 5 mm`，因此不是强制每次都走 10 cm。
 
 不能随意写一个“80% 就完成”，因为当前 coverage 是“目标附近体素被有效射线看过的比例”，
 不等于草莓真实表面被看全的比例。因此当前推荐先用平台期停止；积累多次真实实验曲线后，

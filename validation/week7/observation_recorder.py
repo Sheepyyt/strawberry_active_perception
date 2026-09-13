@@ -286,7 +286,11 @@ def main() -> int:
         manifest["finished_cleanly"] = True
         _atomic_json(manifest_path, manifest)
         node.destroy_node()
-        rclpy.shutdown()
+        # SIGINT may already have shut the default context down.  Treat that
+        # normal operator stop as a clean recorder exit instead of printing a
+        # second-shutdown traceback after all evidence is safely on disk.
+        if rclpy.ok():
+            rclpy.shutdown()
     print(json.dumps(manifest, indent=2, ensure_ascii=False))
     return 0
 

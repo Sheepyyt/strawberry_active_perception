@@ -1,0 +1,69 @@
+{
+  "schema": "strawberry_real_nbv_long_session_summary/v1",
+  "date": "2026-09-13",
+  "scene_id": "real_nbv_once_20260913T092956Z",
+  "status": "safe_stop_after_camera_input_failure",
+  "scientific_acceptance_passed": false,
+  "reason": "third motion reached, then target mask had zero valid-depth pixels; Gemini subsequently disappeared from the USB bus",
+  "frozen_preview": {
+    "path": "artifacts/week7/long_session_preview.json",
+    "sha256": "4bb5345d349a50b1115eb152ce6a570c2dbbbe1bef81d2cbbe951dfd91a4b391"
+  },
+  "execution_evidence": {
+    "path": "artifacts/week7/long_session_execution.json",
+    "sha256": "99f7dfbdaf1dadbfe8c4d033324679f770344323e0290917aa7cca8054331a47"
+  },
+  "high_level_motion_goal_count": 3,
+  "successful_post_map_update_count": 2,
+  "low_level_trajectory_setpoint_count": 256,
+  "per_motion_setpoint_count": [81, 84, 91],
+  "coverage": {
+    "initial": 0.04939199984073639,
+    "after_successful_post_views": [
+      0.11053600162267685,
+      0.17765599489212036
+    ],
+    "per_step_delta": [
+      0.06114400178194046,
+      0.06711999326944351
+    ],
+    "total_delta": 0.12826399505138397,
+    "configured_stop_target": 0.2
+  },
+  "verified_camera_motion": [
+    {
+      "translation_m": 0.0985109535409454,
+      "rotation_deg": 0.8024865812011482,
+      "post_error_m": 0.0014973497378397455,
+      "post_error_deg": 0.05657807367552986
+    },
+    {
+      "translation_m": 0.09848241390772366,
+      "rotation_deg": 1.9950752646032859,
+      "post_error_m": 0.001623103428928238,
+      "post_error_deg": 0.041361779617545426
+    }
+  ],
+  "third_motion_controller_result": {
+    "action_status": 4,
+    "target_translation_m": 0.1000000014901161,
+    "target_rotation_deg": 3.263473244047702,
+    "reported_final_position_error_m": 0.0024527982960229496,
+    "reported_final_orientation_error_rad": 0.0010388751927817648
+  },
+  "map_counts": {
+    "first_view": {"observed": 97759, "occupied": 1115, "target": 64},
+    "final_accepted_view": {"observed": 277557, "occupied": 3050, "target": 231}
+  },
+  "safety_at_termination": {
+    "gates_closed": true,
+    "controller_execution_enabled": false,
+    "arm_status": 0,
+    "motion_status": 0,
+    "err_status": 0,
+    "joint_limit_alarm_count": 0,
+    "joint_communication_alarm_count": 0
+  },
+  "presentation_bundle": "artifacts/week7/presentation_run_20260913",
+  "human_report": "validation/week7/RESULT_20260913_CN.md"
+}

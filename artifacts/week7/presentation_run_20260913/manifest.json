@@ -1,0 +1,128 @@
+{
+  "schema": "strawberry_nbv_presentation_bundle/v1",
+  "execution_json": "/home/yyt/strawberry_active_perception/artifacts/week7/long_session_execution.json",
+  "execution_sha256": "99f7dfbdaf1dadbfe8c4d033324679f770344323e0290917aa7cca8054331a47",
+  "status": "failed",
+  "motion_goal_count": 3,
+  "mapped_motion_count": 2,
+  "session_progress": {
+    "authorization_consumed": true,
+    "converged_early": false,
+    "convergence_reason": null,
+    "coverage_plateau_count": 0,
+    "coverage_plateau_delta": 0.005,
+    "coverage_plateau_patience": 2,
+    "coverage_target": 0.2,
+    "coverage_target_reached": false,
+    "final_coverage": 0.17765599489212036,
+    "gates_closed_at_termination": true,
+    "initial_coverage": 0.04939199984073639,
+    "motion_goal_count": 2,
+    "motion_limits": {
+      "cumulative_rotation_max_deg": 90.0,
+      "cumulative_translation_max_m": 0.6,
+      "maximum_ik_joint_delta_rad": 0.35,
+      "single_step_rotation_max_deg": 29.999999999999996,
+      "single_step_translation_max_m": 0.1,
+      "single_step_translation_min_inclusive": false,
+      "single_step_translation_min_m": 0.001
+    },
+    "motion_profile": "large_workspace_experimental",
+    "per_step_coverage_delta": [
+      0.06114400178194046,
+      0.06711999326944351
+    ],
+    "requested_max_motion_steps": 8,
+    "scientific_acceptance_passed": false,
+    "scientific_acceptance_required": true,
+    "steps_with_at_least_one_percentage_point_gain": 2,
+    "terminated": true,
+    "termination_reason": "only 0 target pixels have valid depth; need at least 1",
+    "total_coverage_delta": 0.12826399505138397
+  },
+  "candidate_round_count": 3,
+  "generated_files": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/00_experiment_dashboard.png",
+      "sha256": "158cf1e77a57ea5aa828cfc257ab8ebb297273ee6c8914cebd5124aee1fd7717"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/01_coverage_curve.png",
+      "sha256": "f8ce33afed7b5b70ab5a023081e04e9c8e5c17de9d57f23ff3d063ec1dba2809"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/02_camera_trajectory_3d.png",
+      "sha256": "c6462fcbf36e559eb486a056b9fa5ea5e43a60c3ae87a5b219876e6a4acd8179"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/03_candidate_funnel.png",
+      "sha256": "c418b6d352e56b9107e37982ecc7889ff1ecfa60698efe24c7e52c8d6e4c6da6"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/04_motion_profile.png",
+      "sha256": "246a94da62f32faea8f156ef80a15e0e7099049dc00871173cb0990d8f4cc23e"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/05_accuracy_safety.png",
+      "sha256": "69bcd738ef02db98c8c6e6f8bb6a80567d4c045c04c2f306863bbfbc6f6630b5"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/06_target_map_quality.png",
+      "sha256": "d23940dedea0176b8766437a4855df14c7fc069d639b72e7f7e8e7171da8b9be"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/07_session_timeline.png",
+      "sha256": "21cb38ae35c793523a1ae9a58aff55601804365fdea695f8749e2048a14c4f57"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/candidate_step_001.png",
+      "sha256": "ea49d504bf2f8506e4e0b40d38675b6c4db1b3f319f57fe27eb38a123964431a"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/candidate_step_002.png",
+      "sha256": "89e19f19968da262b5eaf51c1d9ac70d31619d3c7c51b0b470628b134a7634ad"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/candidate_step_003.png",
+      "sha256": "be2b60df9e052764033aff9321934fb81c37f16f408783bb0531f3068dbf2edd"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/REPORT_CN.md",
+      "sha256": "cd759bca2db07b871ea43462c0777adf87465d34ba7d436cf7f8840f263db147"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/index.html",
+      "sha256": "8f329d1df3b83b8fb8d5ed4f066a871d932e994980a7e8ec6d1c9fb094afabbf"
+    }
+  ],
+  "map_visualization": {
+    "schema": "strawberry_gradient_nbv_visualization/v1",
+    "scene_id": "real_nbv_once_20260913T092956Z",
+    "snapshot_count": 3,
+    "coverage": [
+      0.049392,
+      0.110536,
+      0.177656
+    ],
+    "snapshot_sha256": [
+      "67dc50ac6f68ed905d28f4f991d106d70fdb75a6c3acff8ba0888ad03d5e840e",
+      "4a92c5ba907728957c6b6f818a941a5b42d126ca3a8134993893a70b2e36cc47",
+      "92bc361c83042ef8a4a24c09d8b96ea9e4b8e91d8526325ab2addb73ea282829"
+    ],
+    "step_png": [
+      "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/map/map_step_001.png",
+      "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/map/map_step_002.png",
+      "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/map/map_step_003.png"
+    ],
+    "final_png": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/map/nbv_map_final.png",
+    "animated_gif": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/map/nbv_map_progress.gif",
+    "legend": {
+      "unknown": "gray: no valid ray has touched this voxel",
+      "observed": "blue: seen by at least one valid depth ray",
+      "occupied": "dark: a measured depth surface endpoint",
+      "target": "red: a mask-supported target endpoint",
+      "camera": "green: measured camera path",
+      "next": "orange ring: proposed next camera position"
+    }
+  }
+}

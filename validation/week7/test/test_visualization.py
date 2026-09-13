@@ -162,6 +162,7 @@ def test_session_dashboard_creates_all_presentation_views(tmp_path: Path) -> Non
         "04_motion_profile.png",
         "05_accuracy_safety.png",
         "06_target_map_quality.png",
+        "07_session_timeline.png",
         "candidate_step_001.png",
         "candidate_step_002.png",
         "REPORT_CN.md",
@@ -169,6 +170,50 @@ def test_session_dashboard_creates_all_presentation_views(tmp_path: Path) -> Non
         "manifest.json",
     ):
         assert (tmp_path / "dashboard" / name).is_file(), name
+
+
+def test_session_dashboard_keeps_failed_post_view_truthful(tmp_path: Path) -> None:
+    import json
+
+    document = _execution()
+    document["status"] = "failed"
+    document["motion_goal_count"] = 3
+    document["reason"] = "target depth unavailable"
+    document["session_progress"].update(
+        {
+            "terminated": True,
+            "termination_reason": "target depth unavailable",
+            "gates_closed_at_termination": True,
+        }
+    )
+    document["motion_steps"].append(
+        {
+            "step_index": 3,
+            "T_base_camera": _pose(0.15, 0.1, 0.5),
+            "selected_candidate": {
+                "T_base_camera": _pose(0.15, 0.1, 0.5),
+            },
+            "execution": {"action_status": 4},
+            "motion_command_count_step": 62,
+            "postaction_gate_closure": {
+                "controller_false_ack_count": 2,
+                "driver_false_ack_count": 2,
+                "controller_diagnostic": {
+                    "values": {"execution_enabled": False},
+                },
+            },
+        }
+    )
+    execution = tmp_path / "aborted.json"
+    execution.write_text(json.dumps(document), encoding="utf-8")
+    manifest = render_session(execution, tmp_path / "aborted_dashboard")
+    assert manifest["motion_goal_count"] == 3
+    assert manifest["mapped_motion_count"] == 2
+    report = (tmp_path / "aborted_dashboard/REPORT_CN.md").read_text(
+        encoding="utf-8"
+    )
+    assert "实际高层运动次数：3" in report
+    assert "成功拍照并更新地图的运动次数：2" in report
 
 
 def test_observation_recorder_has_no_command_surface() -> None:

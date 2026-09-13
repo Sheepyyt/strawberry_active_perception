@@ -59,6 +59,20 @@ def _steps(document: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     return steps
 
 
+def _mapped_steps(
+    steps: Sequence[Mapping[str, Any]],
+) -> list[Mapping[str, Any]]:
+    """Return motions whose post-view was accepted into the voxel map.
+
+    A real session can safely finish a motion and then lose the camera or the
+    target while taking the post-view.  Such a motion remains in the audit
+    trail, but it has no coverage/post-pose record and must not be presented as
+    a successful map update.
+    """
+    required = ("coverage", "cumulative_camera_motion", "post_pose_error")
+    return [step for step in steps if all(key in step for key in required)]
+
+
 def _candidate_rounds(
     document: Mapping[str, Any], steps: Sequence[Mapping[str, Any]]
 ) -> list[tuple[int, list[Mapping[str, Any]], Mapping[str, Any] | None]]:
@@ -346,6 +360,93 @@ def render_target_and_map_quality(
     return _save(figure, output)
 
 
+def render_session_timeline(
+    document: Mapping[str, Any],
+    all_steps: Sequence[Mapping[str, Any]],
+    output: Path,
+) -> Path:
+    """Show exactly where a partially completed session stopped."""
+    labels = [int(step.get("step_index", i + 1)) for i, step in enumerate(all_steps)]
+    action_ok = [
+        int(step.get("execution", {}).get("action_status", -1)) == 4
+        for step in all_steps
+    ]
+    gate_ok = []
+    for step in all_steps:
+        closure = step.get("postaction_gate_closure", {})
+        diagnostic = closure.get("controller_diagnostic", {}).get("values", {})
+        gate_ok.append(
+            int(closure.get("controller_false_ack_count", 0)) >= 2
+            and int(closure.get("driver_false_ack_count", 0)) >= 2
+            and diagnostic.get("execution_enabled") is False
+        )
+    map_ok = ["coverage" in step for step in all_steps]
+    target_ok = [
+        int(step.get("post_target", {}).get("valid_mask_pixels", 0)) >= 100
+        for step in all_steps
+    ]
+    states = np.asarray((action_ok, gate_ok, map_ok, target_ok), dtype=float)
+    commands = [int(step.get("motion_command_count_step", 0)) for step in all_steps]
+    coverages = [
+        float(step.get("coverage", {}).get("after", math.nan)) * 100.0
+        for step in all_steps
+    ]
+
+    figure, axes = plt.subplots(
+        2,
+        1,
+        figsize=(12, 7.2),
+        gridspec_kw={"height_ratios": (1.1, 1.0)},
+        constrained_layout=True,
+    )
+    axes[0].imshow(states, cmap=matplotlib.colors.ListedColormap((RED, GREEN)),
+                   vmin=0, vmax=1, aspect="auto")
+    axes[0].set_xticks(np.arange(len(labels)), [f"step {value}" for value in labels])
+    axes[0].set_yticks(
+        np.arange(4),
+        ("motion reached", "both gates closed", "map updated", "target depth valid"),
+    )
+    for row in range(states.shape[0]):
+        for column in range(states.shape[1]):
+            axes[0].text(
+                column,
+                row,
+                "PASS" if states[row, column] else "STOP",
+                ha="center",
+                va="center",
+                color="white",
+                weight="bold",
+            )
+    axes[0].set_title(
+        "Truthful execution timeline: motion and mapping are separate gates",
+        color=NAVY,
+        weight="bold",
+    )
+
+    _style(axes[1])
+    x = np.arange(len(labels))
+    axes[1].bar(x, commands, color=CYAN, alpha=0.82, label="trajectory setpoints")
+    axes[1].set_xticks(x, [f"step {value}" for value in labels])
+    axes[1].set_ylabel("low-level setpoints")
+    axes[1].set_xlabel("high-level motion")
+    for index, value in enumerate(commands):
+        axes[1].text(index, value, str(value), ha="center", va="bottom")
+    coverage_axis = axes[1].twinx()
+    coverage_axis.plot(x, coverages, "o-", color=BLUE, lw=2.5, label="map coverage")
+    coverage_axis.set_ylabel("coverage after accepted view (%)")
+    handles, names = axes[1].get_legend_handles_labels()
+    handles2, names2 = coverage_axis.get_legend_handles_labels()
+    axes[1].legend(handles + handles2, names + names2, frameon=False)
+    reason = document.get("reason", document.get("status", "unknown"))
+    figure.suptitle(
+        f"Safe stop diagnosis · {reason}",
+        fontsize=16,
+        color=NAVY,
+        weight="bold",
+    )
+    return _save(figure, output)
+
+
 def _camera_matrix_for_step(step: Mapping[str, Any]) -> np.ndarray:
     post_map = step.get("post_map_update", {})
     value = post_map.get("T_base_camera_raw")
@@ -531,8 +632,9 @@ def render_dashboard(
         fontsize=11,
         color="#4a5868",
     )
+    total_motions = int(document.get("motion_goal_count", len(steps)))
     kpis = [
-        ("MOTIONS", f"{len(steps)}"),
+        ("MOTION / MAP", f"{total_motions} / {len(steps)}"),
         ("COVERAGE", f"{coverage[-1] * 100:.2f}%"),
         ("GAIN", f"+{(coverage[-1] - coverage[0]) * 100:.2f} pp"),
         ("PATH", f"{sum(motion):.0f} mm"),
@@ -617,7 +719,7 @@ def _write_reports(
 ) -> tuple[Path, Path]:
     progress = document.get("session_progress", {})
     rows = []
-    for step in _steps(document):
+    for step in _mapped_steps(_steps(document)):
         row_template = (
             "| {i} | {move:.1f} mm | {rot:.2f}° | {coverage:.2f}% | "
             "+{gain:.2f} pp | {error:.2f} mm / {angle:.3f}° | {pixels} |"
@@ -645,11 +747,18 @@ def _write_reports(
         or progress.get("termination_reason")
         or "达到预先设置的安全步数上限"
     )
-    gate_state = "已关闭" if not progress.get("terminated") else "请查看审计 JSON"
+    gate_state = (
+        "已关闭并复核"
+        if bool(progress.get("gates_closed_at_termination", False))
+        else "请查看审计 JSON"
+    )
+    total_motions = int(document.get("motion_goal_count", len(_steps(document))))
+    mapped_motions = len(_mapped_steps(_steps(document)))
     markdown.write_text(
         "# 真实 NBV 闭环展示报告\n\n"
         f"- 程序状态：`{document.get('status', 'unknown')}`\n"
-        f"- 实际高层运动次数：{len(_steps(document))}\n"
+        f"- 实际高层运动次数：{total_motions}\n"
+        f"- 成功拍照并更新地图的运动次数：{mapped_motions}\n"
         f"- coverage：{initial_coverage:.2f}% → {final_coverage:.2f}%\n"
         f"- 停止原因：{stop_reason}\n"
         f"- 运动结束时两道执行门：{gate_state}\n\n"
@@ -668,10 +777,16 @@ def _write_reports(
         "- `map/nbv_map_progress.gif`：体素地图随观察次数增长的动画。\n",
         encoding="utf-8",
     )
+    def source_for(path: Path) -> str:
+        try:
+            return path.resolve().relative_to(output_directory.resolve()).as_posix()
+        except ValueError:
+            return path.name
+
     image_rows = "\n".join(
         "<section><h2>{title}</h2><img src=\"{source}\"></section>".format(
             title=html.escape(path.stem.replace("_", " ").title()),
-            source=html.escape(path.name),
+            source=html.escape(source_for(path)),
         )
         for path in outputs
         if path.suffix.lower() == ".png"
@@ -689,7 +804,7 @@ def _write_reports(
         "box-shadow:0 8px 28px #10233f18}img{width:100%;height:auto;"
         "border-radius:10px}h1{font-size:38px;margin:0 0 12px}</style>"
         "<header><h1>真实机器人 Next-Best-View 闭环</h1>"
-        f"<p>状态：{page_status} · 运动 {len(_steps(document))} 次 · "
+        f"<p>状态：{page_status} · 运动 {total_motions} 次 · "
         f"最终 coverage {final_coverage:.2f}%</p></header>"
         f"<main>{image_rows}</main></html>\n",
         encoding="utf-8",
@@ -705,8 +820,11 @@ def render_session(
 ) -> dict[str, Any]:
     execution = Path(execution_path).expanduser().resolve()
     document = json.loads(execution.read_text(encoding="utf-8"))
-    steps = _steps(document)
-    rounds = _candidate_rounds(document, steps)
+    all_steps = _steps(document)
+    steps = _mapped_steps(all_steps)
+    if not steps:
+        raise ValueError("execution document has no successful post-map update")
+    rounds = _candidate_rounds(document, all_steps)
     output = Path(output_directory).expanduser().resolve()
     output.mkdir(parents=True, exist_ok=True)
     generated = [
@@ -719,6 +837,9 @@ def render_session(
         render_motion(steps, output / "04_motion_profile.png"),
         render_accuracy_and_safety(steps, output / "05_accuracy_safety.png"),
         render_target_and_map_quality(steps, output / "06_target_map_quality.png"),
+        render_session_timeline(
+            document, all_steps, output / "07_session_timeline.png"
+        ),
     ]
     target = np.asarray(
         document.get("final_target", {}).get(
@@ -744,14 +865,24 @@ def render_session(
         from strawberry_gradient_nbv.map_visualization import render_snapshot_sequence
 
         map_manifest = render_snapshot_sequence(snapshots, output / "map")
-    markdown, page = _write_reports(document, generated, output)
+    report_images = list(generated)
+    if map_manifest is not None:
+        report_images.append(Path(str(map_manifest["final_png"])))
+    for optional in (
+        output / "observations/observation_contact_sheet.png",
+        output / "voxel_3d/voxel_cloud_final_3d.png",
+    ):
+        if optional.is_file():
+            report_images.append(optional)
+    markdown, page = _write_reports(document, report_images, output)
     generated.extend((markdown, page))
     manifest = {
         "schema": "strawberry_nbv_presentation_bundle/v1",
         "execution_json": str(execution),
         "execution_sha256": _sha256(execution),
         "status": document.get("status"),
-        "motion_goal_count": len(steps),
+        "motion_goal_count": int(document.get("motion_goal_count", len(all_steps))),
+        "mapped_motion_count": len(steps),
         "session_progress": document.get("session_progress"),
         "candidate_round_count": len(rounds),
         "generated_files": [

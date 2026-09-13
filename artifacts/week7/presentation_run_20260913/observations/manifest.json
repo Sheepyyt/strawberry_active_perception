@@ -1,0 +1,50 @@
+{
+  "schema": "strawberry_observation_visualization/v1",
+  "observation_count": 3,
+  "inputs": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/long_session_observations/observation_001_agg5_9389f559b9616a06edafb4eb.npz",
+      "sha256": "08683099f2aeaa9d10571f009b391e5baa8096c72b8f11d7241c1a0ac6ce2b3a"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/long_session_observations/observation_002_agg5_7c36b7d96ccf43530d5726ee.npz",
+      "sha256": "c95acaa6831accb20052de8acfe7ff2d7ceeca3d7eaef4255d3605f00d68a01c"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/long_session_observations/observation_003_agg5_d9d036445713eafd91636754.npz",
+      "sha256": "c5bec3f83385ca764bae5f498bc81b57e99ca3eb04447c9f606ecaf6efb456bb"
+    }
+  ],
+  "mask_pixels": [
+    446,
+    564,
+    830
+  ],
+  "valid_mask_depth_pixels": [
+    264,
+    395,
+    625
+  ],
+  "rendered": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/observations/observation_001.png",
+      "sha256": "a53b0328f78a806d271ed3690b72bb61e3686816dc84b72904af4eaae447d660"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/observations/observation_002.png",
+      "sha256": "713fd3c026ae89d63a90ca905466f17a6f1b4d7e1de3a127add323a820b932d1"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/observations/observation_003.png",
+      "sha256": "4f5ee625551ceb3b2cb746eba4989fdffd151880bb6fec9b1ac3d682acff8375"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/observations/observation_contact_sheet.png",
+      "sha256": "7fa76f19322c5a938e067907dd4d5e6333e7a9b53fe5c1f225569f3282dfdb35"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/week7/presentation_run_20260913/observations/observation_progress.gif",
+      "sha256": "ed1dd5c29a6dbb1a6140e68d543f611cecb6e19220e42ae4c001d97712b04d6e"
+    }
+  ]
+}

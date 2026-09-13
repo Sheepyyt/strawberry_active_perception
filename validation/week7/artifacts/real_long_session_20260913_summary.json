@@ -5,6 +5,12 @@
   "status": "safe_stop_after_camera_input_failure",
   "scientific_acceptance_passed": false,
   "reason": "third motion reached, then target mask had zero valid-depth pixels; Gemini subsequently disappeared from the USB bus",
+  "post_incident_hardware_finding": {
+    "obox_power_adapter_label": "12V 1A",
+    "manufacturer_requirement": "12V >= 2A",
+    "host_kernel_event_after_replug": "USB over-current condition",
+    "disposition": "camera power and USB remain disconnected pending a correct original or electrically verified supply and cable inspection"
+  },
   "frozen_preview": {
     "path": "artifacts/week7/long_session_preview.json",
     "sha256": "4bb5345d349a50b1115eb152ce6a570c2dbbbe1bef81d2cbbe951dfd91a4b391"

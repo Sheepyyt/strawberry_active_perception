@@ -89,12 +89,14 @@ def test_adapter_config_declares_real_source_type():
     assert 'mask_dilation_kernel_size: 5' in config
 
 
-def test_adapter_source_uses_four_way_sync_and_both_camera_infos():
+def test_adapter_source_uses_deterministic_stamp_pairing_and_both_camera_infos():
     source = (
         Path(__file__).parents[1] / 'src' / 'strawberry_observation_node.cpp'
     ).read_text(encoding='utf-8')
-    assert 'Image, Image, CameraInfo, CameraInfo' in source
-    assert 'color_camera_info_subscriber_' in source
-    assert 'depth_camera_info_subscriber_' in source
+    assert 'message_filters' not in source
+    assert 'try_synchronize_locked' in source
+    assert 'color_camera_info_subscription_' in source
+    assert 'depth_camera_info_subscription_' in source
+    assert 'best_difference > sync_max_interval_ns_' in source
     assert '*sample.color_camera_info' in source
     assert '*sample.depth_camera_info' in source

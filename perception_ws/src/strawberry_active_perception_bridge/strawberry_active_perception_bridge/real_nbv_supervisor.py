@@ -4378,11 +4378,33 @@ class RealNBVSupervisor(Node):
                 post_view.pose, f"step {next_step_index} raw NextView"
             )
             raw_gain = float(post_view.gain)
-            if not math.isfinite(raw_gain) or raw_gain <= 0.0:
-                raise SupervisorError(
-                    f"step {next_step_index} NextView gain is not finite and positive"
-                )
             raw_motion = camera_motion(post_camera, raw_target)
+            if not math.isfinite(raw_gain):
+                raise SupervisorError(
+                    f"step {next_step_index} NextView gain is not finite"
+                )
+            if raw_gain <= 0.0:
+                convergence_reason = (
+                    "Gradient-NBV found no positive-gain next view in the "
+                    "current persistent map"
+                )
+                ledger.mark_converged(convergence_reason)
+                step_record["next_view_convergence"] = {
+                    "next_step_index": next_step_index,
+                    "reason": convergence_reason,
+                    "raw_translation_m": raw_motion.translation_m,
+                    "raw_rotation_deg": math.degrees(raw_motion.rotation_rad),
+                    "planned_gain": raw_gain,
+                    "source_observation_id": str(post_view.observation_id),
+                    "source_map_coverage": float(post_view.coverage),
+                    "motion_goal_sent": False,
+                }
+                audit["session_progress"] = ledger.summary()
+                audit["active_step_index"] = None
+                self._checkpoint_execution_audit(
+                    f"converged_before_step_{next_step_index}_no_positive_gain"
+                )
+                break
             if not camera_step_above_minimum(
                 raw_motion.translation_m, self.motion_limits
             ):
@@ -4420,9 +4442,41 @@ class RealNBVSupervisor(Node):
                 post_corrected.observation_id,
             )
             if dynamic_selected is None:
-                raise SupervisorError(
-                    f"step {next_step_index} has no reachable segmented view"
+                reachable_count = sum(
+                    bool(candidate.get("ik_gate_passed", False))
+                    for candidate in dynamic_candidates
                 )
+                useful_count = sum(
+                    bool(candidate.get("ik_gate_passed", False))
+                    and bool(candidate.get("gain_scored", False))
+                    and float(candidate.get("gain_improvement", 0.0)) > 0.0
+                    for candidate in dynamic_candidates
+                )
+                convergence_reason = (
+                    "no positive-gain reachable candidate remained in the "
+                    "predeclared multi-radius search lattice"
+                )
+                ledger.mark_converged(convergence_reason)
+                step_record["next_view_convergence"] = {
+                    "next_step_index": next_step_index,
+                    "reason": convergence_reason,
+                    "raw_translation_m": raw_motion.translation_m,
+                    "raw_rotation_deg": math.degrees(raw_motion.rotation_rad),
+                    "planned_gain": raw_gain,
+                    "source_observation_id": str(post_view.observation_id),
+                    "source_map_coverage": float(post_view.coverage),
+                    "candidate_count": len(dynamic_candidates),
+                    "reachable_candidate_count": reachable_count,
+                    "useful_candidate_count": useful_count,
+                    "ik_candidates": dynamic_candidates,
+                    "motion_goal_sent": False,
+                }
+                audit["session_progress"] = ledger.summary()
+                audit["active_step_index"] = None
+                self._checkpoint_execution_audit(
+                    f"converged_before_step_{next_step_index}_no_reachable_gain"
+                )
+                break
             dynamic_camera_target = validate_rigid_transform(
                 np.asarray(dynamic_selected["T_base_camera"], dtype=float),
                 f"step {next_step_index} selected camera",

@@ -5,9 +5,11 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <functional>
 #include <iomanip>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <sstream>
@@ -16,9 +18,6 @@
 #include <utility>
 #include <vector>
 
-#include "message_filters/subscriber.hpp"
-#include "message_filters/sync_policies/approximate_time.hpp"
-#include "message_filters/synchronizer.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -36,8 +35,6 @@ public:
   using CameraInfo = sensor_msgs::msg::CameraInfo;
   using Observation = strawberry_perception_interfaces::msg::Observation;
   using CaptureObservation = strawberry_perception_interfaces::srv::CaptureObservation;
-  using SyncPolicy = message_filters::sync_policies::ApproximateTime<
-    Image, Image, CameraInfo, CameraInfo>;
 
   StrawberryObservationNode()
   : Node("strawberry_observation")
@@ -94,6 +91,9 @@ public:
               "sync_queue_size >= 2, sample_queue_capacity >= 1, and max_discard_frames >= 0 required");
     }
     sample_queue_capacity_ = static_cast<size_t>(sample_queue_capacity);
+    sync_queue_capacity_ = static_cast<size_t>(sync_queue_size);
+    sync_max_interval_ns_ = static_cast<int64_t>(
+      std::llround(sync_max_interval_sec_ * 1.0e9));
 
     ProcessingConfig processing_config;
     processing_config.depth_16uc1_scale = declare_parameter<double>(
@@ -125,26 +125,27 @@ public:
     service_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     rclcpp::SubscriptionOptions subscription_options;
     subscription_options.callback_group = subscription_group_;
-    color_subscriber_.subscribe(
-      this, color_topic, rmw_qos_profile_sensor_data, subscription_options);
-    depth_subscriber_.subscribe(
-      this, depth_topic, rmw_qos_profile_sensor_data, subscription_options);
-    color_camera_info_subscriber_.subscribe(
-      this, color_camera_info_topic, rmw_qos_profile_sensor_data, subscription_options);
-    depth_camera_info_subscriber_.subscribe(
-      this, depth_camera_info_topic, rmw_qos_profile_sensor_data, subscription_options);
-
-    SyncPolicy policy(static_cast<uint32_t>(sync_queue_size));
-    policy.setMaxIntervalDuration(rclcpp::Duration::from_seconds(sync_max_interval_sec_));
-    synchronizer_ = std::make_shared<message_filters::Synchronizer<SyncPolicy>>(
-      static_cast<const SyncPolicy &>(policy),
-      color_subscriber_, depth_subscriber_, color_camera_info_subscriber_,
-      depth_camera_info_subscriber_);
-    synchronizer_->registerCallback(
+    const auto sensor_qos = rclcpp::SensorDataQoS();
+    color_subscription_ = create_subscription<Image>(
+      color_topic, sensor_qos,
+      std::bind(&StrawberryObservationNode::color_callback, this, std::placeholders::_1),
+      subscription_options);
+    depth_subscription_ = create_subscription<Image>(
+      depth_topic, sensor_qos,
+      std::bind(&StrawberryObservationNode::depth_callback, this, std::placeholders::_1),
+      subscription_options);
+    color_camera_info_subscription_ = create_subscription<CameraInfo>(
+      color_camera_info_topic, sensor_qos,
       std::bind(
-        &StrawberryObservationNode::synchronized_callback, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-        std::placeholders::_4));
+        &StrawberryObservationNode::color_camera_info_callback, this,
+        std::placeholders::_1),
+      subscription_options);
+    depth_camera_info_subscription_ = create_subscription<CameraInfo>(
+      depth_camera_info_topic, sensor_qos,
+      std::bind(
+        &StrawberryObservationNode::depth_camera_info_callback, this,
+        std::placeholders::_1),
+      subscription_options);
 
     capture_service_ = create_service<CaptureObservation>(
       capture_service,
@@ -192,7 +193,24 @@ private:
       static_cast<int>(values[0]), static_cast<int>(values[1]), static_cast<int>(values[2])};
   }
 
-  void synchronized_callback(
+  static int64_t stamp_nanoseconds(const builtin_interfaces::msg::Time & stamp)
+  {
+    if (stamp.sec < 0 || stamp.nanosec >= 1000000000U) {
+      return -1;
+    }
+    return static_cast<int64_t>(stamp.sec) * 1000000000LL +
+           static_cast<int64_t>(stamp.nanosec);
+  }
+
+  template<typename MessageT>
+  void prune_sync_map(std::map<int64_t, std::shared_ptr<const MessageT>> & values)
+  {
+    while (values.size() > sync_queue_capacity_) {
+      values.erase(values.begin());
+    }
+  }
+
+  void enqueue_synchronized_sample(
     const Image::ConstSharedPtr & color,
     const Image::ConstSharedPtr & depth,
     const CameraInfo::ConstSharedPtr & color_camera_info,
@@ -212,6 +230,103 @@ private:
       }
     }
     sample_condition_.notify_all();
+  }
+
+  void try_synchronize_locked()
+  {
+    while (true) {
+      auto selected_color = color_messages_.end();
+      auto selected_depth = depth_messages_.end();
+      int64_t best_difference = sync_max_interval_ns_ + 1LL;
+      for (auto color = color_messages_.begin(); color != color_messages_.end(); ++color) {
+        if (color_camera_infos_.count(color->first) == 0U) {
+          continue;
+        }
+        auto depth = depth_messages_.lower_bound(color->first);
+        std::array<decltype(depth), 2> candidates = {depth, depth};
+        if (depth != depth_messages_.begin()) {
+          candidates[1] = std::prev(depth);
+        }
+        for (const auto candidate : candidates) {
+          if (candidate == depth_messages_.end() ||
+            depth_camera_infos_.count(candidate->first) == 0U)
+          {
+            continue;
+          }
+          const int64_t difference = std::llabs(candidate->first - color->first);
+          if (difference < best_difference) {
+            selected_color = color;
+            selected_depth = candidate;
+            best_difference = difference;
+          }
+        }
+      }
+      if (selected_color == color_messages_.end() ||
+        selected_depth == depth_messages_.end() ||
+        best_difference > sync_max_interval_ns_)
+      {
+        return;
+      }
+      const int64_t color_stamp = selected_color->first;
+      const int64_t depth_stamp = selected_depth->first;
+      const auto color = selected_color->second;
+      const auto depth = selected_depth->second;
+      const auto color_info = color_camera_infos_.at(color_stamp);
+      const auto depth_info = depth_camera_infos_.at(depth_stamp);
+      color_messages_.erase(color_stamp);
+      depth_messages_.erase(depth_stamp);
+      color_camera_infos_.erase(color_stamp);
+      depth_camera_infos_.erase(depth_stamp);
+      enqueue_synchronized_sample(color, depth, color_info, depth_info);
+    }
+  }
+
+  void color_callback(const Image::ConstSharedPtr message)
+  {
+    const int64_t stamp = stamp_nanoseconds(message->header.stamp);
+    if (stamp < 0) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(sync_mutex_);
+    color_messages_[stamp] = message;
+    prune_sync_map(color_messages_);
+    try_synchronize_locked();
+  }
+
+  void depth_callback(const Image::ConstSharedPtr message)
+  {
+    const int64_t stamp = stamp_nanoseconds(message->header.stamp);
+    if (stamp < 0) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(sync_mutex_);
+    depth_messages_[stamp] = message;
+    prune_sync_map(depth_messages_);
+    try_synchronize_locked();
+  }
+
+  void color_camera_info_callback(const CameraInfo::ConstSharedPtr message)
+  {
+    const int64_t stamp = stamp_nanoseconds(message->header.stamp);
+    if (stamp < 0) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(sync_mutex_);
+    color_camera_infos_[stamp] = message;
+    prune_sync_map(color_camera_infos_);
+    try_synchronize_locked();
+  }
+
+  void depth_camera_info_callback(const CameraInfo::ConstSharedPtr message)
+  {
+    const int64_t stamp = stamp_nanoseconds(message->header.stamp);
+    if (stamp < 0) {
+      return;
+    }
+    std::lock_guard<std::mutex> lock(sync_mutex_);
+    depth_camera_infos_[stamp] = message;
+    prune_sync_map(depth_camera_infos_);
+    try_synchronize_locked();
   }
 
   static bool is_zero_stamp(const builtin_interfaces::msg::Time & stamp)
@@ -422,6 +537,8 @@ private:
   double sync_max_interval_sec_{0.02};
   int64_t max_discard_frames_{100};
   size_t sample_queue_capacity_{100U};
+  size_t sync_queue_capacity_{30U};
+  int64_t sync_max_interval_ns_{20000000LL};
 
   std::unique_ptr<ObservationProcessor> processor_;
   rclcpp::Publisher<Observation>::SharedPtr observation_publisher_;
@@ -429,11 +546,16 @@ private:
   rclcpp::CallbackGroup::SharedPtr subscription_group_;
   rclcpp::CallbackGroup::SharedPtr service_group_;
 
-  message_filters::Subscriber<Image> color_subscriber_;
-  message_filters::Subscriber<Image> depth_subscriber_;
-  message_filters::Subscriber<CameraInfo> color_camera_info_subscriber_;
-  message_filters::Subscriber<CameraInfo> depth_camera_info_subscriber_;
-  std::shared_ptr<message_filters::Synchronizer<SyncPolicy>> synchronizer_;
+  rclcpp::Subscription<Image>::SharedPtr color_subscription_;
+  rclcpp::Subscription<Image>::SharedPtr depth_subscription_;
+  rclcpp::Subscription<CameraInfo>::SharedPtr color_camera_info_subscription_;
+  rclcpp::Subscription<CameraInfo>::SharedPtr depth_camera_info_subscription_;
+
+  std::mutex sync_mutex_;
+  std::map<int64_t, Image::ConstSharedPtr> color_messages_;
+  std::map<int64_t, Image::ConstSharedPtr> depth_messages_;
+  std::map<int64_t, CameraInfo::ConstSharedPtr> color_camera_infos_;
+  std::map<int64_t, CameraInfo::ConstSharedPtr> depth_camera_infos_;
 
   std::mutex sample_mutex_;
   std::condition_variable sample_condition_;

@@ -12,7 +12,6 @@ find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(message_filters REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS calib3d core imgproc)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -39,7 +38,6 @@ target_include_directories(strawberry_observation_node
 ament_target_dependencies(strawberry_observation_node
   builtin_interfaces
   geometry_msgs
-  message_filters
   rclcpp
   sensor_msgs
   strawberry_perception_interfaces

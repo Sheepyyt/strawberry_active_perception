@@ -1021,9 +1021,10 @@ def test_bounded_session_policy_is_exactly_sha_bound_in_outer_preview(
 
 def test_large_motion_policy_prefers_visible_steps_but_allows_safe_fallback() -> None:
     policy = _session_policy(
-        3,
+        8,
         motion_profile=LARGE_MOTION_PROFILE,
         minimum_target_pixels=100,
+        coverage_target=0.20,
     )
     assert policy["schema"] == "strawberry_real_nbv_motion_session_policy/v4"
     assert policy["single_step_translation_min_exclusive_m"] == 0.001
@@ -1033,27 +1034,30 @@ def test_large_motion_policy_prefers_visible_steps_but_allows_safe_fallback() ->
     assert policy["reachable_candidate_radii_m"] == list(REACHABLE_VIEW_RADII_M)
     assert policy["reachable_candidate_direction_count"] == 18
     assert policy["near_best_gain_ratio"] == pytest.approx(0.90)
-    assert policy["cumulative_translation_max_m"] == 0.30
+    assert policy["cumulative_translation_max_m"] == 0.60
+    assert policy["cumulative_rotation_max_deg"] == pytest.approx(90.0)
     assert policy["maximum_ik_joint_delta_rad"] == 0.35
     assert policy["maximum_ik_position_error_m"] == 0.005
     assert policy["maximum_final_position_error_m"] == 0.005
     assert policy["minimum_valid_mask_depth_pixels"] == 100
     assert _authorization_token(
-        3, LARGE_MOTION_PROFILE
-    ) == "EXECUTE_REAL_NBV_LARGE_SESSION_3"
+        8, LARGE_MOTION_PROFILE
+    ) == "EXECUTE_REAL_NBV_LARGE_SESSION_8"
     assert _validate_bound_session_policy(
         {"session_policy": policy},
-        3,
+        8,
         motion_profile=LARGE_MOTION_PROFILE,
         minimum_target_pixels=100,
+        coverage_target=0.20,
     ) == policy
 
     ledger = MotionSessionLedger(
-        max_motion_steps=3,
+        max_motion_steps=8,
         initial_camera=np.eye(4),
-        initial_coverage=0.20,
+        initial_coverage=0.01,
         motion_limits=LARGE_MOTION_LIMITS,
         minimum_target_pixels=100,
+        coverage_target=0.20,
     )
     accepted = ledger.validate_next_planned_step(
         planned_start_camera=np.eye(4),
@@ -1073,12 +1077,49 @@ def test_large_motion_policy_prefers_visible_steps_but_allows_safe_fallback() ->
 
     with pytest.raises(ValueError, match="at least 100"):
         MotionSessionLedger(
-            max_motion_steps=3,
+            max_motion_steps=8,
             initial_camera=np.eye(4),
-            initial_coverage=0.20,
+            initial_coverage=0.01,
             motion_limits=LARGE_MOTION_LIMITS,
             minimum_target_pixels=99,
+            coverage_target=0.20,
         )
+
+
+def test_large_motion_profile_uses_eight_as_backstop_not_stop_rule() -> None:
+    ledger = MotionSessionLedger(
+        max_motion_steps=8,
+        initial_camera=np.eye(4),
+        initial_coverage=0.01,
+        motion_limits=LARGE_MOTION_LIMITS,
+        minimum_target_pixels=100,
+        coverage_target=0.99,
+    )
+    start = np.eye(4)
+    for index in range(1, 9):
+        target = _translated_camera(index * 0.075)
+        ledger.validate_next_planned_step(
+            planned_start_camera=start,
+            planned_camera=target,
+        )
+        ledger.record_closed_step(
+            planned_start_camera=start,
+            planned_camera=target,
+            actual_camera=target,
+            coverage_after=0.01 + index * 0.01,
+            target_valid_mask_depth_pixels=150,
+            reported_motion_goal_count=index,
+            gates_closed=True,
+        )
+        start = target
+    summary = ledger.summary()
+    assert summary["motion_goal_count"] == 8
+    assert summary["converged_early"] is False
+    assert summary["final_coverage"] == pytest.approx(0.09)
+    assert summary["motion_limits"]["cumulative_translation_max_m"] == 0.60
+    assert summary["motion_limits"]["cumulative_rotation_max_deg"] == pytest.approx(
+        90.0
+    )
 
 
 def test_small_motion_policy_keeps_two_hundred_pixel_floor() -> None:

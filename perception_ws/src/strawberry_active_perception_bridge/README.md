@@ -92,8 +92,10 @@ preview 会把完整 ConfigureNBV 请求、体素维度和地图原点写入 v3 
 
 ### 优先厘米级、不可达时自适应回退的独立实验
 
-`large_workspace_experimental` 与上面的 1–5 mm 已验证配置完全分开。它最多执行三步，
-累计最多 30 cm / 45°，单步旋转≤30°，IK 最大关节变化≤0.35 rad。监督器按
+`large_workspace_experimental` 与上面的 1–5 mm 已验证配置完全分开。它最多执行八步，
+累计最多 60 cm / 90°，单步旋转≤30°，IK 最大关节变化≤0.35 rad。八步只是防止程序
+无限运行的硬上限；默认达到 20% coverage、连续两步新增不足 0.5 个百分点、下一位移进入
+1 mm 死区或没有正收益可达点时提前停止。监督器按
 10/7.5/5/2.5/1/0.5 cm 与固定18方向生成有限候选：Placo 先过滤可达性，NBV 再用当前地图
 只读打分；在收益增量达到最佳值90%的候选中，优先选择位移最大的一个。因此5 cm只是演示
 优先值，不是硬下限；真正没有可达且有正收益的候选时才停止。
@@ -137,7 +139,7 @@ ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
   -p execution_plan_path:=/home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_preview.json \
   -p execution_plan_sha256:=<刚生成的64位SHA> \
   -p operator_workspace_clearance_confirmed:=true \
-  -p execution_authorization_token:=EXECUTE_REAL_NBV_LARGE_SESSION_3
+  -p execution_authorization_token:=EXECUTE_REAL_NBV_LARGE_SESSION_8
 ```
 
 这不是对历史小步授权的放宽：profile 名、距离范围、累计范围、控制器 joint gate、preview

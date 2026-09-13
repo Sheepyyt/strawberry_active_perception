@@ -15,7 +15,6 @@
   <depend>geometry_msgs</depend>
   <depend>launch</depend>
   <depend>launch_ros</depend>
-  <depend>message_filters</depend>
   <depend>libopencv-dev</depend>
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>

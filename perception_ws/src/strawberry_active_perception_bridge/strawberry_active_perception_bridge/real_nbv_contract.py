@@ -78,9 +78,13 @@ LARGE_MOTION_LIMITS = MotionLimits(
     maximum_ik_joint_delta_rad=0.35,
     maximum_ik_position_error_m=0.005,
     maximum_final_position_error_m=0.005,
-    maximum_session_translation_m=0.300,
-    maximum_session_rotation_rad=math.radians(45.0),
-    maximum_motion_steps=3,
+    # Eight is a safety backstop rather than the normal stopping rule.  The
+    # coverage target, plateau detector, deadband and reachable-candidate
+    # search are all evaluated first.  Six 10 cm moves are permitted in one
+    # audited session; later moves can still use shorter fallback radii.
+    maximum_session_translation_m=0.600,
+    maximum_session_rotation_rad=math.radians(90.0),
+    maximum_motion_steps=8,
 )
 MOTION_LIMITS_BY_PROFILE = {
     SMALL_MOTION_PROFILE: SMALL_MOTION_LIMITS,

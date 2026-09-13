@@ -4,8 +4,11 @@ real_nbv_supervisor:
     # defaults in real_nbv_supervisor.yaml.
     motion_profile: large_workspace_experimental
     execute: false
-    max_motion_steps: 3
-    coverage_target: 0.0
+    # Eight is only a hard safety backstop.  The normal exit is reaching 20%
+    # ROI ray coverage, two consecutive gains below 0.5 percentage point, or
+    # finding no positive-gain reachable candidate.
+    max_motion_steps: 8
+    coverage_target: 0.20
     coverage_plateau_delta: 0.005
     coverage_plateau_patience: 2
     operator_workspace_clearance_confirmed: false
@@ -64,7 +67,9 @@ real_nbv_supervisor:
     # The NBV optimizer may use the full 10 cm radius. The supervisor prefers
     # visible 5--10 cm candidates, then falls back to 25/10/5 mm if needed.
     max_step_m: 0.10
-    observation_bound_half_extent_m: 0.301
+    # The fixed box must cover the full 60 cm audited path envelope.  Each
+    # individual motion remains at most 10 cm and is checked against this box.
+    observation_bound_half_extent_m: 0.601
     max_target_drift_m: 0.020
     max_frozen_target_center_drift_m: 0.005
     max_plan_start_translation_drift_m: 0.001

@@ -102,6 +102,7 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 - [停止条件驱动的长闭环、相机断流安全停止历史实验](validation/week7/README.md)
 - [真实草莓五步闭环、60% 停止线与最新展示包](validation/week8/README.md)
 - [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
+- [交给网页端 GPT 制作进展汇报 PPT 的材料清单与 Prompt](PPT_HANDOFF_CN.md)
 
 ## 先直观看懂体素地图
 

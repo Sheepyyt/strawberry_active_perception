@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypins="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>strawberry_learned_mask</name>
+  <version>0.1.0</version>
+  <description>Audited YOLO11 strawberry instance-mask provider for canonical observations.</description>
+
+  <maintainer email="22313022@zju.edu.cn">yyt</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>strawberry_perception_interfaces</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

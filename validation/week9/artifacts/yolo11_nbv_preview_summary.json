@@ -1,0 +1,52 @@
+{
+  "schema": "strawberry_yolo11_nbv_preview_summary/v1",
+  "source_artifact": "artifacts/week9/yolo11_nbv_preview_20260913T1435.json",
+  "source_artifact_sha256": "9b8287d2cf4cdbb9232935d83076955a422f8bdac614f929f9e2aa24482da9d1",
+  "status": "passed_preview_only",
+  "execute_requested": false,
+  "safe_to_execute": false,
+  "motion_api_owned": false,
+  "command_publisher_owned": false,
+  "preview_motion_commands_observed": 0,
+  "scene_id": "real_nbv_once_20260913T143308Z",
+  "raw_observation_topic": "/strawberry/perception/learned_observation",
+  "model_sha256": "7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357",
+  "bootstrap_aggregate": {
+    "input_frames": 5,
+    "foreground_mask_pixels": 393,
+    "finite_depth_pixels": 156699
+  },
+  "planning_aggregate": {
+    "input_frames": 5,
+    "foreground_mask_pixels": 387,
+    "finite_depth_pixels": 156856
+  },
+  "target_center_drift_m": 0.0009883262046093489,
+  "initial_map": {
+    "roi_valid_ray_coverage": 0.19628800451755524,
+    "observed_voxels": 216100,
+    "occupied_voxels": 1197
+  },
+  "raw_gradient_candidate": {
+    "translation_m": 0.10000000127595576,
+    "rotation_deg": 2.6904511280079113,
+    "planned_gain": 0.039006274193525314
+  },
+  "selected_reachable_candidate": {
+    "translation_m": 0.01000000000000001,
+    "rotation_deg": 0.8227162071151302,
+    "current_gain": 0.025224212557077408,
+    "candidate_gain": 0.02593206986784935,
+    "gain_improvement": 0.0007078573107719421,
+    "reachable_candidate_count": 13,
+    "useful_candidate_count": 8,
+    "max_joint_delta_rad": 0.018000000000000016,
+    "minimum_joint_limit_clearance_rad": 0.019481108549444848,
+    "sigma_min": 0.10206348588914832,
+    "condition_number": 17.5583753411016,
+    "ik_position_error_m": 0.0008433877652859288,
+    "ik_orientation_error_rad": 0.0008609573327039334
+  },
+  "interpretation": "YOLO11 Observation reached the persistent voxel map, Gradient-NBV candidate evaluation, reachability filtering, and Placo SolveIK without requesting motion. The raw 100 mm gradient candidate was not used; the largest near-best reachable candidate at this joint posture was 10 mm.",
+  "next_action": "Generate a fresh preview at the intended experiment start posture before any learned-mask motion. This read-only artifact is evidence, not reusable execution authorization."
+}

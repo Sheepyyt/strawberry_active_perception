@@ -1,0 +1,241 @@
+{
+  "schema": "strawberry_yolo11_historical_validation/v1",
+  "control_capability": "none_offline_only",
+  "safe_for_robot_use": false,
+  "checkpoint_sha256": "7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357",
+  "checkpoint_size_bytes": 45192111,
+  "class_table": {
+    "0": "strawberry"
+  },
+  "confidence_threshold": 0.7,
+  "selection_policy": "highest_confidence_single_instance",
+  "frame_count": 7,
+  "passed_count": 7,
+  "all_passed": true,
+  "contact_sheet": "validation/week9/artifacts/yolo11_historical_contact_sheet.png",
+  "metrics_plot": "validation/week9/artifacts/yolo11_historical_metrics.png",
+  "frames": [
+    {
+      "sequence": 4,
+      "observation_id": "agg5_b105558f4a3af2fc53def6cf",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_004_agg5_b105558f4a3af2fc53def6cf.npz",
+      "input_sha256": "4a88c850938d87af1d8917393755ad228e8420aed64c1a4daa7e3a73fd37a9bc",
+      "confidence": 0.920799195766449,
+      "learned_mask_pixels": 335,
+      "learned_valid_depth_pixels": 220,
+      "learned_valid_depth_ratio": 0.6567164179104478,
+      "hsv_mask_pixels": 396,
+      "iou_vs_hsv": 0.72,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.920799195766449,
+          "pixels": 335
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.14223507046699524,
+          "pixels": 218
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.1345689445734024,
+          "pixels": 369
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.09352326393127441,
+          "pixels": 455
+        }
+      ],
+      "inference_ms": 739.7099749650806,
+      "passed": true
+    },
+    {
+      "sequence": 5,
+      "observation_id": "agg5_5f668572411e395368c0bc65",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_005_agg5_5f668572411e395368c0bc65.npz",
+      "input_sha256": "98002543216a675c1f7ebe40e3937aa7b564713d70c4add74e3d2eaa95677e91",
+      "confidence": 0.9219834208488464,
+      "learned_mask_pixels": 321,
+      "learned_valid_depth_pixels": 216,
+      "learned_valid_depth_ratio": 0.6728971962616822,
+      "hsv_mask_pixels": 398,
+      "iou_vs_hsv": 0.7536585365853659,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.9219834208488464,
+          "pixels": 321
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.16748805344104767,
+          "pixels": 224
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.058749862015247345,
+          "pixels": 449
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.05380602926015854,
+          "pixels": 368
+        }
+      ],
+      "inference_ms": 267.957221949473,
+      "passed": true
+    },
+    {
+      "sequence": 6,
+      "observation_id": "agg5_e7d3ae1168f5fb14d7739b58",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_006_agg5_e7d3ae1168f5fb14d7739b58.npz",
+      "input_sha256": "6fe32f63493ddb43e0b3de131ea82e25bcf3b2f65525b9aa96273a7d789f66cd",
+      "confidence": 0.9289369583129883,
+      "learned_mask_pixels": 352,
+      "learned_valid_depth_pixels": 237,
+      "learned_valid_depth_ratio": 0.6732954545454546,
+      "hsv_mask_pixels": 439,
+      "iou_vs_hsv": 0.7384615384615385,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.9289369583129883,
+          "pixels": 352
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.3500056266784668,
+          "pixels": 381
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.06407658010721207,
+          "pixels": 266
+        }
+      ],
+      "inference_ms": 231.36291117407382,
+      "passed": true
+    },
+    {
+      "sequence": 7,
+      "observation_id": "agg5_cb5a143f082bb031585b5959",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_007_agg5_cb5a143f082bb031585b5959.npz",
+      "input_sha256": "5610b6b9dbb917e45e74b15005858f5228e9fa3c14635c5899c94b38af008393",
+      "confidence": 0.9092919230461121,
+      "learned_mask_pixels": 383,
+      "learned_valid_depth_pixels": 283,
+      "learned_valid_depth_ratio": 0.7389033942558747,
+      "hsv_mask_pixels": 449,
+      "iou_vs_hsv": 0.7442348008385744,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.9092919230461121,
+          "pixels": 383
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.3242625892162323,
+          "pixels": 406
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.09924858808517456,
+          "pixels": 686
+        }
+      ],
+      "inference_ms": 258.5665420629084,
+      "passed": true
+    },
+    {
+      "sequence": 8,
+      "observation_id": "agg5_b24175a3288f22bbfbc2beaf",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_008_agg5_b24175a3288f22bbfbc2beaf.npz",
+      "input_sha256": "92667081548e4f59cb2598a4acdb9058203d1f2739f421fe69731195be21dad5",
+      "confidence": 0.923952579498291,
+      "learned_mask_pixels": 397,
+      "learned_valid_depth_pixels": 326,
+      "learned_valid_depth_ratio": 0.8211586901763224,
+      "hsv_mask_pixels": 467,
+      "iou_vs_hsv": 0.7925311203319502,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.923952579498291,
+          "pixels": 397
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.267162561416626,
+          "pixels": 442
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.07790053635835648,
+          "pixels": 298
+        }
+      ],
+      "inference_ms": 189.2650369554758,
+      "passed": true
+    },
+    {
+      "sequence": 9,
+      "observation_id": "agg5_3da34b1820a3e0d1a56dcbdc",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_009_agg5_3da34b1820a3e0d1a56dcbdc.npz",
+      "input_sha256": "471428d64105be126367092ab5198513efdcd7be56e5b55f03a52a524ade8d7e",
+      "confidence": 0.9300301671028137,
+      "learned_mask_pixels": 400,
+      "learned_valid_depth_pixels": 346,
+      "learned_valid_depth_ratio": 0.865,
+      "hsv_mask_pixels": 492,
+      "iou_vs_hsv": 0.7628458498023716,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.9300301671028137,
+          "pixels": 400
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.10497541725635529,
+          "pixels": 444
+        }
+      ],
+      "inference_ms": 204.21010092832148,
+      "passed": true
+    },
+    {
+      "sequence": 10,
+      "observation_id": "agg5_29655c33de25b1d05b49bf7c",
+      "input_file": "artifacts/week8/run_20260913_2025/observations/observation_010_agg5_29655c33de25b1d05b49bf7c.npz",
+      "input_sha256": "0a58c5bb2fea224219e8669c0dba86da6c3dd2b685f725d122bf0a111e0423a4",
+      "confidence": 0.921546995639801,
+      "learned_mask_pixels": 394,
+      "learned_valid_depth_pixels": 358,
+      "learned_valid_depth_ratio": 0.9086294416243654,
+      "hsv_mask_pixels": 494,
+      "iou_vs_hsv": 0.7689243027888446,
+      "raw_instances": [
+        {
+          "label": "strawberry",
+          "confidence": 0.921546995639801,
+          "pixels": 394
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.08098234981298447,
+          "pixels": 219
+        },
+        {
+          "label": "strawberry",
+          "confidence": 0.06273375451564789,
+          "pixels": 408
+        }
+      ],
+      "inference_ms": 172.81446792185307,
+      "passed": true
+    }
+  ]
+}

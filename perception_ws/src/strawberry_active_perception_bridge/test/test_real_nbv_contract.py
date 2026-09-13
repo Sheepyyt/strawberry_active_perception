@@ -38,9 +38,6 @@ from strawberry_active_perception_bridge.real_nbv_contract import (
     wire_bool,
     wire_uint8,
 )
-from strawberry_active_perception_bridge.transforms import (
-    pose_components_to_matrix,
-)
 from strawberry_active_perception_bridge.real_nbv_supervisor import (
     DEFAULT_PLAN_PATH,
     DEFAULT_PLAN_SHA256,
@@ -56,9 +53,30 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     _session_policy,
     _validate_bound_session_policy,
     _validate_controller_parameter_values,
+    _validate_upstream_mask_source,
     _verify_new_aggregate_batch,
     _verify_new_batch_pair,
 )
+from strawberry_active_perception_bridge.transforms import (
+    pose_components_to_matrix,
+)
+
+
+def test_upstream_mask_can_be_disabled_only_for_learned_observation() -> None:
+    assert _validate_upstream_mask_source(
+        "/strawberry/perception/observation", True
+    )
+    assert not _validate_upstream_mask_source(
+        "/strawberry/perception/learned_observation", False
+    )
+    with pytest.raises(SupervisorError, match="learned Observation"):
+        _validate_upstream_mask_source(
+            "/strawberry/perception/observation", False
+        )
+    with pytest.raises(SupervisorError, match="boolean"):
+        _validate_upstream_mask_source(
+            "/strawberry/perception/learned_observation", 0
+        )
 
 
 def test_frozen_target_identity_gate_matches_measured_camera_repeatability() -> None:

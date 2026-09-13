@@ -1,0 +1,20 @@
+strawberry_learned_mask:
+  ros__parameters:
+    checkpoint_path: artifacts/models/yolo11m_strawberry_best.pt
+    checkpoint_sha256: 7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357
+    # This is allowed only because the user supplied this exact weight and its
+    # SHA is checked before Ultralytics unpickles it.
+    accept_pickle_checkpoint: true
+    input_observation_topic: /strawberry/perception/observation
+    output_observation_topic: /strawberry/perception/learned_observation
+    allowed_labels: [strawberry]
+    confidence_threshold: 0.70
+    mask_threshold: 0.50
+    # The current experiment follows one fruit. Do not silently merge several
+    # fruit instances into one NBV target.
+    instance_policy: highest_confidence
+    minimum_mask_pixels: 200
+    minimum_valid_depth_pixels: 100
+    device: "cpu"
+    image_size: 640
+    audit_directory: artifacts/learned_mask/runtime

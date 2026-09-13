@@ -1,6 +1,7 @@
 # Python 虚拟环境和缓存
 .venv/
 .venv-nbv/
+.venv-mask/
 **/__pycache__/
 *.py[cod]
 **/.pytest_cache/
@@ -77,6 +78,14 @@ validation/week6/artifacts/*
 !validation/week8/artifacts/voxel_cloud_growth.gif
 !validation/week8/artifacts/voxel_cloud_spin.gif
 !validation/week8/artifacts/REPORT_CN.md
+!validation/week9/artifacts/
+!validation/week9/artifacts/yolo11_historical_contact_sheet.png
+!validation/week9/artifacts/yolo11_historical_metrics.png
+!validation/week9/artifacts/yolo11_historical_report.json
+!validation/week9/artifacts/yolo11_live_overlay.png
+!validation/week9/artifacts/yolo11_live_mask.png
+!validation/week9/artifacts/yolo11_live_report.json
+!validation/week9/artifacts/yolo11_nbv_preview_summary.json
 validation/week2/artifacts/camera_*.json
 validation/week2/artifacts/cold_start_*.json
 validation/week2/artifacts/known_plane*.json

@@ -1,0 +1,19 @@
+{
+  "schema": "strawberry_yolo11_checkpoint_manifest/v1",
+  "recorded_on": "2026-09-13",
+  "original_path": "/home/yyt/Downloads/best.pt",
+  "project_local_path": "artifacts/models/yolo11m_strawberry_best.pt",
+  "size_bytes": 45192111,
+  "sha256": "7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357",
+  "archive_format": "PyTorch zip archive with pickle-bearing data.pkl",
+  "embedded_ultralytics_version": "8.3.74",
+  "embedded_task": "segment",
+  "embedded_model": "yolo11m-seg",
+  "embedded_names": {
+    "0": "strawberry"
+  },
+  "embedded_ultralytics_license_text": "AGPL-3.0 (https://ultralytics.com/license)",
+  "checkpoint_and_training_data_redistribution_license": "not provided; checkpoint is not committed",
+  "validation_status": "7/7 saved real views and one current live camera view passed",
+  "robot_use_status": "camera-read-only integration passed; no learned-mask robot motion has been authorized or executed"
+}

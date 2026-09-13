@@ -1,0 +1,9 @@
+# Isolated CPU inference environment. Do not install into .venv or .venv-nbv.
+# The +cpu wheels avoid downloading a duplicate multi-gigabyte CUDA runtime.
+--extra-index-url https://download.pytorch.org/whl/cpu
+numpy==1.26.4
+opencv-python==4.10.0.84
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+ultralytics==8.3.74
+ultralytics-thop==2.0.14

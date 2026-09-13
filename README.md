@@ -23,6 +23,13 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
   `executed_session_scientific_acceptance_passed`。图片、动画、审计 SHA 和复现命令见
   [Week 8 报告](validation/week8/README.md)。
 
+- **YOLO11m 草莓实例分割已经接入统一 Observation。** 用户提供的权重经 SHA-256 固定，
+  模型类别表只有 `strawberry`。历史 7 个真实机械臂视角全部通过，目标置信度
+  `0.909–0.930`；当前相机只读实测置信度 `0.925`、mask `394` 像素、其中有效深度
+  `352` 像素，推理约 `200 ms`。全链 `execute=false` 预演也已通过：五帧学习式 mask
+  成功进入体素地图、可达候选筛选和 Placo IK，全程运动命令为 0。学习式 mask 驱动的真实
+  运动尚未执行，历史 HSV 计划不可复用。图片与命令见 [Week 9](validation/week9/README.md)。
+
 - 前一轮“停止条件驱动、最多 8 步”实验实际执行了 3 个约 10 cm 的高层动作；前两次
   动作后的观测成功加入同一张体素地图，coverage `4.94% → 11.05% → 17.77%`，两步分别
   增加 `6.11 / 6.71` 个百分点。第三次动作正常到达、累计产生 256 个平滑轨迹采样点，
@@ -171,22 +178,19 @@ source perception_ws/install/setup.bash
 不等于草莓真实表面被看全的比例。因此当前推荐先用平台期停止；积累多次真实实验曲线后，
 再把一个有数据依据的绝对目标写进配置。
 
-## “真正的草莓分割”是什么
+## 学习式草莓分割现在做到哪里
 
-是 mask。mask 是一张与彩色图同尺寸的黑白图：草莓像素为 255（白），其他像素为 0
-（黑）。当前程序通过 HSV 颜色阈值找红色，因此镜头前放真实草莓可以跑通几何闭环，但它
-不能理解“草莓”这个类别，红杯子、红纸或偏色光照都可能误判。
+mask 是一张与彩色图同尺寸的黑白图：草莓像素为 255（白），其他像素为 0（黑）。前八周
+真实闭环通过 HSV 颜色阈值找红色，它能跑通几何闭环，但不能理解“草莓”这个类别，红杯子、
+红纸或偏色光照都可能误判。
 
-当前先继续使用 HSV：它已经接入、无需训练、行为可解释，最适合验证“拍照→建图→选视角→
-运动→再拍照”整条链。它的缺点也很明确：它识别的是“红色区域”，不是“草莓”。
+现在已经接入用户提供的 YOLO11m-seg 权重。模型输出仍是同尺寸 `mono8` mask，后面的
+Observation、NBV、手眼、IK 和运动代码完全复用。默认只选置信度最高的一颗草莓；历史和
+当前相机只读验证均通过。模型失败时输出空 mask 并停止，不会静默改用 HSV 继续运动。
 
-通用 COCO Mask R-CNN 权重没有草莓这一类别，不能直接产生可靠草莓 mask；但网络上确实有
-草莓专用权重。本项目已核验两个候选：优先评估有 Apache-2.0 许可证、预训练草莓实例分割
-和 ROS 2 代码的 `LCAS/aoc_fruit_detector`；Hugging Face 上另一个 YOLOv8 分割权重缺少
-模型卡、指标和许可证，只允许在隔离环境离线试图，不作为真机默认输入。详情、固定 SHA 和
-离线 mask/叠加图工具见 [Week 6](validation/week6/README.md)。学习模型最终仍只需输出同尺寸
-`mono8` 黑白 mask，后面的 Observation、NBV、手眼、IK 和运动代码完全复用。暂不使用需要
-额外权限的 SAM3，不影响当前阶段推进。
+通用 COCO Mask R-CNN 没有草莓类别，因此不如这份草莓专用权重直接。当前权重的训练数据
+来源与再分发许可尚未提供，所以 Git 只保存模型哈希、环境版本、接口和验证结果，不提交
+`best.pt` 本体。详细审计、HSV/YOLO 对比图和复现命令见 [Week 9](validation/week9/README.md)。
 
 ## 从新电脑复现
 
@@ -208,7 +212,7 @@ NERO v1.11 的启动、电子阻尼急停和 `move_home` 控制门是固定上�
 
 脚本同时校验子模块 commit 和补丁 SHA；版本不符会拒绝修改，不会静默套到另一版驱动。
 
-### 2. 两个互相隔离的 Python 环境
+### 2. 三个互相隔离的 Python 环境
 
 ```bash
 python3 -m venv --system-site-packages --prompt sap-core .venv
@@ -220,10 +224,16 @@ python3 -m venv --system-site-packages --prompt sap-nbv .venv-nbv
 source .venv-nbv/bin/activate
 python -m pip install -r perception_ws/src/strawberry_gradient_nbv/requirements-nbv.txt
 deactivate
+
+python3 -m venv --system-site-packages --prompt sap-mask .venv-mask
+source .venv-mask/bin/activate
+python -m pip install -r validation/week9/requirements-yolo11.txt
+deactivate
 ```
 
 `.venv` 服务 Placo；`.venv-nbv` 服务 PyTorch/Gradient-NBV。相机适配器使用系统 C++ OpenCV，
-从而避开 NumPy 2 与系统 `cv_bridge` 的 ABI 冲突。
+`.venv-mask` 固定 CPU 版 PyTorch/Ultralytics 并只服务 YOLO11 mask。三者隔离是为了避免
+CUDA、NumPy 2 与系统 `cv_bridge` 互相污染。
 
 ### 3. 构建三个工作区
 
@@ -251,6 +261,15 @@ source .venv-nbv/bin/activate
 python -m colcon --log-base perception_ws/log build \
   --symlink-install --base-paths perception_ws/src \
   --build-base perception_ws/build --install-base perception_ws/install
+deactivate
+
+# 用它自己的解释器重新生成 YOLO11 节点入口。
+source perception_ws/install/setup.bash
+source .venv-mask/bin/activate
+python -m colcon --log-base perception_ws/log build \
+  --symlink-install --base-paths perception_ws/src \
+  --build-base perception_ws/build --install-base perception_ws/install \
+  --packages-select strawberry_learned_mask
 deactivate
 ```
 
@@ -295,7 +314,8 @@ perception_ws/src/
   strawberry_gradient_nbv/             纯核心、回放、地图快照与可视化
   strawberry_handeye_calibration/      手眼标定与稳定性验证
   strawberry_active_perception_bridge/ NBV→手眼→IK→受监督运动
-validation/week1..week8/      可提交的小型数据、报告和真实执行证据
+  strawberry_learned_mask/              YOLO11 草莓实例 mask
+validation/week1..week9/      可提交的小型数据、报告和真实执行证据
 vendor_patches/agx_arm_ros/   受版本/SHA 保护的 NERO v1.11 安全补丁
 nero_exhibition_demo/         与科研参数隔离的展示程序
 artifacts/                    大型 rosbag/现场原始数据（本机保留，不提交）
@@ -311,7 +331,7 @@ Python 缓存、现场失败草稿和重复 JSON 都不提交。`artifacts/week2
 换方向或逐级缩小，仍有正收益时才运动。本轮在同一张地图中达到 60% 实验停止线后正常
 结束，证明这条流程已经跑通。
 
-下一步不再重复证明控制流程，而是提高感知含义：先用本轮保存的相机图片离线比较 HSV 与
-可公开使用的预训练草莓分割模型，只有学习式 mask 的叠加图和离线地图结果稳定后，才允许
-它控制机械臂。同时应把目前的“ROI 有效射线 coverage”升级为更接近草莓表面完整度的指标。
-双臂、采摘和无人值守连续运动暂不进入本阶段。
+下一步不再寻找别的分割模型：学习式 mask 的 `execute:=false` NBV preview 已通过，下一轮
+应在明确的实验起始姿态重新生成计划，并先复查目标中心、关节余量、候选和停止条件，再做
+一次受监督的 YOLO-mask 真实闭环。历史 HSV 计划不能复用。同时应把“ROI 有效射线 coverage”
+逐步升级为更接近草莓表面完整度的指标。双臂、采摘和无人值守连续运动暂不进入本阶段。

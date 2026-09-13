@@ -1,7 +1,7 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
   "generated_on": "2026-09-13",
-  "scope": "real strawberry HSV loop, an audited reachability-aware five-step Gradient-NBV session stopped at 60 percent ROI ray coverage, voxel-map visualization, and learned-mask preparation",
+  "scope": "real strawberry HSV loop, an audited reachability-aware five-step Gradient-NBV session stopped at 60 percent ROI ray coverage, voxel-map visualization, and hash-pinned YOLO11 strawberry segmentation through camera-read-only validation",
   "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
@@ -11,6 +11,17 @@
     "repository": "https://github.com/akshaykburusa/gradientnbv",
     "audited_commit": "81b501defc117732f66478ed01cb528b15140208",
     "note": "independent implementation; see strawberry_gradient_nbv/NOTICE"
+  },
+  "local_learned_mask_checkpoint": {
+    "path": "artifacts/models/yolo11m_strawberry_best.pt",
+    "sha256": "7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357",
+    "size_bytes": 45192111,
+    "model": "Ultralytics yolo11m-seg",
+    "embedded_ultralytics_version": "8.3.74",
+    "classes": {
+      "0": "strawberry"
+    },
+    "redistribution": "not committed because checkpoint/training-data license was not supplied"
   },
   "vendor_patch": {
     "path": "vendor_patches/agx_arm_ros/nero_v111_safety.patch",
@@ -56,6 +67,34 @@
     {
       "path": "validation/week8/artifacts/voxel_cloud_growth.gif",
       "sha256": "3a4fb7be01754d39119b2022a463b407787da398b6806c3b0f4d5727bd932aed"
+    },
+    {
+      "path": "validation/week9/model_manifest.json",
+      "sha256": "cf7ebc0159abbcfb901f2b88bc4c0281213f00652294f6844fe367b3bf43464b"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_historical_report.json",
+      "sha256": "119499b6349f73ed80dc7b2cdab2741218fd3c80f84df13fa783d3c082bc76d9"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_historical_contact_sheet.png",
+      "sha256": "9b116c0ada31b635bfe9df4f5c58f489bfcb25d99759c5db73973c94ae7c249d"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_historical_metrics.png",
+      "sha256": "79273b5137e3063bb1cab5114f0c5c4014e3f66efd4c5152a2859139819c3bdf"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_live_report.json",
+      "sha256": "4acd27d97d82ad35647562fd74a85a183d847c31da754dd956a12e5739c53c2a"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_live_overlay.png",
+      "sha256": "2c0520cb1144bbfc14cf306a96a82f522813138251100c5f477641a1fae525df"
+    },
+    {
+      "path": "validation/week9/artifacts/yolo11_nbv_preview_summary.json",
+      "sha256": "bf069a3334e15921bf6ad999f5953ce3ee7e13c16932611ab3bc8d4f71a7cc88"
     },
     {
       "path": "validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json",
@@ -144,18 +183,18 @@
     "nero_exhibition_demo": "6 checks passed including two offline previews",
     "strawberry_gradient_nbv": "61 passed",
     "strawberry_handeye_calibration": "34 passed",
-    "bridge_and_week4": "102 passed",
+    "bridge_and_week4": "103 passed",
     "week2_and_week3_validation_tools": "45 passed",
     "week6_mask_and_candidate_visualization_tests": "6 passed",
     "week7_session_and_visualization": "5 passed",
-    "perception_colcon_test_result": "215 tests, 0 errors, 0 failures, 4 skipped",
+    "strawberry_learned_mask": "12 passed; 7/7 historical real observations and one live camera observation passed quality gates",
+    "perception_colcon_test_result": "227 tests, 0 errors, 0 failures, 4 skipped",
     "clean_builds": "camera 3 packages; NERO 5 packages; perception 5 packages"
   },
   "reproduce_command": "./verify_software.sh",
   "limitations": [
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
-    "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
-    "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
+    "the completed five-step real-motion evidence used an HSV red-color mask; YOLO11 semantic segmentation has passed offline and current-camera read-only validation but has not yet controlled a real motion",
     "the latest reachability-aware profile completed five real camera motions, travelled about 102 mm, and increased ROI valid-ray coverage from 15.06 to 60.84 percent",
     "the 60 percent stopping line is an experiment setting for ROI valid-ray coverage, not a universal strawberry reconstruction-completeness threshold",
     "historical real runs did not store dense voxel arrays; the latest 2026-09-13 run stores six reproducible visualization snapshots",

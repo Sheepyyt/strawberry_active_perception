@@ -170,6 +170,24 @@ class GateClosureError(SupervisorError):
     """A fatal inability to prove both command gates closed."""
 
 
+def _validate_upstream_mask_source(
+    raw_observation_topic: str, upstream_mask_required: bool
+) -> bool:
+    """Allow mask-free camera capture only behind the audited learned provider."""
+    if not isinstance(upstream_mask_required, bool):
+        raise SupervisorError("upstream_mask_required must be boolean")
+    if (
+        not upstream_mask_required
+        and raw_observation_topic
+        != "/strawberry/perception/learned_observation"
+    ):
+        raise SupervisorError(
+            "upstream_mask_required may be false only for the audited "
+            "learned Observation topic"
+        )
+    return upstream_mask_required
+
+
 def _validate_controller_parameter_values(
     decoded: dict[str, Any], motion_limits: MotionLimits
 ) -> dict[str, Any]:
@@ -1252,6 +1270,7 @@ class RealNBVSupervisor(Node):
         self.declare_parameter(
             "capture_service", "/strawberry/perception/capture_observation"
         )
+        self.declare_parameter("upstream_mask_required", True)
         self.declare_parameter("configure_service", "/strawberry/nbv/configure")
         self.declare_parameter(
             "evaluate_candidates_service", "/strawberry/nbv/evaluate_candidates"
@@ -1420,6 +1439,10 @@ class RealNBVSupervisor(Node):
             raise SupervisorError("observation topics must be non-empty")
         if self.raw_topic == self.corrected_topic:
             raise SupervisorError("raw and corrected Observation topics must differ")
+        self.upstream_mask_required = _validate_upstream_mask_source(
+            self.raw_topic,
+            self.get_parameter("upstream_mask_required").value,
+        )
 
         self.report = load_verified_handeye_report(
             str(self.get_parameter("handeye_report_path").value),
@@ -1774,7 +1797,7 @@ class RealNBVSupervisor(Node):
             self.get_parameter("capture_discard_frames").value
         )
         request.require_color = True
-        request.require_mask = True
+        request.require_mask = self.upstream_mask_required
         # The adapter's fixed camera_session/I pose is deliberately ignored.
         request.require_pose = False
         requested_not_before_ns = stamp_nanoseconds(
@@ -1816,7 +1839,7 @@ class RealNBVSupervisor(Node):
             "not_before_ns": requested_not_before_ns,
             "discard_frames": int(request.discard_frames),
             "require_color": True,
-            "require_mask": True,
+            "require_mask": self.upstream_mask_required,
             "require_pose": False,
             "response_code": int(response.code),
             "response_reason": str(response.reason),

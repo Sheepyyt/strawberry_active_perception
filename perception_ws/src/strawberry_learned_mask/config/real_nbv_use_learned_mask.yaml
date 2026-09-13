@@ -1,0 +1,7 @@
+real_nbv_supervisor:
+  ros__parameters:
+    # CaptureObservation still asks the C++ camera adapter for a synchronized
+    # frame. The supervisor waits for the same scene/ID after this package has
+    # replaced only target_mask with the YOLO11 result.
+    raw_observation_topic: /strawberry/perception/learned_observation
+    upstream_mask_required: false

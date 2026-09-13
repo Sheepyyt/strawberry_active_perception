@@ -1,0 +1,19 @@
+{
+  "schema": "strawberry_yolo11_live_snapshot/v1",
+  "control_capability": "subscriber_only_no_robot_interface",
+  "robot_motion_command_count_during_prior_probe": 0,
+  "scene_id": "manual_yolo11_20260913T143148Z",
+  "observation_id": "obs_1789309909_247184896",
+  "source_name": "gemini2xl_AYML241003A|mask=yolo11m:7bea8d97b68c:conf0.70:accepted",
+  "stamp_ns": 1789309909247184896,
+  "image_size": [
+    640,
+    400
+  ],
+  "mask_pixels": 394,
+  "valid_depth_pixels_in_mask": 352,
+  "valid_depth_ratio_in_mask": 0.8934010152284264,
+  "median_target_depth_m": 0.5490000247955322,
+  "overlay": "validation/week9/artifacts/yolo11_live_overlay.png",
+  "mask": "validation/week9/artifacts/yolo11_live_mask.png"
+}

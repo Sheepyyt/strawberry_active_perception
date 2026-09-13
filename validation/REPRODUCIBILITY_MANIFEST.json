@@ -1,7 +1,7 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
   "generated_on": "2026-09-13",
-  "scope": "real strawberry HSV loop, one audited 50 mm Gradient-NBV motion, voxel-map visualization, learned-mask preparation, and an offline-validated reachability-aware multi-direction fallback",
+  "scope": "real strawberry HSV loop, an audited reachability-aware three-step 100 mm Gradient-NBV session, voxel-map visualization, and learned-mask preparation",
   "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
@@ -68,6 +68,50 @@
     {
       "path": "validation/week6/artifacts/real_large_step_nbv_map_progress.gif",
       "sha256": "4b0286969248d35cf4601eeece5e6aad4a9eb25239a65b6e497cc75835f9676e"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_preview_r30_20260913.json",
+      "sha256": "f4920998b6879c619ed40df735f6a3bc756d6d3d7ab8ed2717f421eb54316e1f"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_execution_r30_20260913.json",
+      "sha256": "16ee5c138119041e6cbd677704be0269e80df8dcc72978c9a2fb5d97b618af29"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_authorization_r30_20260913.json",
+      "sha256": "b46726ae241e7a41f7a716b076bf5a9cb0d28380783dcb79b331b3599069294f"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_candidates_r30_20260913.png",
+      "sha256": "538a14d646b10d85f098fd240a40d0e61c535f905b5dcfd87b5eed15ca4205e6"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_final.png",
+      "sha256": "d14b50bdbc6732e4c2a24128efb359283a04f8b8f42219769a7da029ed3560cf"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_progress.gif",
+      "sha256": "bfc31c922aef21be7572d2d9ca22bc9adcc3d665d339ad3eebca53782e5d8d75"
+    },
+    {
+      "path": "artifacts/week6/reachable_large_step_map_r30_20260913/manifest.json",
+      "sha256": "f0b556eebfda3806debda3c095e23a7a15534489677318a15b0ec3e01e8cb57c"
+    },
+    {
+      "path": "artifacts/nbv_map_snapshots/real_nbv_once_20260913T083800Z/generation_003/map_step_001_agg5_0aa1c67c6bd974a91ac30476.npz",
+      "sha256": "29e097e1bc81df5afcc1e282b29599490ab084e7d8dda744f628f984e659bd0f"
+    },
+    {
+      "path": "artifacts/nbv_map_snapshots/real_nbv_once_20260913T083800Z/generation_003/map_step_002_agg5_4b3a0fb7e4afdae70b262981.npz",
+      "sha256": "e7d1f9be1e1af7c3e8fe1022cfdefbf8889ed9fe0f78589737a5967044ca7c3d"
+    },
+    {
+      "path": "artifacts/nbv_map_snapshots/real_nbv_once_20260913T083800Z/generation_003/map_step_003_agg5_9149cfa9df3c3bd2f13b3cfb.npz",
+      "sha256": "947959fe6665f56f70ec906694c944d7f947295260455deee7bf516c2d7a6ccf"
+    },
+    {
+      "path": "artifacts/nbv_map_snapshots/real_nbv_once_20260913T083800Z/generation_003/map_step_004_agg5_89b9efa34492e1341bfd8018.npz",
+      "sha256": "4d7a579834c5def65a7cd26b813098ff0fc43c680b9adf6f125ab5dd9326aecf"
     }
   ],
   "offline_regression_at_closure": {
@@ -87,8 +131,8 @@
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
     "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
     "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
-    "the 50-100 mm profile completed one real 48.95 mm camera motion; the later multi-direction 100/75/50/25/10/5 mm reachability-aware fallback is implemented and offline-tested but does not yet have real-motion evidence",
-    "historical real runs did not store dense voxel arrays; new runs can store visualization snapshots",
+    "the reachability-aware profile completed three roughly 100 mm real camera motions and increased ROI ray coverage by 7.24 percentage points, below the predeclared 20-point scientific threshold",
+    "historical real runs did not store dense voxel arrays; the 2026-09-13 run stores four reproducible visualization snapshots",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"
   ]

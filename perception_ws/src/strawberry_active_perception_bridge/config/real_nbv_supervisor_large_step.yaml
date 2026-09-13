@@ -74,7 +74,10 @@ real_nbv_supervisor:
     max_plan_solution_drift_rad: 0.010
     post_target_position_tolerance_m: 0.005
     post_target_rotation_tolerance_deg: 2.0
-    max_selected_camera_rotation_deg: 15.0
+    # The live 2026-09-13 preview found the visible strawberry about 20° off
+    # axis.  This isolated profile permits centring it; the normal profile is
+    # unchanged at 10°.
+    max_selected_camera_rotation_deg: 30.0
     # Same as the normal research controller ceiling.  The matching NERO
     # profile overlay must be loaded explicitly for this experiment.
     max_ik_joint_delta_rad: 0.35

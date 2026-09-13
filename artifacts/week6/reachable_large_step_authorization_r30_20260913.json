@@ -1,0 +1,7 @@
+{
+  "consumed_before_first_goal_utc": "2026-09-13T08:39:04.320319+00:00",
+  "max_motion_steps": 3,
+  "plan_sha256": "f4920998b6879c619ed40df735f6a3bc756d6d3d7ab8ed2717f421eb54316e1f",
+  "reusable": false,
+  "schema": "strawberry_real_nbv_authorization_receipt/v1"
+}

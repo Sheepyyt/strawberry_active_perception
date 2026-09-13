@@ -1,0 +1,33 @@
+{
+  "schema": "strawberry_gradient_nbv_visualization/v1",
+  "scene_id": "real_nbv_once_20260913T083800Z",
+  "snapshot_count": 4,
+  "coverage": [
+    0.015544,
+    0.032432,
+    0.053056,
+    0.087984
+  ],
+  "snapshot_sha256": [
+    "29e097e1bc81df5afcc1e282b29599490ab084e7d8dda744f628f984e659bd0f",
+    "e7d1f9be1e1af7c3e8fe1022cfdefbf8889ed9fe0f78589737a5967044ca7c3d",
+    "947959fe6665f56f70ec906694c944d7f947295260455deee7bf516c2d7a6ccf",
+    "4d7a579834c5def65a7cd26b813098ff0fc43c680b9adf6f125ab5dd9326aecf"
+  ],
+  "step_png": [
+    "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/map_step_001.png",
+    "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/map_step_002.png",
+    "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/map_step_003.png",
+    "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/map_step_004.png"
+  ],
+  "final_png": "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_final.png",
+  "animated_gif": "/home/yyt/strawberry_active_perception/artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_progress.gif",
+  "legend": {
+    "unknown": "gray: no valid ray has touched this voxel",
+    "observed": "blue: seen by at least one valid depth ray",
+    "occupied": "dark: a measured depth surface endpoint",
+    "target": "red: a mask-supported target endpoint",
+    "camera": "green: measured camera path",
+    "next": "orange ring: proposed next camera position"
+  }
+}

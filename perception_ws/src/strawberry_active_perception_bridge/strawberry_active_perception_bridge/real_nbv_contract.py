@@ -68,7 +68,10 @@ LARGE_MOTION_LIMITS = MotionLimits(
     minimum_camera_step_m=0.001,
     minimum_step_inclusive=False,
     maximum_camera_step_m=0.100,
-    maximum_camera_rotation_rad=math.radians(15.0),
+    # A target near the side of the image can require roughly 20 degrees just
+    # to become centred.  Keep this isolated large-workspace profile permissive
+    # enough for that reorientation; the normal research profile remains 10°.
+    maximum_camera_rotation_rad=math.radians(30.0),
     # This remains at the normal research controller ceiling.  It is much
     # tighter than the exhibition-only 1.50 rad profile, while allowing the
     # roughly 0.15--0.29 rad solutions seen in the 50 mm offline preflight.

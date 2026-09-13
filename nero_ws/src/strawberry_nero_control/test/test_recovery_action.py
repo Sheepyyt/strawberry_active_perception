@@ -25,6 +25,16 @@ MEASURED_OUTSIDE_LIMITS = np.array([
     -0.18298031877908552,
 ])
 
+MEASURED_J2_LOW_J5_HIGH = np.array([
+    -1.5212813359158175,
+    -1.7599900177110819,
+    0.14241886696273728,
+    0.7233517084890498,
+    2.7824388001144,
+    0.24682446281703807,
+    0.6063797420203899,
+])
+
 
 class _Request:
     def __init__(self, execute):
@@ -122,6 +132,36 @@ def test_recovery_preview_is_explicit_and_sends_no_command():
         )
         assert result.phase_a_duration.sec > 0
         assert result.phase_b_duration.sec > 0
+    finally:
+        _close(node)
+
+
+def test_recovery_pattern_accepts_only_inward_j2_low_and_j5_high():
+    """The measured manual start may recover J2/J5, but not J5-low."""
+    node = _node()
+    try:
+        plan = node._recovery_generator.generate_limit_recovery(
+            MEASURED_J2_LOW_J5_HIGH,
+            node._raw_joint_limits,
+            node._recovery_config,
+        )
+        assert plan.success, plan.message
+        assert plan.recovering_joint_indices == (2, 5)
+        assert node._recovery_pattern_error(plan) is None
+
+        wrong_direction = MEASURED_J2_LOW_J5_HIGH.copy()
+        wrong_direction[1] = 0.0
+        wrong_direction[4] = node._solver.safe_joint_limits[4, 0] - 0.01
+        wrong_plan = node._recovery_generator.generate_limit_recovery(
+            wrong_direction,
+            node._raw_joint_limits,
+            node._recovery_config,
+        )
+        assert wrong_plan.success, wrong_plan.message
+        error = node._recovery_pattern_error(wrong_plan)
+        assert error is not None
+        assert "关节 5" in error[1]
+        assert "上限侧" in error[1]
     finally:
         _close(node)
 

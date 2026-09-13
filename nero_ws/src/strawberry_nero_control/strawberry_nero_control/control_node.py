@@ -1834,13 +1834,21 @@ class NeroControlNode(Node):
     def _recovery_pattern_error(
         self, plan: JointLimitRecoveryPlan
     ) -> Optional[tuple[int, str]]:
-        """Limit the first hardware version to the audited J2/J4 directions."""
-        allowed = {2, 4}
+        """
+        Limit automatic recovery to explicitly audited inward directions.
+
+        J2-low and J4-high are the original measured recovery cases.  J5-high
+        uses the same bounded joint-space trajectory and is needed when a
+        manually posed wrist starts just above the conservative/raw limit.
+        The opposite directions remain fail-closed.
+        """
+        allowed = {2, 4, 5}
         recovering = set(plan.recovering_joint_indices)
         if not recovering.issubset(allowed):
             return (
                 RecoverToSafe.Result.JOINT_LIMIT_VIOLATION,
-                "首次真机恢复只允许关节 2 和关节 4；其他越界关节需人工检查",
+                "自动恢复只允许关节 2 下限侧、关节 4/5 上限侧；"
+                "其他越界关节需人工检查",
             )
         start = np.asarray(plan.start_positions, dtype=float)
         limits = self._solver.safe_joint_limits
@@ -1853,6 +1861,11 @@ class NeroControlNode(Node):
             return (
                 RecoverToSafe.Result.DISCONTINUOUS_SOLUTION,
                 "关节 4 不是已审计的上限侧越界方向",
+            )
+        if 5 in recovering and start[4] <= limits[4, 1]:
+            return (
+                RecoverToSafe.Result.DISCONTINUOUS_SOLUTION,
+                "关节 5 不是已审计的上限侧越界方向",
             )
         return None
 

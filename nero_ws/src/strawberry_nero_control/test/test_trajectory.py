@@ -322,3 +322,26 @@ def test_recovery_monitor_rejects_reverse_motion_and_fixed_joint_drift():
     assert '非预期移动' in _recovery_monitor(
         plan, generator
     ).validate(drift)
+
+
+def test_recovery_monitor_allows_small_startup_settling_then_rejects_reverse():
+    """A real encoder settling step must not hide meaningful reverse motion."""
+    generator = TrajectoryGenerator()
+    plan = generator.generate_limit_recovery(
+        MEASURED_OUTSIDE_LIMITS,
+        _raw_joint_limits(),
+    )
+    monitor = JointLimitRecoveryMonitor(
+        plan,
+        generator.joint_limits,
+        fixed_joint_tolerance_rad=0.003,
+        progress_tolerance_rad=0.003,
+    )
+
+    encoder_settling = MEASURED_OUTSIDE_LIMITS.copy()
+    encoder_settling[1] -= 0.0013
+    assert monitor.validate(encoder_settling) is None
+
+    meaningful_reverse = MEASURED_OUTSIDE_LIMITS.copy()
+    meaningful_reverse[1] -= 0.0031
+    assert '错误方向' in monitor.validate(meaningful_reverse)

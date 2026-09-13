@@ -66,6 +66,17 @@ validation/week6/artifacts/*
 !validation/week6/artifacts/real_large_step_nbv_map_final.png
 !validation/week6/artifacts/real_large_step_nbv_map_progress.gif
 !validation/week6/artifacts/real_large_step_nbv_map_manifest.json
+!validation/week8/artifacts/
+!validation/week8/artifacts/real_nbv_preview_target60.json
+!validation/week8/artifacts/real_nbv_execution_target60.json
+!validation/week8/artifacts/experiment_dashboard.png
+!validation/week8/artifacts/coverage_curve.png
+!validation/week8/artifacts/camera_trajectory_3d.png
+!validation/week8/artifacts/observation_contact_sheet.png
+!validation/week8/artifacts/voxel_cloud_final_3d.png
+!validation/week8/artifacts/voxel_cloud_growth.gif
+!validation/week8/artifacts/voxel_cloud_spin.gif
+!validation/week8/artifacts/REPORT_CN.md
 validation/week2/artifacts/camera_*.json
 validation/week2/artifacts/cold_start_*.json
 validation/week2/artifacts/known_plane*.json

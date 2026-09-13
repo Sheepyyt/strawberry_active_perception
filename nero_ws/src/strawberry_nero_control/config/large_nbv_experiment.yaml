@@ -13,3 +13,18 @@
     ik_position_tolerance_m: 0.005
     precision_max_ik_position_error_m: 0.005
     precision_final_position_tolerance_m: 0.005
+
+    # Joint-limit recovery is a slow joint-space ingress, not Cartesian IK.
+    # The manually reset 2026-09-13 start was measured across the complete
+    # inward J2/J5 path at sigma_min >= 0.08248 and condition <= 21.73.
+    # Keep this isolated from ordinary NBV, which remains at 0.10 / 20.
+    recovery_sigma_min: 0.08
+    recovery_condition_max: 22.0
+
+    # The real encoder can settle by about 0.0013 rad between the planning
+    # snapshot and the first feedback after opening the gates.  The old
+    # 0.001-rad test mistook that harmless settling for reverse motion and
+    # triggered the controller's damping stop.  A 0.003-rad deadband is still
+    # tiny compared with the audited 0.06--0.08-rad inward recovery, while a
+    # sustained or larger wrong-way movement remains fail-closed.
+    recovery_progress_tolerance_rad: 0.003

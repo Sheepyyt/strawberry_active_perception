@@ -1,7 +1,7 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
   "generated_on": "2026-09-13",
-  "scope": "real strawberry HSV loop, an audited reachability-aware three-step 100 mm Gradient-NBV session, voxel-map visualization, and learned-mask preparation",
+  "scope": "real strawberry HSV loop, an audited reachability-aware five-step Gradient-NBV session stopped at 60 percent ROI ray coverage, voxel-map visualization, and learned-mask preparation",
   "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
@@ -32,6 +32,30 @@
     {
       "path": "validation/week4/artifacts/real_nbv_three_step_recentered_execution.json",
       "sha256": "41061c9e97a798958b1f64d875072bd82e54d850949eecd78d205217d5de8bd9"
+    },
+    {
+      "path": "validation/week8/artifacts/real_nbv_preview_target60.json",
+      "sha256": "b71b67236c1d4c7f65d5e0eda397d6fb18f813461e2e433cab0337d70a32058f"
+    },
+    {
+      "path": "validation/week8/artifacts/real_nbv_execution_target60.json",
+      "sha256": "87d7dd1f854f5782f59392de575bb8299220c0eb5c3af8640bf7b78190c14dae"
+    },
+    {
+      "path": "validation/week8/artifacts/experiment_dashboard.png",
+      "sha256": "fd281fd2611133f0948cd429cadeb1a1ee36004119101b5fe38e9b67ce9181eb"
+    },
+    {
+      "path": "validation/week8/artifacts/observation_contact_sheet.png",
+      "sha256": "f19d21787e52a6ca9071864b542e420627043a092cc7aef571db7925d51cb11d"
+    },
+    {
+      "path": "validation/week8/artifacts/voxel_cloud_final_3d.png",
+      "sha256": "849c13727d586d505f196718cfc6a391a9dc3ecbb9d4b836a0c29c801f5e9cb7"
+    },
+    {
+      "path": "validation/week8/artifacts/voxel_cloud_growth.gif",
+      "sha256": "3a4fb7be01754d39119b2022a463b407787da398b6806c3b0f4d5727bd932aed"
     },
     {
       "path": "validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json",
@@ -115,14 +139,15 @@
     }
   ],
   "offline_regression_at_closure": {
-    "strawberry_nero_control": "106 passed",
+    "strawberry_nero_control": "108 passed",
     "agx_safety_services": "7 passed",
     "nero_exhibition_demo": "6 checks passed including two offline previews",
     "strawberry_gradient_nbv": "61 passed",
     "strawberry_handeye_calibration": "34 passed",
-    "bridge_and_week4": "101 passed",
+    "bridge_and_week4": "102 passed",
     "week2_and_week3_validation_tools": "45 passed",
     "week6_mask_and_candidate_visualization_tests": "6 passed",
+    "week7_session_and_visualization": "5 passed",
     "perception_colcon_test_result": "215 tests, 0 errors, 0 failures, 4 skipped",
     "clean_builds": "camera 3 packages; NERO 5 packages; perception 5 packages"
   },
@@ -131,8 +156,9 @@
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
     "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
     "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
-    "the reachability-aware profile completed three roughly 100 mm real camera motions and increased ROI ray coverage by 7.24 percentage points, below the predeclared 20-point scientific threshold",
-    "historical real runs did not store dense voxel arrays; the 2026-09-13 run stores four reproducible visualization snapshots",
+    "the latest reachability-aware profile completed five real camera motions, travelled about 102 mm, and increased ROI valid-ray coverage from 15.06 to 60.84 percent",
+    "the 60 percent stopping line is an experiment setting for ROI valid-ray coverage, not a universal strawberry reconstruction-completeness threshold",
+    "historical real runs did not store dense voxel arrays; the latest 2026-09-13 run stores six reproducible visualization snapshots",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"
   ]

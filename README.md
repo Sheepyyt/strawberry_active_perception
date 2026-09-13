@@ -14,16 +14,23 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
        → 正式手眼外参 → Placo SolveIK → NERO 小步运动 → 再观察
 ```
 
-截至 2026-09-13：
+截至 2026-09-13，最新结果是：
 
-- 最新“停止条件驱动、最多 8 步”真实实验实际执行了 3 个约 10 cm 的高层动作；前两次
+- **真实草莓五步闭环已经通过。** 在同一张体素地图中连续完成 5 次真实运动，coverage
+  `15.06% → 30.43% → 40.08% → 47.65% → 54.97% → 60.84%`，达到预先设置的
+  60% 停止线后自动结束。五步实际相机路径合计约 `102 mm`，五步都带来超过 1 个百分点
+  的新覆盖，五个高层运动目标全部到达，最终验收状态为
+  `executed_session_scientific_acceptance_passed`。图片、动画、审计 SHA 和复现命令见
+  [Week 8 报告](validation/week8/README.md)。
+
+- 前一轮“停止条件驱动、最多 8 步”实验实际执行了 3 个约 10 cm 的高层动作；前两次
   动作后的观测成功加入同一张体素地图，coverage `4.94% → 11.05% → 17.77%`，两步分别
   增加 `6.11 / 6.71` 个百分点。第三次动作正常到达、累计产生 256 个平滑轨迹采样点，
   但动作后草莓 mask 与有效深度的交集变成 0，随后检查发现 Gemini USB 设备已经从电脑
   消失。监督器因此关闭两道执行门并停止，没有继续盲目运动。本次证明了“大动作连续重规划
   + 同图更新 + 输入失效即停”，但没有达到 20% coverage，所以诚实标记为未完成科学验收。
   [打开本次中文报告](artifacts/week7/presentation_run_20260913/REPORT_CN.md)。
-- Placo 单臂 IK、轨迹、ROS 2 服务/Action 和真机安全门已完成；主控制测试 `106 passed`。
+- Placo 单臂 IK、轨迹、ROS 2 服务/Action 和真机安全门已完成；主控制测试 `108 passed`。
 - Gemini 2 XL 在 `640×400@10 Hz` 下已通过 3 次冷启动和 30 分钟稳定性测试。当前线缆
   即使协商为 USB 2/480M，也足以继续这一低带宽实验。
 - MoveIt-free Gradient-NBV 已通过合成五视角验收；ROI 有效射线覆盖率从 `20.69%` 增至
@@ -92,7 +99,8 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 - [红色目标三步真实闭环](validation/week4/README.md)
 - [真实草莓 HSV-mask 多步闭环](validation/week5/README.md)
 - [学习式 mask 候选与 5–10 cm 大步真机实验](validation/week6/README.md)
-- [停止条件驱动的长闭环、最新实验与展示材料](validation/week7/README.md)
+- [停止条件驱动的长闭环、相机断流安全停止历史实验](validation/week7/README.md)
+- [真实草莓五步闭环、60% 停止线与最新展示包](validation/week8/README.md)
 - [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
 
 ## 先直观看懂体素地图
@@ -112,14 +120,14 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 [打开真实三步动态 GIF](artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_progress.gif) ·
 [打开可达候选点图](artifacts/week6/reachable_large_step_candidates_r30_20260913.png)
 
-下面是最新长闭环中真实保存的三维体素云。淡蓝点是射线已经经过的体素，黑点是深度相机
+下面是最新五步闭环中真实保存的三维体素云。淡蓝点是射线已经经过的体素，黑点是深度相机
 实际测到的表面，红点是草莓 mask 支持的目标体素，绿线是相机路径，绿色线框是目标 ROI：
 
-![最新真实三维体素云](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_final_3d.png)
+![最新真实三维体素云](validation/week8/artifacts/voxel_cloud_final_3d.png)
 
-[旋转查看三维地图](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_spin.gif) ·
-[查看三次地图更新动画](artifacts/week7/presentation_run_20260913/voxel_3d/voxel_cloud_growth.gif) ·
-[打开整套实验网页](artifacts/week7/presentation_run_20260913/index.html)
+[旋转查看三维地图](validation/week8/artifacts/voxel_cloud_spin.gif) ·
+[查看五步地图更新动画](validation/week8/artifacts/voxel_cloud_growth.gif) ·
+[打开最新一页式总览](validation/week8/artifacts/experiment_dashboard.png)
 
 离线复现这张图（不会连接相机或机械臂）：
 
@@ -286,7 +294,7 @@ perception_ws/src/
   strawberry_gradient_nbv/             纯核心、回放、地图快照与可视化
   strawberry_handeye_calibration/      手眼标定与稳定性验证
   strawberry_active_perception_bridge/ NBV→手眼→IK→受监督运动
-validation/week1..week6/      可提交的小型数据、报告和真实执行证据
+validation/week1..week8/      可提交的小型数据、报告和真实执行证据
 vendor_patches/agx_arm_ros/   受版本/SHA 保护的 NERO v1.11 安全补丁
 nero_exhibition_demo/         与科研参数隔离的展示程序
 artifacts/                    大型 rosbag/现场原始数据（本机保留，不提交）
@@ -298,9 +306,11 @@ Python 缓存、现场失败草稿和重复 JSON 都不提交。`artifacts/week2
 备份后单独删除，不应把它与普通构建缓存混为一谈。
 
 当前已经完成“目标/平台期决定何时停，最大步数和累计运动只负责兜底”的有限状态循环，
-并完成了一次真实 5 cm Gradient-NBV 运动。NBV 与 Placo 之间的“多方向、多距离”候选也已
-实现：优先做 5–10 cm 的明显运动，大动作不可达就换方向或逐级缩到 2.5/1/0.5 cm，仍有
-正收益时才运动。下一步是真机验证这项新选择器，连续运行同一地图，直到
-coverage 达标、进入平台期、没有任何可达正收益候选，或达到总步数/累计运动安全上限。
-与此同时，同一批相机图片会离线比较 HSV 与学习式草莓分割；学习模型通过人工叠加图检查
-前不会控制机械臂。双臂、采摘和无人值守连续运动暂不进入本阶段。
+也已经用多方向、多距离、先做 Placo IK 筛选的候选完成真实五步实验：大动作不可达时会
+换方向或逐级缩小，仍有正收益时才运动。本轮在同一张地图中达到 60% 实验停止线后正常
+结束，证明这条流程已经跑通。
+
+下一步不再重复证明控制流程，而是提高感知含义：先用本轮保存的相机图片离线比较 HSV 与
+可公开使用的预训练草莓分割模型，只有学习式 mask 的叠加图和离线地图结果稳定后，才允许
+它控制机械臂。同时应把目前的“ROI 有效射线 coverage”升级为更接近草莓表面完整度的指标。
+双臂、采摘和无人值守连续运动暂不进入本阶段。

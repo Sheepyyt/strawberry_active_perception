@@ -23,6 +23,9 @@ def test_large_nbv_overlay_changes_only_bounded_precision_gates() -> None:
         "ik_position_tolerance_m": 0.005,
         "precision_max_ik_position_error_m": 0.005,
         "precision_final_position_tolerance_m": 0.005,
+        "recovery_sigma_min": 0.08,
+        "recovery_condition_max": 22.0,
+        "recovery_progress_tolerance_rad": 0.003,
     }
     assert "trajectory_velocity_limits" not in overlay
     assert "final_position_tolerance_m" not in overlay

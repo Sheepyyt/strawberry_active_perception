@@ -15,6 +15,9 @@ from strawberry_active_perception_bridge.real_nbv_contract import (
     LARGE_MOTION_LIMITS,
     LARGE_MOTION_PROFILE,
     MotionSessionLedger,
+    NEAR_BEST_GAIN_RATIO,
+    REACHABLE_VIEW_DIRECTION_COUNT,
+    REACHABLE_VIEW_RADII_M,
     aggregate_depth_mask,
     camera_matrix,
     compare_gradient_candidates,
@@ -26,8 +29,10 @@ from strawberry_active_perception_bridge.real_nbv_contract import (
     motion_limits_for_profile,
     normalize_nbv_configuration,
     project_numerical_step_overshoot,
+    reachable_view_lattice,
     require_unit_quaternion,
     segmented_camera_candidates,
+    select_near_best_reachable_candidate,
     validate_ik_solution,
     validate_raw_next_view,
     wire_bool,
@@ -322,6 +327,195 @@ def test_large_motion_profile_allows_only_a_separate_ten_centimetre_config() -> 
     )
     assert evidence.request["max_step_m"] == float(np.float32(0.10))
     assert motion_limits_for_profile(LARGE_MOTION_PROFILE) == LARGE_MOTION_LIMITS
+    assert LARGE_MOTION_LIMITS.minimum_camera_step_m == pytest.approx(0.001)
+    assert not LARGE_MOTION_LIMITS.minimum_step_inclusive
+    assert REACHABLE_VIEW_RADII_M == (0.10, 0.075, 0.05, 0.025, 0.01, 0.005)
+    assert REACHABLE_VIEW_DIRECTION_COUNT == 18
+    assert NEAR_BEST_GAIN_RATIO == pytest.approx(0.90)
+
+
+def test_reachable_view_lattice_is_deterministic_large_first_and_looks_at_target() -> None:
+    current = np.eye(4)
+    current[:3, 3] = (0.0, 0.0, -0.6)
+    raw = current.copy()
+    raw[0, 3] += 0.10
+    target = np.zeros(3)
+    first = reachable_view_lattice(
+        current,
+        raw,
+        target,
+        (-0.31, -0.31, -0.91),
+        (0.31, 0.31, -0.29),
+    )
+    second = reachable_view_lattice(
+        current,
+        raw,
+        target,
+        (-0.31, -0.31, -0.91),
+        (0.31, 0.31, -0.29),
+    )
+    assert 1 < len(first) <= 256
+    assert [item.radius_m for item in first] == [item.radius_m for item in second]
+    assert first[0].radius_m == pytest.approx(0.10)
+    assert first[-1].radius_m == pytest.approx(0.005)
+    for lhs, rhs in zip(first, second):
+        np.testing.assert_allclose(lhs.pose, rhs.pose)
+        optical_forward = lhs.pose[:3, 2]
+        target_direction = target - lhs.pose[:3, 3]
+        target_direction /= np.linalg.norm(target_direction)
+        np.testing.assert_allclose(optical_forward, target_direction, atol=1e-12)
+        assert lhs.motion.translation_m == pytest.approx(lhs.radius_m)
+
+
+def test_reachable_view_lattice_filters_bounds_and_invalid_inputs() -> None:
+    current = np.eye(4)
+    current[2, 3] = -0.6
+    raw = current.copy()
+    raw[0, 3] = 0.1
+    candidates = reachable_view_lattice(
+        current,
+        raw,
+        (0.0, 0.0, 0.0),
+        (-0.011, -0.011, -0.611),
+        (0.011, 0.011, -0.589),
+    )
+    assert all(candidate.radius_m <= 0.01 + 1e-12 for candidate in candidates)
+    with pytest.raises(ValueError, match="strictly descending"):
+        reachable_view_lattice(
+            current,
+            raw,
+            (0.0, 0.0, 0.0),
+            (-1.0, -1.0, -1.0),
+            (1.0, 1.0, 1.0),
+            radii_m=(0.01, 0.02),
+        )
+
+
+def test_reachable_gain_selection_prefers_larger_near_best_not_unreachable() -> None:
+    selection = select_near_best_reachable_candidate(
+        current_gain=1.0,
+        candidate_gains=(1.80, 1.75, 1.20),
+        candidate_translations_m=(0.025, 0.10, 0.075),
+        joint_limit_clearances_rad=(0.3, 0.2, 0.4),
+    )
+    assert selection is not None
+    # The 100 mm candidate retains >90% of the best improvement, so the
+    # demonstrably larger move wins even though the 25 mm point scores highest.
+    assert selection.selected_index == 1
+    assert selection.useful_indices == (0, 1, 2)
+    assert selection.near_best_indices == (0, 1)
+
+    no_improvement = select_near_best_reachable_candidate(
+        current_gain=1.0,
+        candidate_gains=(1.0, 0.9),
+        candidate_translations_m=(0.10, 0.05),
+        joint_limit_clearances_rad=(0.2, 0.3),
+    )
+    assert no_improvement is None
+
+
+def test_supervisor_large_profile_filters_ik_before_one_read_only_gain_call() -> None:
+    class _SolveClient:
+        def __init__(self):
+            self.calls = 0
+
+        @staticmethod
+        def wait_for_service(timeout_sec):
+            return timeout_sec == 5.0
+
+        def call_async(self, _request):
+            self.calls += 1
+            result = SimpleNamespace(
+                success=True,
+                code=0,
+                reason="ok",
+                position_error_m=0.0,
+                orientation_error_rad=0.0,
+                sigma_min=0.2,
+                condition_number=5.0,
+                max_joint_delta_rad=0.0,
+                solution_joint_state=SimpleNamespace(
+                    name=[f"joint{i}" for i in range(1, 8)],
+                    position=[0.0] * 7,
+                ),
+            )
+            return SimpleNamespace(result=result)
+
+    class _GainClient:
+        def __init__(self, current):
+            self.current = current
+            self.calls = 0
+            self.last_request = None
+
+        @staticmethod
+        def wait_for_service(timeout_sec):
+            return timeout_sec == 5.0
+
+        def call_async(self, request):
+            self.calls += 1
+            self.last_request = request
+            gains = []
+            for pose in request.candidate_poses:
+                position = np.array(
+                    (
+                        pose.pose.position.x,
+                        pose.pose.position.y,
+                        pose.pose.position.z,
+                    )
+                )
+                distance = np.linalg.norm(position - self.current[:3, 3])
+                improvement = 0.80 if abs(distance - 0.025) < 1e-6 else 0.20
+                if abs(distance - 0.10) < 1e-6:
+                    improvement = 0.75
+                gains.append(1.0 + improvement)
+            return SimpleNamespace(
+                success=True,
+                code=0,
+                reason="ok",
+                current_gain=1.0,
+                candidate_gains=gains,
+            )
+
+    current = np.eye(4)
+    current[2, 3] = -0.6
+    raw = current.copy()
+    raw[0, 3] = 0.1
+    node = SimpleNamespace(
+        _active_nbv_configuration={
+            "target_center_m": [0.0, 0.0, 0.0],
+            "observation_min_m": [-0.31, -0.31, -0.91],
+            "observation_max_m": [0.31, 0.31, -0.29],
+        },
+        _solve_client=_SolveClient(),
+        _evaluate_candidates_client=_GainClient(current),
+        report=SimpleNamespace(transform_link7_camera_optical=np.eye(4)),
+        base_frame="base_link",
+        scene_id="scene",
+        operation_timeout=20.0,
+        motion_limits=LARGE_MOTION_LIMITS,
+        get_parameter=lambda name: SimpleNamespace(
+            value={
+                "max_selected_camera_rotation_deg": 15.0,
+                "max_ik_joint_delta_rad": 0.35,
+            }[name]
+        ),
+        _fresh_joints=lambda: np.zeros(7),
+        _wait_future=lambda future, _timeout, _label: future,
+    )
+    selected, records = RealNBVSupervisor._solve_reachable_view_lattice(
+        node,
+        current,
+        raw,
+        SimpleNamespace(sec=10, nanosec=0),
+        "obs",
+    )
+    assert selected is not None
+    assert selected["camera_translation_m"] == pytest.approx(0.10)
+    assert selected["gain_improvement"] == pytest.approx(0.75)
+    assert selected["selection_contract"].startswith("IK-safe candidates")
+    assert node._solve_client.calls == len(records)
+    assert node._evaluate_candidates_client.calls == 1
+    assert len(node._evaluate_candidates_client.last_request.candidate_poses) <= 256
 
 
 def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:
@@ -825,15 +1019,20 @@ def test_bounded_session_policy_is_exactly_sha_bound_in_outer_preview(
         _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
 
 
-def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> None:
+def test_large_motion_policy_prefers_visible_steps_but_allows_safe_fallback() -> None:
     policy = _session_policy(
         3,
         motion_profile=LARGE_MOTION_PROFILE,
         minimum_target_pixels=100,
     )
-    assert policy["schema"] == "strawberry_real_nbv_motion_session_policy/v3"
-    assert policy["single_step_translation_min_inclusive_m"] == 0.05
+    assert policy["schema"] == "strawberry_real_nbv_motion_session_policy/v4"
+    assert policy["single_step_translation_min_exclusive_m"] == 0.001
+    assert policy["single_step_translation_min_inclusive_m"] is None
     assert policy["single_step_translation_max_m"] == 0.10
+    assert policy["preferred_visible_translation_m"] == 0.05
+    assert policy["reachable_candidate_radii_m"] == list(REACHABLE_VIEW_RADII_M)
+    assert policy["reachable_candidate_direction_count"] == 18
+    assert policy["near_best_gain_ratio"] == pytest.approx(0.90)
     assert policy["cumulative_translation_max_m"] == 0.30
     assert policy["maximum_ik_joint_delta_rad"] == 0.35
     assert policy["maximum_ik_position_error_m"] == 0.005
@@ -861,15 +1060,15 @@ def test_large_motion_policy_and_ledger_require_five_to_ten_centimetres() -> Non
         planned_camera=_translated_camera(0.05),
     )
     assert accepted.translation_m == pytest.approx(0.05)
-    rounded_gpu_step = ledger.validate_next_planned_step(
+    smaller_fallback = ledger.validate_next_planned_step(
         planned_start_camera=np.eye(4),
-        planned_camera=_translated_camera(0.05 - 5.0e-10),
+        planned_camera=_translated_camera(0.005),
     )
-    assert rounded_gpu_step.translation_m == pytest.approx(0.05, abs=1.0e-6)
+    assert smaller_fallback.translation_m == pytest.approx(0.005)
     with pytest.raises(ValueError, match="selected motion profile"):
         ledger.validate_next_planned_step(
             planned_start_camera=np.eye(4),
-            planned_camera=_translated_camera(0.05 - 2.0e-6),
+            planned_camera=_translated_camera(0.001),
         )
 
     with pytest.raises(ValueError, match="at least 100"):

@@ -34,7 +34,11 @@ from rclpy.qos import (
 
 from strawberry_perception_interfaces.action import ComputeNextView
 from strawberry_perception_interfaces.msg import NextView, Observation
-from strawberry_perception_interfaces.srv import ConfigureNBV, ResetNBVMap
+from strawberry_perception_interfaces.srv import (
+    ConfigureNBV,
+    EvaluateViewCandidates,
+    ResetNBVMap,
+)
 
 from .core import GradientNBVCore, NBVConfig, NBVInputError
 from .image_codec import (
@@ -346,6 +350,9 @@ class GradientNBVNode(Node):
         self.declare_parameter("configure_service", "/strawberry/nbv/configure")
         self.declare_parameter("reset_service", "/strawberry/nbv/reset_map")
         self.declare_parameter(
+            "evaluate_candidates_service", "/strawberry/nbv/evaluate_candidates"
+        )
+        self.declare_parameter(
             "compute_action", "/strawberry/nbv/compute_next_view"
         )
         self.declare_parameter("device", "")
@@ -402,6 +409,12 @@ class GradientNBVNode(Node):
             self._on_reset,
             callback_group=self._callbacks,
         )
+        self._evaluate_candidates_service = self.create_service(
+            EvaluateViewCandidates,
+            str(self.get_parameter("evaluate_candidates_service").value),
+            self._on_evaluate_candidates,
+            callback_group=self._callbacks,
+        )
         self._compute_server = ActionServer(
             self,
             ComputeNextView,
@@ -434,6 +447,22 @@ class GradientNBVNode(Node):
         pose: np.ndarray,
     ) -> Any:
         return self._backend.update_and_plan(depth, mask, intrinsics, pose)
+
+    def _backend_evaluate_candidate_poses(
+        self,
+        reference_pose: np.ndarray,
+        candidate_poses: np.ndarray,
+        intrinsics: np.ndarray,
+        height: int,
+        width: int,
+    ) -> tuple[float, np.ndarray]:
+        return self._backend.evaluate_candidate_poses(
+            reference_pose,
+            candidate_poses,
+            intrinsics,
+            height,
+            width,
+        )
 
     def _save_map_snapshot(
         self,
@@ -603,6 +632,161 @@ class GradientNBVNode(Node):
             else ResetNBVMap.Response.ALREADY_EMPTY
         )
         response.reason = "map reset" if had_data else "map was already empty"
+        return response
+
+    @staticmethod
+    def _candidate_failure(
+        response: EvaluateViewCandidates.Response,
+        code: int,
+        reason: str,
+    ) -> EvaluateViewCandidates.Response:
+        response.success = False
+        response.code = int(code)
+        response.reason = reason
+        response.current_gain = 0.0
+        response.candidate_gains = []
+        return response
+
+    def _on_evaluate_candidates(
+        self,
+        request: EvaluateViewCandidates.Request,
+        response: EvaluateViewCandidates.Response,
+    ) -> EvaluateViewCandidates.Response:
+        """Score an explicit finite pose set without changing the map."""
+        scene_id = str(request.scene_id)
+        observation_id = str(request.observation_id)
+        response_type = EvaluateViewCandidates.Response
+        if not _nonempty(scene_id) or not _nonempty(observation_id):
+            return self._candidate_failure(
+                response,
+                response_type.INVALID_REQUEST,
+                "scene_id and observation_id must be non-empty",
+            )
+        if not 1 <= len(request.candidate_poses) <= 256:
+            return self._candidate_failure(
+                response,
+                response_type.INVALID_REQUEST,
+                "candidate_poses count must be in [1, 256]",
+            )
+
+        with self._state_lock:
+            if self._configuration is None:
+                return self._candidate_failure(
+                    response,
+                    response_type.NOT_CONFIGURED,
+                    "NBV map is not configured",
+                )
+            configured_scene = str(self._configuration["scene_id"])
+            if scene_id != configured_scene:
+                return self._candidate_failure(
+                    response,
+                    response_type.SCENE_MISMATCH,
+                    f"scene_id mismatch: configured {configured_scene!r}, "
+                    f"requested {scene_id!r}",
+                )
+            key = (scene_id, observation_id)
+            observation = self._observations.get(key)
+            if key not in self._results or observation is None:
+                return self._candidate_failure(
+                    response,
+                    response_type.OBSERVATION_NOT_PROCESSED,
+                    "referenced Observation has not been fused successfully in "
+                    "the current map generation",
+                )
+            try:
+                decoded = self._decode_observation(
+                    observation, scene_id, observation_id
+                )
+                reference_stamp = _stamp_nanoseconds(
+                    observation.header.stamp, "Observation.header.stamp"
+                )
+                world_frame = str(self._configuration["world_frame"])
+                candidates: list[np.ndarray] = []
+                for index, candidate in enumerate(request.candidate_poses):
+                    if str(candidate.header.frame_id) != world_frame:
+                        raise ObservationDecodeError(
+                            f"candidate_poses[{index}].header.frame_id must equal "
+                            f"configured world frame {world_frame!r}"
+                        )
+                    if _stamp_nanoseconds(
+                        candidate.header.stamp, f"candidate_poses[{index}] stamp"
+                    ) != reference_stamp:
+                        raise ObservationDecodeError(
+                            f"candidate_poses[{index}] stamp must equal the "
+                            "referenced Observation exposure stamp"
+                        )
+                    orientation = candidate.pose.orientation
+                    quaternion = np.asarray(
+                        (
+                            orientation.x,
+                            orientation.y,
+                            orientation.z,
+                            orientation.w,
+                        ),
+                        dtype=np.float64,
+                    )
+                    norm = float(np.linalg.norm(quaternion))
+                    if not math.isfinite(norm) or not math.isclose(
+                        norm, 1.0, rel_tol=0.0, abs_tol=1.0e-3
+                    ):
+                        raise ObservationDecodeError(
+                            f"candidate_poses[{index}] quaternion must have unit norm"
+                        )
+                    candidate_matrix = pose_matrix(candidate)
+                    lower = np.asarray(
+                        self._configuration["observation_min"], dtype=np.float64
+                    )
+                    upper = np.asarray(
+                        self._configuration["observation_max"], dtype=np.float64
+                    )
+                    position = candidate_matrix[:3, 3]
+                    if np.any(position < lower - 1.0e-9) or np.any(
+                        position > upper + 1.0e-9
+                    ):
+                        raise ObservationDecodeError(
+                            f"candidate_poses[{index}] lies outside configured "
+                            "observation bounds"
+                        )
+                    candidates.append(candidate_matrix)
+                current_gain, candidate_gains = (
+                    self._backend_evaluate_candidate_poses(
+                        decoded.pose,
+                        np.stack(candidates),
+                        decoded.intrinsics,
+                        decoded.depth.shape[0],
+                        decoded.depth.shape[1],
+                    )
+                )
+                gains = np.asarray(candidate_gains, dtype=np.float64)
+                if gains.shape != (len(candidates),):
+                    raise ValueError(
+                        "backend returned a candidate gain count mismatch"
+                    )
+                if not math.isfinite(float(current_gain)) or not np.all(
+                    np.isfinite(gains)
+                ):
+                    raise ValueError("backend returned non-finite candidate gains")
+            except (ObservationDecodeError, NBVInputError, ValueError, TypeError) as error:
+                return self._candidate_failure(
+                    response,
+                    response_type.CANDIDATE_INVALID,
+                    f"candidate scoring request is invalid: {error}",
+                )
+            except Exception as error:
+                self.get_logger().error(f"candidate scoring backend failed: {error}")
+                return self._candidate_failure(
+                    response,
+                    response_type.INTERNAL_ERROR,
+                    f"candidate scoring backend failed: {error}",
+                )
+
+        response.success = True
+        response.code = response_type.SUCCESS
+        response.reason = (
+            f"scored {len(candidates)} poses without changing the NBV map"
+        )
+        response.current_gain = float(current_gain)
+        response.candidate_gains = [float(value) for value in gains]
         return response
 
     @staticmethod

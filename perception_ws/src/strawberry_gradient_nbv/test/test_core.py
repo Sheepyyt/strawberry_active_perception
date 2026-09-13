@@ -97,6 +97,76 @@ def test_look_at_with_down_hint_is_world_frame_equivariant() -> None:
     np.testing.assert_allclose(transformed, world_rotation @ original, atol=1.0e-12)
 
 
+def test_candidate_pose_scoring_is_finite_deterministic_and_read_only() -> None:
+    core, fixture = _configured_core(samples_per_ray=12)
+    observation = next(fixture.observations())
+    core.update_and_plan(
+        observation.depth,
+        observation.mask,
+        observation.K,
+        observation.pose,
+    )
+    before = _state(core)
+    target = np.asarray(core.config.target_center)
+    candidates = []
+    for offset in (
+        np.array((0.03, 0.0, 0.0)),
+        np.array((0.0, 0.03, 0.0)),
+        np.array((-0.03, 0.0, 0.0)),
+    ):
+        pose = observation.pose.copy()
+        pose[:3, 3] += offset
+        pose[:3, :3] = look_at_optical(
+            pose[:3, 3], target, observation.pose[:3, 1]
+        )
+        candidates.append(pose)
+
+    first_current, first = core.evaluate_candidate_poses(
+        observation.pose,
+        np.stack(candidates),
+        observation.K,
+        observation.depth.shape[0],
+        observation.depth.shape[1],
+        maximum_rays=256,
+    )
+    second_current, second = core.evaluate_candidate_poses(
+        observation.pose,
+        np.stack(candidates),
+        observation.K,
+        observation.depth.shape[0],
+        observation.depth.shape[1],
+        maximum_rays=256,
+    )
+
+    assert np.isfinite(first_current)
+    assert np.all(np.isfinite(first))
+    assert first.shape == (3,)
+    assert second_current == pytest.approx(first_current, abs=1.0e-12)
+    np.testing.assert_allclose(second, first, atol=1.0e-12)
+    after = _state(core)
+    for original, unchanged in zip(before, after):
+        assert torch.equal(original, unchanged)
+
+
+def test_candidate_pose_scoring_rejects_bad_batch_without_map_change() -> None:
+    core, fixture = _configured_core()
+    observation = next(fixture.observations())
+    before = _state(core)
+    invalid = observation.pose.copy()
+    invalid[3, 3] = 2.0
+    with pytest.raises(NBVInputError, match="homogeneous"):
+        core.evaluate_candidate_poses(
+            observation.pose,
+            invalid[None],
+            observation.K,
+            observation.depth.shape[0],
+            observation.depth.shape[1],
+        )
+    after = _state(core)
+    for original, unchanged in zip(before, after):
+        assert torch.equal(original, unchanged)
+
+
 @pytest.mark.parametrize(
     "change,match",
     [

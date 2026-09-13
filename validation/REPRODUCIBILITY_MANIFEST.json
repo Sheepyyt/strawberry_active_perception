@@ -1,7 +1,7 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
-  "generated_on": "2026-09-10",
-  "scope": "real strawberry HSV loop, one audited 50 mm Gradient-NBV motion, voxel-map visualization, and offline preparation for learned masks",
+  "generated_on": "2026-09-13",
+  "scope": "real strawberry HSV loop, one audited 50 mm Gradient-NBV motion, voxel-map visualization, learned-mask preparation, and an offline-validated reachability-aware multi-direction fallback",
   "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
@@ -74,12 +74,12 @@
     "strawberry_nero_control": "106 passed",
     "agx_safety_services": "7 passed",
     "nero_exhibition_demo": "6 checks passed including two offline previews",
-    "strawberry_gradient_nbv": "57 passed",
+    "strawberry_gradient_nbv": "61 passed",
     "strawberry_handeye_calibration": "34 passed",
-    "bridge_and_week4": "97 passed",
+    "bridge_and_week4": "101 passed",
     "week2_and_week3_validation_tools": "45 passed",
-    "week6_mask_boundary_tests": "5 passed",
-    "perception_colcon_test_result": "214 tests, 0 errors, 0 failures, 4 skipped",
+    "week6_mask_and_candidate_visualization_tests": "6 passed",
+    "perception_colcon_test_result": "215 tests, 0 errors, 0 failures, 4 skipped",
     "clean_builds": "camera 3 packages; NERO 5 packages; perception 5 packages"
   },
   "reproduce_command": "./verify_software.sh",
@@ -87,7 +87,7 @@
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
     "the real strawberry evidence used an HSV red-color mask, not semantic strawberry recognition",
     "the learned checkpoints are only audited candidates; no learned mask has yet controlled a real motion",
-    "the 50-100 mm profile completed one real 48.95 mm camera motion; its second preferred view was unreachable from that joint posture, so a multi-direction reachable fallback is still required",
+    "the 50-100 mm profile completed one real 48.95 mm camera motion; the later multi-direction 100/75/50/25/10/5 mm reachability-aware fallback is implemented and offline-tested but does not yet have real-motion evidence",
     "historical real runs did not store dense voxel arrays; new runs can store visualization snapshots",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"

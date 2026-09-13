@@ -33,6 +33,7 @@ real_nbv_supervisor:
     corrected_observation_topic: /strawberry/perception/real_nbv_observation
     capture_service: /strawberry/perception/capture_observation
     configure_service: /strawberry/nbv/configure
+    evaluate_candidates_service: /strawberry/nbv/evaluate_candidates
     compute_action: /strawberry/nbv/compute_next_view
     solve_ik_service: /strawberry_nero/solve_ik
     joint_state_topic: /feedback/joint_states

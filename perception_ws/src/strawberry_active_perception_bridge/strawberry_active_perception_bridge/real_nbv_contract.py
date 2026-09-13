@@ -25,6 +25,9 @@ from .transforms import (
 
 SMALL_MOTION_PROFILE = "small_verified"
 LARGE_MOTION_PROFILE = "large_workspace_experimental"
+REACHABLE_VIEW_RADII_M = (0.100, 0.075, 0.050, 0.025, 0.010, 0.005)
+REACHABLE_VIEW_DIRECTION_COUNT = 18
+NEAR_BEST_GAIN_RATIO = 0.90
 
 
 @dataclass(frozen=True)
@@ -59,8 +62,11 @@ SMALL_MOTION_LIMITS = MotionLimits(
 )
 LARGE_MOTION_LIMITS = MotionLimits(
     profile=LARGE_MOTION_PROFILE,
-    minimum_camera_step_m=0.050,
-    minimum_step_inclusive=True,
+    # A visible 50--100 mm step is preferred by the reachable-view selector,
+    # but it is no longer a hard lower bound.  If every large alternative is
+    # unreachable, the same search may safely fall back to 25/10/5 mm.
+    minimum_camera_step_m=0.001,
+    minimum_step_inclusive=False,
     maximum_camera_step_m=0.100,
     maximum_camera_rotation_rad=math.radians(15.0),
     # This remains at the normal research controller ceiling.  It is much
@@ -220,6 +226,31 @@ class CameraMotion:
 
     translation_m: float
     rotation_rad: float
+
+
+@dataclass(frozen=True)
+class ReachableViewCandidate:
+    """One deterministic camera pose in a finite reachability lattice."""
+
+    candidate_index: int
+    direction_index: int
+    radius_m: float
+    direction_world: np.ndarray
+    pose: np.ndarray
+    motion: CameraMotion
+
+
+@dataclass(frozen=True)
+class ReachableGainSelection:
+    """Auditable choice among IK-safe, explicitly scored camera poses."""
+
+    selected_index: int
+    current_gain: float
+    best_gain_improvement: float
+    near_best_gain_floor: float
+    numerical_tolerance: float
+    useful_indices: tuple[int, ...]
+    near_best_indices: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -1258,6 +1289,208 @@ def camera_motion(current: np.ndarray, target: np.ndarray) -> CameraMotion:
     cosine = float(np.clip((np.trace(relative) - 1.0) * 0.5, -1.0, 1.0))
     rotation = float(math.acos(cosine))
     return CameraMotion(translation, rotation)
+
+
+def look_at_camera_pose(
+    position_world: Sequence[float],
+    target_world: Sequence[float],
+    preferred_down_world: Sequence[float],
+    fallback_right_world: Sequence[float],
+) -> np.ndarray:
+    """Build a stable ROS optical pose whose +Z axis sees the target.
+
+    The projected current optical +Y axis is retained as the preferred image
+    down direction, so an orbiting candidate does not acquire an arbitrary
+    180-degree roll.  The current +X axis is used only for the parallel-axis
+    degeneracy.
+    """
+    position = np.asarray(position_world, dtype=float)
+    target = np.asarray(target_world, dtype=float)
+    preferred_down = np.asarray(preferred_down_world, dtype=float)
+    fallback_right = np.asarray(fallback_right_world, dtype=float)
+    for label, value in (
+        ("position_world", position),
+        ("target_world", target),
+        ("preferred_down_world", preferred_down),
+        ("fallback_right_world", fallback_right),
+    ):
+        if value.shape != (3,) or not np.all(np.isfinite(value)):
+            raise ValueError(f"{label} must contain three finite values")
+    forward = target - position
+    forward_norm = float(np.linalg.norm(forward))
+    if forward_norm <= 1.0e-9:
+        raise ValueError("camera candidate must not coincide with target centre")
+    forward /= forward_norm
+    down = preferred_down - np.dot(preferred_down, forward) * forward
+    down_norm = float(np.linalg.norm(down))
+    if down_norm <= 1.0e-9:
+        right = fallback_right - np.dot(fallback_right, forward) * forward
+        right_norm = float(np.linalg.norm(right))
+        if right_norm <= 1.0e-9:
+            basis = np.eye(3)[int(np.argmin(np.abs(forward)))]
+            right = basis - np.dot(basis, forward) * forward
+            right_norm = float(np.linalg.norm(right))
+        right /= right_norm
+        down = np.cross(forward, right)
+    else:
+        down /= down_norm
+        right = np.cross(down, forward)
+        right /= float(np.linalg.norm(right))
+        down = np.cross(forward, right)
+    pose = np.eye(4, dtype=float)
+    pose[:3, :3] = np.column_stack((right, down, forward))
+    pose[:3, 3] = position
+    return validate_rigid_transform(pose, "look-at camera pose")
+
+
+def fibonacci_unit_directions(count: int = REACHABLE_VIEW_DIRECTION_COUNT) -> np.ndarray:
+    """Return a deterministic, approximately uniform unit-sphere lattice."""
+    if isinstance(count, bool) or not isinstance(count, int) or not 6 <= count <= 64:
+        raise ValueError("direction count must be an integer in [6, 64]")
+    golden_angle = math.pi * (3.0 - math.sqrt(5.0))
+    output = []
+    for index in range(count):
+        z = 1.0 - 2.0 * (index + 0.5) / count
+        radius = math.sqrt(max(0.0, 1.0 - z * z))
+        angle = index * golden_angle
+        output.append((radius * math.cos(angle), radius * math.sin(angle), z))
+    return np.asarray(output, dtype=float)
+
+
+def reachable_view_lattice(
+    current_camera: np.ndarray,
+    raw_target: np.ndarray,
+    target_center_world: Sequence[float],
+    observation_min: Sequence[float],
+    observation_max: Sequence[float],
+    *,
+    radii_m: Sequence[float] = REACHABLE_VIEW_RADII_M,
+    direction_count: int = REACHABLE_VIEW_DIRECTION_COUNT,
+) -> tuple[ReachableViewCandidate, ...]:
+    """Generate a finite large-first pose set for IK and gain evaluation.
+
+    Robot reachability is continuous and cannot be exhaustively enumerated.
+    This deterministic lattice is the auditable approximation used by the
+    real supervisor: the raw Gradient direction is always included, followed
+    by a fixed sphere lattice, at 100/75/50/25/10/5 mm radii.
+    """
+    current = validate_rigid_transform(current_camera, "current camera")
+    raw = validate_rigid_transform(raw_target, "raw target")
+    target_center = np.asarray(target_center_world, dtype=float)
+    lower = np.asarray(observation_min, dtype=float)
+    upper = np.asarray(observation_max, dtype=float)
+    if any(value.shape != (3,) for value in (target_center, lower, upper)):
+        raise ValueError("target and observation bounds must contain three values")
+    if not all(np.all(np.isfinite(value)) for value in (target_center, lower, upper)):
+        raise ValueError("target and observation bounds must be finite")
+    if np.any(lower >= upper):
+        raise ValueError("observation_min must be below observation_max")
+    radii = tuple(float(value) for value in radii_m)
+    if not radii or any(not math.isfinite(value) or value <= 0.0 for value in radii):
+        raise ValueError("candidate radii must be finite and positive")
+    if any(first <= second for first, second in zip(radii, radii[1:])):
+        raise ValueError("candidate radii must be strictly descending")
+
+    raw_delta = raw[:3, 3] - current[:3, 3]
+    raw_norm = float(np.linalg.norm(raw_delta))
+    if raw_norm <= _EPS:
+        raise ValueError("raw target translation must be non-zero")
+    directions = [raw_delta / raw_norm]
+    directions.extend(fibonacci_unit_directions(direction_count))
+    unique_directions: list[np.ndarray] = []
+    for direction in directions:
+        unit = np.asarray(direction, dtype=float)
+        unit /= float(np.linalg.norm(unit))
+        if not any(np.dot(unit, old) > 1.0 - 1.0e-9 for old in unique_directions):
+            unique_directions.append(unit)
+
+    candidates: list[ReachableViewCandidate] = []
+    preferred_down = current[:3, 1]
+    fallback_right = current[:3, 0]
+    for radius in radii:
+        for direction_index, direction in enumerate(unique_directions):
+            position = current[:3, 3] + radius * direction
+            if np.any(position < lower - _EPS) or np.any(position > upper + _EPS):
+                continue
+            pose = look_at_camera_pose(
+                position, target_center, preferred_down, fallback_right
+            )
+            candidates.append(
+                ReachableViewCandidate(
+                    candidate_index=len(candidates),
+                    direction_index=direction_index,
+                    radius_m=radius,
+                    direction_world=direction.copy(),
+                    pose=pose,
+                    motion=camera_motion(current, pose),
+                )
+            )
+    if not candidates:
+        raise ValueError("no lattice candidate lies inside observation bounds")
+    if len(candidates) > 256:
+        raise ValueError("reachable-view lattice exceeds the 256-pose interface limit")
+    return tuple(candidates)
+
+
+def select_near_best_reachable_candidate(
+    *,
+    current_gain: float,
+    candidate_gains: Sequence[float],
+    candidate_translations_m: Sequence[float],
+    joint_limit_clearances_rad: Sequence[float],
+    near_best_gain_ratio: float = NEAR_BEST_GAIN_RATIO,
+) -> ReachableGainSelection | None:
+    """Choose the largest motion among candidates with near-best map gain."""
+    base_gain = float(current_gain)
+    gains = np.asarray(candidate_gains, dtype=float)
+    translations = np.asarray(candidate_translations_m, dtype=float)
+    clearances = np.asarray(joint_limit_clearances_rad, dtype=float)
+    if gains.ndim != 1 or gains.size == 0:
+        raise ValueError("candidate_gains must be a non-empty vector")
+    if translations.shape != gains.shape or clearances.shape != gains.shape:
+        raise ValueError("candidate gain, translation, and clearance sizes must match")
+    if not math.isfinite(base_gain) or not np.all(np.isfinite(gains)):
+        raise ValueError("candidate gains must be finite")
+    if np.any(~np.isfinite(translations)) or np.any(translations <= 0.0):
+        raise ValueError("candidate translations must be finite and positive")
+    if np.any(~np.isfinite(clearances)) or np.any(clearances < 0.0):
+        raise ValueError("joint-limit clearances must be finite and non-negative")
+    ratio = float(near_best_gain_ratio)
+    if not math.isfinite(ratio) or not 0.5 <= ratio <= 1.0:
+        raise ValueError("near_best_gain_ratio must be in [0.5, 1.0]")
+    tolerance = max(1.0e-9, abs(base_gain) * 1.0e-6)
+    improvements = gains - base_gain
+    useful = tuple(
+        int(index)
+        for index in np.flatnonzero(improvements > tolerance)
+    )
+    if not useful:
+        return None
+    best = max(float(improvements[index]) for index in useful)
+    floor = ratio * best
+    near_best = tuple(
+        index
+        for index in useful
+        if float(improvements[index]) + tolerance >= floor
+    )
+    selected = max(
+        near_best,
+        key=lambda index: (
+            float(translations[index]),
+            float(improvements[index]),
+            float(clearances[index]),
+            -index,
+        ),
+    )
+    return ReachableGainSelection(
+        selected_index=selected,
+        current_gain=base_gain,
+        best_gain_improvement=best,
+        near_best_gain_floor=floor,
+        numerical_tolerance=tolerance,
+        useful_indices=useful,
+        near_best_indices=near_best,
+    )
 
 
 def compare_gradient_candidates(

@@ -230,10 +230,27 @@ def look_at_optical(
 ) -> np.ndarray:
     """Return the stable optical look-at rotation as a NumPy array."""
     return look_at_optical_torch(
-        torch.as_tensor(eye, dtype=torch.float64),
-        torch.as_tensor(target, dtype=torch.float64),
-        None if down_hint is None else torch.as_tensor(down_hint, dtype=torch.float64),
+        torch.tensor(np.asarray(eye), dtype=torch.float64),
+        torch.tensor(np.asarray(target), dtype=torch.float64),
+        None
+        if down_hint is None
+        else torch.tensor(np.asarray(down_hint), dtype=torch.float64),
     ).detach().cpu().numpy()
+
+
+def _rigid_pose(value: Any, name: str) -> np.ndarray:
+    """Return one finite proper 4x4 transform for read-only view scoring."""
+    pose = np.asarray(value, dtype=np.float64)
+    if pose.shape != (4, 4) or not np.all(np.isfinite(pose)):
+        raise NBVInputError(f"{name} must be a finite 4x4 transform")
+    if not np.allclose(pose[3], (0.0, 0.0, 0.0, 1.0), atol=1.0e-9):
+        raise NBVInputError(f"{name} has an invalid homogeneous row")
+    rotation = pose[:3, :3]
+    if not np.allclose(rotation.T @ rotation, np.eye(3), atol=1.0e-6):
+        raise NBVInputError(f"{name} rotation is not orthonormal")
+    if not np.isclose(np.linalg.det(rotation), 1.0, atol=1.0e-6):
+        raise NBVInputError(f"{name} rotation must have determinant +1")
+    return pose.copy()
 
 
 class GradientNBVCore:
@@ -620,6 +637,23 @@ class GradientNBVCore:
             self.config.target_center, device=self.device, dtype=torch.float32
         )
         rotation = look_at_optical_torch(position, target, down_hint)
+        return self._candidate_gain_with_rotation(
+            position,
+            rotation,
+            ray_directions_camera,
+            planning_features,
+        )
+
+    def _candidate_gain_with_rotation(
+        self,
+        position: torch.Tensor,
+        rotation: torch.Tensor,
+        ray_directions_camera: torch.Tensor,
+        planning_features: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Evaluate one explicit optical pose without changing map state."""
+        if self.config is None or self._origin is None:
+            raise NBVInputError("NBV core is not configured")
         directions_world = ray_directions_camera @ rotation.T
         z_samples = torch.linspace(
             self.config.depth_min,
@@ -687,6 +721,145 @@ class GradientNBVCore:
         gain = transmittance * information * valid
         return gain.sum(dim=-1).mean()
 
+    def _planning_ray_directions(
+        self,
+        K: np.ndarray,
+        height: int,
+        width: int,
+        *,
+        maximum_rays: int = 64_000,
+    ) -> torch.Tensor:
+        """Build deterministic camera rays shared by planning and scoring."""
+        intrinsics = np.asarray(K, dtype=np.float64)
+        if intrinsics.shape != (3, 3) or not np.all(np.isfinite(intrinsics)):
+            raise NBVInputError("K must be a finite 3x3 matrix")
+        if intrinsics[0, 0] <= 0.0 or intrinsics[1, 1] <= 0.0:
+            raise NBVInputError("K focal lengths must be positive")
+        if isinstance(height, bool) or isinstance(width, bool):
+            raise NBVInputError("image dimensions must be positive integers")
+        image_height = int(height)
+        image_width = int(width)
+        if image_height < 1 or image_width < 1:
+            raise NBVInputError("image dimensions must be positive integers")
+        if not 1 <= int(maximum_rays) <= 64_000:
+            raise NBVInputError("maximum_rays must be in [1, 64000]")
+
+        factor = self.config.downsample
+        sampled_height = len(range(0, image_height, factor))
+        sampled_width = len(range(0, image_width, factor))
+        sampled_K = intrinsics.copy()
+        sampled_K[0, 0] /= factor
+        sampled_K[0, 2] /= factor
+        sampled_K[1, 1] /= factor
+        sampled_K[1, 2] /= factor
+        rows = torch.arange(
+            sampled_height, device=self.device, dtype=torch.float32
+        )
+        columns = torch.arange(
+            sampled_width, device=self.device, dtype=torch.float32
+        )
+        row_grid, column_grid = torch.meshgrid(rows, columns, indexing="ij")
+        rays = torch.stack(
+            (
+                (column_grid - float(sampled_K[0, 2]))
+                / float(sampled_K[0, 0]),
+                (row_grid - float(sampled_K[1, 2]))
+                / float(sampled_K[1, 1]),
+                torch.ones_like(row_grid),
+            ),
+            dim=-1,
+        ).reshape(-1, 3)
+        if rays.shape[0] > int(maximum_rays):
+            indices = torch.linspace(
+                0,
+                rays.shape[0] - 1,
+                int(maximum_rays),
+                device=self.device,
+            ).round().to(torch.int64)
+            rays = rays[indices]
+        return rays
+
+    def evaluate_candidate_poses(
+        self,
+        reference_pose: np.ndarray,
+        candidate_poses: np.ndarray,
+        K: np.ndarray,
+        height: int,
+        width: int,
+        *,
+        maximum_rays: int = 4096,
+    ) -> tuple[float, np.ndarray]:
+        """Score explicit optical poses against the current map, read-only.
+
+        The smaller deterministic ray set keeps a reachability search over many
+        candidates fast.  Scores are comparable within one call; the method
+        never fuses observations and never changes coverage or map tensors.
+        """
+        if self.config is None or self._origin is None:
+            raise NBVInputError("NBV core is not configured")
+        reference = _rigid_pose(reference_pose, "reference_pose")
+        candidates = np.asarray(candidate_poses, dtype=np.float64)
+        if candidates.ndim != 3 or candidates.shape[1:] != (4, 4):
+            raise NBVInputError("candidate_poses must have shape Nx4x4")
+        if not 1 <= candidates.shape[0] <= 256:
+            raise NBVInputError("candidate_poses count must be in [1, 256]")
+        checked = [
+            _rigid_pose(pose, f"candidate_poses[{index}]")
+            for index, pose in enumerate(candidates)
+        ]
+        lower = np.asarray(self.config.observation_min, dtype=np.float64)
+        upper = np.asarray(self.config.observation_max, dtype=np.float64)
+        for index, pose in enumerate(checked):
+            if np.any(pose[:3, 3] < lower - 1.0e-9) or np.any(
+                pose[:3, 3] > upper + 1.0e-9
+            ):
+                raise NBVInputError(
+                    f"candidate_poses[{index}] lies outside observation bounds"
+                )
+
+        rays = self._planning_ray_directions(
+            K, height, width, maximum_rays=maximum_rays
+        )
+        features = self._planning_features()
+        with torch.no_grad():
+            reference_gain = float(
+                self._candidate_gain_with_rotation(
+                    torch.tensor(
+                        reference[:3, 3], device=self.device, dtype=torch.float32
+                    ),
+                    torch.tensor(
+                        reference[:3, :3], device=self.device, dtype=torch.float32
+                    ),
+                    rays,
+                    features,
+                )
+            )
+            gains = np.asarray(
+                [
+                    float(
+                        self._candidate_gain_with_rotation(
+                            torch.tensor(
+                                pose[:3, 3],
+                                device=self.device,
+                                dtype=torch.float32,
+                            ),
+                            torch.tensor(
+                                pose[:3, :3],
+                                device=self.device,
+                                dtype=torch.float32,
+                            ),
+                            rays,
+                            features,
+                        )
+                    )
+                    for pose in checked
+                ],
+                dtype=np.float64,
+            )
+        if not math.isfinite(reference_gain) or not np.all(np.isfinite(gains)):
+            raise NBVInputError("candidate view gain is non-finite")
+        return reference_gain, gains
+
     def _plan(
         self,
         pose: np.ndarray,
@@ -694,34 +867,11 @@ class GradientNBVCore:
         height: int,
         width: int,
     ) -> tuple[np.ndarray, float, float, tuple[float, ...]]:
-        factor = self.config.downsample
-        sampled_height = len(range(0, height, factor))
-        sampled_width = len(range(0, width, factor))
-        sampled_K = K.copy()
-        sampled_K[0, 0] /= factor
-        sampled_K[0, 2] /= factor
-        sampled_K[1, 1] /= factor
-        sampled_K[1, 2] /= factor
         # Bound runtime for unusual inputs while retaining the exact 320x200
         # grid for the approved 640x400 default.
-        rows = torch.arange(sampled_height, device=self.device, dtype=torch.float32)
-        columns = torch.arange(sampled_width, device=self.device, dtype=torch.float32)
-        row_grid, column_grid = torch.meshgrid(rows, columns, indexing="ij")
-        ray_directions = torch.stack(
-            (
-                (column_grid - float(sampled_K[0, 2])) / float(sampled_K[0, 0]),
-                (row_grid - float(sampled_K[1, 2])) / float(sampled_K[1, 1]),
-                torch.ones_like(row_grid),
-            ),
-            dim=-1,
-        ).reshape(-1, 3)
-        # Deterministic ray thinning caps arbitrary high-resolution inputs.
-        maximum_rays = 64_000
-        if ray_directions.shape[0] > maximum_rays:
-            indices = torch.linspace(
-                0, ray_directions.shape[0] - 1, maximum_rays, device=self.device
-            ).round().to(torch.int64)
-            ray_directions = ray_directions[indices]
+        ray_directions = self._planning_ray_directions(
+            K, height, width, maximum_rays=64_000
+        )
 
         current_position = torch.tensor(
             pose[:3, 3], device=self.device, dtype=torch.float32

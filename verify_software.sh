@@ -50,7 +50,9 @@ echo "[6/8] 相机/采集验证工具"
 /usr/bin/python3 -m pytest -q validation/week2/test validation/week3/test
 
 echo "[7/8] 学习式 mask 离线边界与大步 IK 预检"
-/usr/bin/python3 -m pytest -q validation/week6/test_mask_model_evaluator.py
+/usr/bin/python3 -m pytest -q \
+    validation/week6/test_mask_model_evaluator.py \
+    validation/week6/test_reachable_candidate_visualization.py
 PYTHONPATH="${sap_directory}/nero_ws/src/strawberry_nero_control:${PYTHONPATH:-}" \
   .venv/bin/python validation/week6/large_step_ik_preflight.py \
   --output /tmp/strawberry_large_step_ik_preflight.json >/dev/null

@@ -25,6 +25,10 @@ contains no Orbbec SDK, MoveIt, Placo, or algorithm implementation.
   configured world frame. `NextView` repeats `scene_id` and `observation_id` so
   the same result remains self-describing when published on an independent or
   transient-local topic.
+- `EvaluateViewCandidates.srv` scores a bounded list of already validated
+  `T_world_camera_optical` poses against the current map. It is read-only and
+  binds the scoring rays to one successfully processed Observation; it cannot
+  fuse data or change coverage.
 
 Source kinds are stable numeric values: unknown `0`, real `1`, offline `2`,
 synthetic `3`, and replay `4`. Status responses follow the repository convention

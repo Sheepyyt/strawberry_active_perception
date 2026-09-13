@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/NextView.msg"
   "srv/CaptureObservation.srv"
   "srv/ConfigureNBV.srv"
+  "srv/EvaluateViewCandidates.srv"
   "srv/ResetNBVMap.srv"
   "action/ComputeNextView.action"
   DEPENDENCIES

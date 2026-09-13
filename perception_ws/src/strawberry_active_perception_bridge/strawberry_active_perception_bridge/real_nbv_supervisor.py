@@ -31,6 +31,7 @@ from typing import Any, Callable
 from action_msgs.msg import GoalStatus
 from agx_arm_msgs.msg import AgxArmStatus
 from diagnostic_msgs.msg import DiagnosticArray
+from geometry_msgs.msg import PoseStamped
 import numpy as np
 import rclpy
 from rcl_interfaces.msg import ParameterType
@@ -47,7 +48,11 @@ from strawberry_nero_interfaces.msg import IKResult
 from strawberry_nero_interfaces.srv import SolveIK
 from strawberry_perception_interfaces.action import ComputeNextView
 from strawberry_perception_interfaces.msg import NextView, Observation
-from strawberry_perception_interfaces.srv import CaptureObservation, ConfigureNBV
+from strawberry_perception_interfaces.srv import (
+    CaptureObservation,
+    ConfigureNBV,
+    EvaluateViewCandidates,
+)
 from tf2_ros import Buffer, TransformException, TransformListener
 
 from .calibration_report import load_verified_handeye_report
@@ -66,6 +71,9 @@ from .real_nbv_contract import (
     MotionBudgetExhausted,
     MotionLimits,
     MotionSessionLedger,
+    NEAR_BEST_GAIN_RATIO,
+    REACHABLE_VIEW_DIRECTION_COUNT,
+    REACHABLE_VIEW_RADII_M,
     SMALL_MOTION_LIMITS,
     SMALL_MOTION_PROFILE,
     aggregate_five_frame_depth_mask,
@@ -83,7 +91,9 @@ from .real_nbv_contract import (
     normalize_nbv_configuration,
     ordered_joint_positions,
     project_numerical_step_overshoot,
+    reachable_view_lattice,
     require_unit_quaternion,
+    select_near_best_reachable_candidate,
     stamp_nanoseconds,
     transform_point,
     validate_ik_solution,
@@ -223,6 +233,30 @@ def _failure_gates_closed(node: Any, error: Exception) -> bool:
     )
 
 
+def _candidate_selection_evidence(candidate: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the optional large-workspace lattice decision evidence."""
+    if candidate.get("segmentation_contract") != "reachable_view_lattice":
+        return None
+    keys = (
+        "candidate_index",
+        "direction_index",
+        "direction_world",
+        "radius_m",
+        "current_gain",
+        "candidate_gain",
+        "gain_improvement",
+        "best_gain_improvement",
+        "near_best_gain_floor",
+        "near_best_candidate_count",
+        "reachable_candidate_count",
+        "useful_candidate_count",
+        "selection_contract",
+    )
+    if any(key not in candidate for key in keys):
+        raise SupervisorError("reachable-view candidate audit is incomplete")
+    return {key: copy.deepcopy(candidate[key]) for key in keys}
+
+
 def _legacy_session_policy(max_motion_steps: int) -> dict[str, Any]:
     """Recompute the historical one-/three-step policy for old evidence."""
     if isinstance(max_motion_steps, bool) or max_motion_steps not in (1, 3):
@@ -310,7 +344,7 @@ def _session_policy(
         "schema": (
             "strawberry_real_nbv_motion_session_policy/v2"
             if limits.profile == SMALL_MOTION_PROFILE
-            else "strawberry_real_nbv_motion_session_policy/v3"
+            else "strawberry_real_nbv_motion_session_policy/v4"
         ),
         "max_motion_steps": int(max_motion_steps),
         "single_step_translation_min_exclusive_m": (
@@ -354,6 +388,16 @@ def _session_policy(
         policy.pop("maximum_final_position_error_m")
     else:
         policy["motion_profile"] = limits.profile
+        policy["preferred_visible_translation_m"] = 0.050
+        policy["reachable_candidate_radii_m"] = list(REACHABLE_VIEW_RADII_M)
+        policy["reachable_candidate_direction_count"] = (
+            REACHABLE_VIEW_DIRECTION_COUNT
+        )
+        policy["near_best_gain_ratio"] = NEAR_BEST_GAIN_RATIO
+        policy["candidate_selection_contract"] = (
+            "finite_direction_distance_lattice_ik_first_then_gain; "
+            "within_90_percent_of_best_gain_choose_largest_translation"
+        )
     payload = json.dumps(
         policy, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     ).encode("utf-8")
@@ -390,6 +434,38 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
                 "execution plan session policy values are invalid"
             ) from error
     elif schema == "strawberry_real_nbv_motion_session_policy/v3":
+        expected = {
+            "schema": "strawberry_real_nbv_motion_session_policy/v3",
+            "max_motion_steps": steps,
+            "single_step_translation_min_exclusive_m": None,
+            "single_step_translation_min_inclusive_m": 0.05,
+            "single_step_translation_max_m": 0.1,
+            "single_step_rotation_max_deg": math.degrees(math.radians(15.0)),
+            "maximum_ik_joint_delta_rad": 0.35,
+            "maximum_ik_position_error_m": 0.005,
+            "maximum_final_position_error_m": 0.005,
+            "cumulative_translation_max_m": 0.3,
+            "cumulative_rotation_max_deg": 45.0,
+            "coverage_target": policy.get("coverage_target"),
+            "coverage_plateau_delta": policy.get("coverage_plateau_delta"),
+            "coverage_plateau_patience": policy.get(
+                "coverage_plateau_patience"
+            ),
+            "motion_deadband_m": 0.05,
+            "stop_at_first_reached_condition": True,
+            "minimum_valid_mask_depth_pixels": policy.get(
+                "minimum_valid_mask_depth_pixels"
+            ),
+            "configure_once_and_keep_same_map": True,
+            "five_frame_aggregate_after_every_motion": True,
+            "automatic_return_or_disable": False,
+            "motion_profile": LARGE_MOTION_PROFILE,
+        }
+        payload = json.dumps(
+            expected, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode("utf-8")
+        expected["sha256"] = hashlib.sha256(payload).hexdigest()
+    elif schema == "strawberry_real_nbv_motion_session_policy/v4":
         try:
             expected = _session_policy(
                 steps,
@@ -770,6 +846,29 @@ def _load_execution_plan(
             if embedded_selected.get(key) != outer_selected.get(key):
                 raise SupervisorError(
                     "embedded selected candidate differs from preview result"
+                )
+        if (
+            stored_policy is not None
+            and stored_policy.get("schema")
+            == "strawberry_real_nbv_motion_session_policy/v4"
+        ):
+            outer_selection = _candidate_selection_evidence(outer_selected)
+            if (
+                outer_selection is None
+                or embedded_selected.get("reachable_view_selection")
+                != outer_selection
+            ):
+                raise SupervisorError(
+                    "embedded reachable-view selection differs from preview audit"
+                )
+            if not math.isclose(
+                float(outer_selection["radius_m"]),
+                float(outer_selected.get("camera_translation_m", math.nan)),
+                rel_tol=0.0,
+                abs_tol=1.0e-9,
+            ):
+                raise SupervisorError(
+                    "reachable-view radius differs from selected camera translation"
                 )
         if candidate.get("exact_tf", {}).get("T_base_camera_optical") != document.get(
             "final_tf", {}
@@ -1155,6 +1254,9 @@ class RealNBVSupervisor(Node):
         )
         self.declare_parameter("configure_service", "/strawberry/nbv/configure")
         self.declare_parameter(
+            "evaluate_candidates_service", "/strawberry/nbv/evaluate_candidates"
+        )
+        self.declare_parameter(
             "compute_action", "/strawberry/nbv/compute_next_view"
         )
         self.declare_parameter("solve_ik_service", "/strawberry_nero/solve_ik")
@@ -1498,6 +1600,10 @@ class RealNBVSupervisor(Node):
         self._configure_client = self.create_client(
             ConfigureNBV,
             str(self.get_parameter("configure_service").value),
+        )
+        self._evaluate_candidates_client = self.create_client(
+            EvaluateViewCandidates,
+            str(self.get_parameter("evaluate_candidates_service").value),
         )
         self._compute_client = ActionClient(
             self,
@@ -2385,7 +2491,12 @@ class RealNBVSupervisor(Node):
         current_camera: np.ndarray,
         raw_target: np.ndarray,
         stamp: Any,
+        observation_id: str,
     ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+        if self.motion_profile == LARGE_MOTION_PROFILE:
+            return self._solve_reachable_view_lattice(
+                current_camera, raw_target, stamp, observation_id
+            )
         if not self._solve_client.wait_for_service(timeout_sec=5.0):
             raise SupervisorError("SolveIK service is unavailable")
         alphas = tuple(
@@ -2508,6 +2619,190 @@ class RealNBVSupervisor(Node):
             except ValueError as error:
                 record["rejection"] = str(error)
             records.append(record)
+        return selected, records
+
+    def _solve_reachable_view_lattice(
+        self,
+        current_camera: np.ndarray,
+        raw_target: np.ndarray,
+        stamp: Any,
+        observation_id: str,
+    ) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+        """IK-filter a finite view lattice, then select by map information."""
+        if self._active_nbv_configuration is None:
+            raise SupervisorError("Gradient-NBV map has not been configured")
+        if not self._solve_client.wait_for_service(timeout_sec=5.0):
+            raise SupervisorError("SolveIK service is unavailable")
+        configuration = self._active_nbv_configuration
+        lattice = reachable_view_lattice(
+            current_camera,
+            raw_target,
+            configuration["target_center_m"],
+            configuration["observation_min_m"],
+            configuration["observation_max_m"],
+        )
+        max_rotation = math.radians(
+            float(self.get_parameter("max_selected_camera_rotation_deg").value)
+        )
+        max_joint_delta = float(
+            self.get_parameter("max_ik_joint_delta_rad").value
+        )
+        records: list[dict[str, Any]] = []
+        accepted_records: list[dict[str, Any]] = []
+        for candidate in lattice:
+            link7_target = camera_target_to_link7(
+                candidate.pose, self.report.transform_link7_camera_optical
+            )
+            request = SolveIK.Request()
+            _fill_pose_stamped(
+                request.target_pose, link7_target, self.base_frame, stamp
+            )
+            request.controlled_frame = "link7"
+            current_joints = self._fresh_joints()
+            response = self._wait_future(
+                self._solve_client.call_async(request),
+                self.operation_timeout,
+                f"SolveIK reachable lattice candidate {candidate.candidate_index}",
+            )
+            result = response.result
+            record: dict[str, Any] = {
+                "candidate_index": candidate.candidate_index,
+                "direction_index": candidate.direction_index,
+                "direction_world": array_list(candidate.direction_world),
+                "radius_m": candidate.radius_m,
+                "alpha": 1.0,
+                "translation_alpha": 1.0,
+                "rotation_alpha": 1.0,
+                "segmentation_contract": "reachable_view_lattice",
+                "T_base_camera": array_list(candidate.pose),
+                "T_base_link7": array_list(link7_target),
+                "camera_translation_m": candidate.motion.translation_m,
+                "camera_rotation_deg": math.degrees(candidate.motion.rotation_rad),
+                "ik_success": bool(result.success),
+                "ik_code": int(result.code),
+                "ik_reason": str(result.reason),
+                "position_error_m": float(result.position_error_m),
+                "orientation_error_rad": float(result.orientation_error_rad),
+                "sigma_min": float(result.sigma_min),
+                "condition_number": float(result.condition_number),
+                "reported_max_joint_delta_rad": float(result.max_joint_delta_rad),
+                "solution_names": list(result.solution_joint_state.name),
+                "solution_positions_rad": [
+                    float(value) for value in result.solution_joint_state.position
+                ],
+                "accepted": False,
+                "rejection": "",
+                "ik_gate_passed": False,
+                "gain_scored": False,
+            }
+            try:
+                if not result.success or int(result.code) != IKResult.SUCCESS:
+                    raise ValueError("SolveIK did not return exact SUCCESS")
+                if not camera_step_above_minimum(
+                    candidate.motion.translation_m, self.motion_limits
+                ):
+                    raise ValueError("candidate translation is inside motion deadband")
+                if (
+                    candidate.motion.translation_m
+                    > self.motion_limits.maximum_camera_step_m + 1.0e-9
+                ):
+                    raise ValueError("candidate translation exceeds profile maximum")
+                if candidate.motion.rotation_rad > max_rotation + 1.0e-9:
+                    raise ValueError("candidate camera rotation exceeds profile maximum")
+                validation = validate_ik_solution(
+                    current_joints=current_joints,
+                    solution_names=result.solution_joint_state.name,
+                    solution_positions=result.solution_joint_state.position,
+                    reported_max_joint_delta_rad=result.max_joint_delta_rad,
+                    position_error_m=result.position_error_m,
+                    orientation_error_rad=result.orientation_error_rad,
+                    sigma_min=result.sigma_min,
+                    condition_number=result.condition_number,
+                    max_joint_delta_rad=max_joint_delta,
+                    max_position_error_m=(
+                        self.motion_limits.maximum_ik_position_error_m
+                    ),
+                )
+                record["independent_max_joint_delta_rad"] = (
+                    validation.max_joint_delta_rad
+                )
+                record["minimum_joint_limit_clearance_rad"] = (
+                    validation.minimum_joint_limit_clearance_rad
+                )
+                record["limiting_joint_name"] = validation.limiting_joint_name
+                record["ik_gate_passed"] = True
+                accepted_records.append(record)
+            except ValueError as error:
+                record["rejection"] = str(error)
+            records.append(record)
+
+        if not accepted_records:
+            return None, records
+        if not self._evaluate_candidates_client.wait_for_service(timeout_sec=5.0):
+            raise SupervisorError("EvaluateViewCandidates service is unavailable")
+        score_request = EvaluateViewCandidates.Request()
+        score_request.scene_id = self.scene_id
+        score_request.observation_id = str(observation_id)
+        for record in accepted_records:
+            pose = PoseStamped()
+            _fill_pose_stamped(
+                pose,
+                np.asarray(record["T_base_camera"], dtype=float),
+                self.base_frame,
+                stamp,
+            )
+            score_request.candidate_poses.append(pose)
+        score_response = self._wait_future(
+            self._evaluate_candidates_client.call_async(score_request),
+            max(self.operation_timeout, 60.0),
+            "read-only reachable candidate gain scoring",
+        )
+        if not score_response.success or int(score_response.code) != 0:
+            raise SupervisorError(
+                "EvaluateViewCandidates failed: "
+                f"code={score_response.code}, reason={score_response.reason}"
+            )
+        gains = [float(value) for value in score_response.candidate_gains]
+        current_gain = float(score_response.current_gain)
+        if len(gains) != len(accepted_records) or not math.isfinite(current_gain):
+            raise SupervisorError("candidate gain response has invalid dimensions")
+        translations = [
+            float(record["camera_translation_m"]) for record in accepted_records
+        ]
+        clearances = [
+            float(record["minimum_joint_limit_clearance_rad"])
+            for record in accepted_records
+        ]
+        selection = select_near_best_reachable_candidate(
+            current_gain=current_gain,
+            candidate_gains=gains,
+            candidate_translations_m=translations,
+            joint_limit_clearances_rad=clearances,
+        )
+        tolerance = max(1.0e-9, abs(current_gain) * 1.0e-6)
+        for record, gain in zip(accepted_records, gains):
+            if not math.isfinite(gain):
+                raise SupervisorError("candidate gain response contains non-finite data")
+            improvement = gain - current_gain
+            record["gain_scored"] = True
+            record["current_gain"] = current_gain
+            record["candidate_gain"] = gain
+            record["gain_improvement"] = improvement
+            if improvement <= tolerance:
+                record["rejection"] = "candidate does not improve map information gain"
+        if selection is None:
+            return None, records
+        selected = accepted_records[selection.selected_index]
+        selected["accepted"] = True
+        selected["selection_contract"] = (
+            "IK-safe candidates with positive gain; within 90% of the best "
+            "gain improvement, choose the largest camera translation"
+        )
+        selected["best_gain_improvement"] = selection.best_gain_improvement
+        selected["near_best_gain_floor"] = selection.near_best_gain_floor
+        selected["near_best_candidate_count"] = len(selection.near_best_indices)
+        selected["reachable_candidate_count"] = len(accepted_records)
+        selected["useful_candidate_count"] = len(selection.useful_indices)
         return selected, records
 
     def _validate_controller_parameters(self) -> dict[str, Any]:
@@ -3471,7 +3766,10 @@ class RealNBVSupervisor(Node):
             raise SupervisorError("COVERAGE_TARGET_ALREADY_REACHED")
         raw_target = _strict_pose_matrix(next_view.pose, "raw NextView")
         selected, audit["ik_candidates"] = self._solve_candidates(
-            final_camera, raw_target, final_observation.header.stamp
+            final_camera,
+            raw_target,
+            final_observation.header.stamp,
+            corrected.observation_id,
         )
         audit["selected_candidate"] = selected
         preview_command_count = (
@@ -3575,6 +3873,9 @@ class RealNBVSupervisor(Node):
                     "segmentation_contract": selected[
                         "segmentation_contract"
                     ],
+                    "reachable_view_selection": (
+                        _candidate_selection_evidence(selected)
+                    ),
                     "translation_m": selected["camera_translation_m"],
                     "rotation_deg": selected["camera_rotation_deg"],
                 },
@@ -4116,6 +4417,7 @@ class RealNBVSupervisor(Node):
                 post_camera,
                 raw_target,
                 post_observation.header.stamp,
+                post_corrected.observation_id,
             )
             if dynamic_selected is None:
                 raise SupervisorError(
@@ -4178,6 +4480,9 @@ class RealNBVSupervisor(Node):
                 "segmentation_contract": dynamic_selected[
                     "segmentation_contract"
                 ],
+                "reachable_view_selection": (
+                    _candidate_selection_evidence(dynamic_selected)
+                ),
             }
             target_digest = hashlib.sha256(
                 json.dumps(

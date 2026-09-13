@@ -5,6 +5,7 @@ from strawberry_perception_interfaces.msg import NextView, Observation
 from strawberry_perception_interfaces.srv import (
     CaptureObservation,
     ConfigureNBV,
+    EvaluateViewCandidates,
     ResetNBVMap,
 )
 
@@ -102,6 +103,24 @@ def test_configure_and_reset_contracts():
     assert _field_names(ResetNBVMap.Request) == ("scene_id",)
     assert _field_names(ResetNBVMap.Response) == ("success", "code", "reason")
     assert ResetNBVMap.Response.ALREADY_EMPTY == 1
+
+
+def test_read_only_candidate_scoring_contract():
+    assert _field_names(EvaluateViewCandidates.Request) == (
+        "scene_id",
+        "observation_id",
+        "candidate_poses",
+    )
+    assert _field_names(EvaluateViewCandidates.Response) == (
+        "success",
+        "code",
+        "reason",
+        "current_gain",
+        "candidate_gains",
+    )
+    assert EvaluateViewCandidates.Response.SUCCESS == 0
+    assert EvaluateViewCandidates.Response.OBSERVATION_NOT_PROCESSED == 13
+    assert EvaluateViewCandidates.Response.INTERNAL_ERROR == 255
 
 
 def test_compute_next_view_action_contract():

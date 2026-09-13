@@ -6,6 +6,7 @@
     next_view_topic: /strawberry/nbv/next_view
     configure_service: /strawberry/nbv/configure
     reset_service: /strawberry/nbv/reset_map
+    evaluate_candidates_service: /strawberry/nbv/evaluate_candidates
     compute_action: /strawberry/nbv/compute_next_view
     device: auto
     observation_cache_size: 32

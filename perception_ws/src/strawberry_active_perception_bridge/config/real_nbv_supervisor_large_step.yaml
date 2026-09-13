@@ -23,6 +23,7 @@ real_nbv_supervisor:
     corrected_observation_topic: /strawberry/perception/real_nbv_observation
     capture_service: /strawberry/perception/capture_observation
     configure_service: /strawberry/nbv/configure
+    evaluate_candidates_service: /strawberry/nbv/evaluate_candidates
     compute_action: /strawberry/nbv/compute_next_view
     solve_ik_service: /strawberry_nero/solve_ik
     joint_state_topic: /feedback/joint_states
@@ -60,8 +61,8 @@ real_nbv_supervisor:
     map_size_m: 0.30
     target_roi_size_m: 0.15
 
-    # The NBV optimizer may use the full 10 cm radius. The supervisor accepts
-    # only candidates in [5, 10] cm; shorter alphas are audited and rejected.
+    # The NBV optimizer may use the full 10 cm radius. The supervisor prefers
+    # visible 5--10 cm candidates, then falls back to 25/10/5 mm if needed.
     max_step_m: 0.10
     observation_bound_half_extent_m: 0.301
     max_target_drift_m: 0.020

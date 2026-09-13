@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Callable
 
 from builtin_interfaces.msg import Time
+from geometry_msgs.msg import PoseStamped
 import numpy as np
 import pytest
 import rclpy
@@ -22,7 +23,11 @@ from strawberry_gradient_nbv.ros_node import (
 )
 from strawberry_perception_interfaces.action import ComputeNextView
 from strawberry_perception_interfaces.msg import NextView, Observation
-from strawberry_perception_interfaces.srv import ConfigureNBV, ResetNBVMap
+from strawberry_perception_interfaces.srv import (
+    ConfigureNBV,
+    EvaluateViewCandidates,
+    ResetNBVMap,
+)
 
 
 class _FakeBackend:
@@ -39,6 +44,8 @@ class _FakeBackend:
         self.reset_calls = 0
         self.snapshot_calls = 0
         self.restore_calls = 0
+        self.evaluate_calls = 0
+        self.evaluate_error: Exception | None = None
 
     def configure(self, config) -> None:
         if self.configure_error is not None:
@@ -81,6 +88,18 @@ class _FakeBackend:
             optimization_iterations=3,
             compute_time_ms=7.5,
         )
+
+    def evaluate_candidate_poses(
+        self, reference_pose, candidate_poses, intrinsics, height, width
+    ):
+        assert reference_pose.shape == (4, 4)
+        assert candidate_poses.ndim == 3 and candidate_poses.shape[1:] == (4, 4)
+        assert intrinsics.shape == (3, 3)
+        assert (height, width) == (2, 2)
+        self.evaluate_calls += 1
+        if self.evaluate_error is not None:
+            raise self.evaluate_error
+        return 1.25, np.arange(candidate_poses.shape[0], dtype=float) + 2.0
 
     def visualization_state(self):
         observed = np.asarray([[[self.state > 0]]], dtype=bool)
@@ -230,6 +249,18 @@ def _configure(node: GradientNBVNode) -> ConfigureNBV.Response:
 def _compute(node: GradientNBVNode, observation_id: str = "obs-1"):
     goal = _GoalHandle("scene-a", observation_id)
     return goal, node._execute_compute(goal)
+
+
+def _candidate_request(observation_id: str = "obs-1"):
+    request = EvaluateViewCandidates.Request()
+    request.scene_id = "scene-a"
+    request.observation_id = observation_id
+    pose = PoseStamped()
+    pose.header.frame_id = "fixture_world"
+    pose.header.stamp = _stamp()
+    pose.pose.orientation.w = 1.0
+    request.candidate_poses = [pose]
+    return request
 
 
 def test_configuration_codes_are_specific_and_device_auto_is_supported() -> None:
@@ -420,6 +451,63 @@ def test_action_success_is_idempotent_cached_and_publishes_all_phases(wrapper) -
     assert node._next_view_qos.reliability == ReliabilityPolicy.RELIABLE
     assert node._next_view_qos.durability == DurabilityPolicy.TRANSIENT_LOCAL
     assert node.get_parameter("reset_service").value == "/strawberry/nbv/reset_map"
+    assert (
+        node.get_parameter("evaluate_candidates_service").value
+        == "/strawberry/nbv/evaluate_candidates"
+    )
+
+
+def test_candidate_scoring_requires_processed_observation_and_is_read_only(wrapper) -> None:
+    node, backend, _publisher = wrapper
+    not_configured = node._on_evaluate_candidates(
+        _candidate_request(), EvaluateViewCandidates.Response()
+    )
+    assert not_configured.code == EvaluateViewCandidates.Response.NOT_CONFIGURED
+
+    _configure(node)
+    node._on_observation(_observation())
+    not_processed = node._on_evaluate_candidates(
+        _candidate_request(), EvaluateViewCandidates.Response()
+    )
+    assert not_processed.code == EvaluateViewCandidates.Response.OBSERVATION_NOT_PROCESSED
+    _goal, result = _compute(node)
+    assert result.next_view.success
+    state_before = backend.state
+    snapshots_before = backend.snapshot_calls
+
+    success = node._on_evaluate_candidates(
+        _candidate_request(), EvaluateViewCandidates.Response()
+    )
+    assert success.success
+    assert success.current_gain == pytest.approx(1.25)
+    assert success.candidate_gains == pytest.approx([2.0])
+    assert backend.evaluate_calls == 1
+    assert backend.state == state_before
+    assert backend.snapshot_calls == snapshots_before
+
+
+def test_candidate_scoring_rejects_bad_pose_without_backend_call(wrapper) -> None:
+    node, backend, _publisher = wrapper
+    _configure(node)
+    node._on_observation(_observation())
+    _goal, result = _compute(node)
+    assert result.next_view.success
+
+    mutations = (
+        lambda request: setattr(request, "scene_id", "wrong-scene"),
+        lambda request: setattr(request.candidate_poses[0].header, "frame_id", "wrong"),
+        lambda request: setattr(request.candidate_poses[0].header, "stamp", _stamp(1)),
+        lambda request: setattr(request.candidate_poses[0].pose.orientation, "w", 0.5),
+        lambda request: setattr(request.candidate_poses[0].pose.position, "x", 2.0),
+    )
+    for mutate in mutations:
+        request = _candidate_request()
+        mutate(request)
+        response = node._on_evaluate_candidates(
+            request, EvaluateViewCandidates.Response()
+        )
+        assert not response.success
+    assert backend.evaluate_calls == 0
 
 
 def test_enabled_map_snapshot_is_written_once_per_unique_update(wrapper, tmp_path) -> None:

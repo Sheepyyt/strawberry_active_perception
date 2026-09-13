@@ -1,0 +1,29 @@
+# Score already validated camera poses against the current Gradient-NBV map.
+# This service is read-only: it must never fuse an Observation or mutate the map.
+string scene_id
+
+# A successfully processed Observation from the current map generation. Its
+# intrinsics and image dimensions define the deterministic scoring rays.
+string observation_id
+
+# Every pose is T_world_camera_optical in the configured world frame. The
+# request is intentionally bounded by the server (currently at 256 poses).
+geometry_msgs/PoseStamped[] candidate_poses
+---
+uint16 SUCCESS=0
+uint16 INVALID_REQUEST=10
+uint16 NOT_CONFIGURED=11
+uint16 SCENE_MISMATCH=12
+uint16 OBSERVATION_NOT_PROCESSED=13
+uint16 CANDIDATE_INVALID=14
+uint16 INTERNAL_ERROR=255
+
+bool success
+uint16 code
+string reason
+
+# Gain of the referenced camera pose and one gain per candidate, in request
+# order. A useful candidate must have gain > current_gain by a caller-defined
+# numerical tolerance.
+float64 current_gain
+float64[] candidate_gains

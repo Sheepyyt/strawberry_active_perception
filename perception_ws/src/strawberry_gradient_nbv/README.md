@@ -74,9 +74,14 @@ ros2 launch strawberry_gradient_nbv gradient_nbv.launch.py
 ```
 
 wrapper 订阅 `/strawberry/perception/observation`，提供 `/strawberry/nbv/configure`、
-`/strawberry/nbv/reset_map` 和 `/strawberry/nbv/compute_next_view`，并在
+`/strawberry/nbv/reset_map`、只读的 `/strawberry/nbv/evaluate_candidates` 和
+`/strawberry/nbv/compute_next_view`，并在
 `/strawberry/nbv/next_view` 发布 Reliable + TransientLocal 的结构化结果。同一
 `(scene_id, observation_id)` 只融合一次；重复 Action goal 返回缓存结果。
+
+`evaluate_candidates` 只接受当前地图中已经成功融合的 Observation 作为参考，批量计算最多
+256 个明确相机位姿的 gain。它不融合新帧、不改变 coverage，也不改变体素地图；真实监督器
+用它在 Placo 已确认可达的有限候选中选择高收益且更明显的运动。
 
 真实机械臂闭环不能使用上面的默认话题，因为相机 adapter 的原始消息还没有
 `base_link` 位姿。此时必须用 `.venv-nbv` 启动并选择真实专用配置：

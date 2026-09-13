@@ -1,0 +1,67 @@
+{
+  "schema": "strawberry_yolo11_real_nbv_result/v1",
+  "result": "passed",
+  "plain_language_result": "YOLO found one strawberry; two robot-selected views increased the same 3-D map coverage by 20.81 percentage points, then the reachable search found no additional positive-gain view and stopped safely.",
+  "model": {
+    "type": "YOLO11m-seg",
+    "class": "strawberry",
+    "confidence_threshold": 0.7,
+    "checkpoint_sha256": "7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357"
+  },
+  "execution": {
+    "scene_id": "real_nbv_once_20260913T152311Z",
+    "motion_goal_count": 2,
+    "coverage_target": 0.8,
+    "coverage_target_reached": false,
+    "coverage_fraction": [
+      0.24061599373817444,
+      0.3787280023097992,
+      0.44871199131011963
+    ],
+    "coverage_percent": [
+      24.061599373817444,
+      37.87280023097992,
+      44.87119913101196
+    ],
+    "total_gain_percentage_points": 20.80959975719452,
+    "actual_step_translation_mm": [
+      9.825521904480267,
+      4.79673984558671
+    ],
+    "actual_step_rotation_deg": [
+      1.7412330330780863,
+      0.6357235333467767
+    ],
+    "final_position_error_mm": [
+      0.29811308609271897,
+      0.26565275948191835
+    ],
+    "valid_target_depth_pixels": [
+      523,
+      553
+    ],
+    "move_j_trajectory_samples": [
+      29,
+      20
+    ],
+    "stop_reason": "no positive-gain reachable candidate remained in the predeclared multi-radius search lattice",
+    "every_step_gates_closed": true,
+    "same_map_configure_call_count": 1
+  },
+  "depth_failure_and_recovery": {
+    "failed_attempt_sha256": "62f89025e4a0aa64b452640de74eb1a6884091bfe7f71b6516923ad22e77e18f",
+    "failed_view_median_depth_m": 1.3639999628067017,
+    "recovered_view_median_depth_m": 0.4480000138282776,
+    "final_view_median_depth_m": 0.4490000009536743,
+    "interpretation": "The oblique RGB mask remained correct, but Gemini returned only the background layer inside it. The supervisor stopped, the robot returned to the last depth-valid view, and the next run used a frozen 25 mm cap."
+  },
+  "evidence": {
+    "preview_sha256": "43cb379c0add614d20ac2492d48e2f443c86e141aaf929ae2183f85b7e1626cf",
+    "execution_sha256": "e0d16b45392f956cebd57fae86e62b470ddadd4e8d4092e3d2d7ea749ca73136",
+    "map_snapshot_sha256": [
+      "550ed136211f1bd811a83c60bec9cc845b804705a339844f274bb3ad9d34f716",
+      "50215066f8781cd818691d936fd0f3486a1bdec79791115273078abdbe04cdc8",
+      "84cc59c2390c7b74c9c976a026ac3563b40be2359f7539772bfea2e8eb1eec10"
+    ]
+  }
+}

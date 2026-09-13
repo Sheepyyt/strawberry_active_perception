@@ -1,8 +1,8 @@
 {
   "schema": "strawberry_active_perception_reproducibility_manifest/v1",
   "generated_on": "2026-09-13",
-  "scope": "real strawberry HSV loop, an audited reachability-aware five-step Gradient-NBV session stopped at 60 percent ROI ray coverage, voxel-map visualization, and hash-pinned YOLO11 strawberry segmentation through camera-read-only validation",
-  "source_baseline_before_this_closure": "d51f5063f48943cd8556df0075f1479a92d7ee79",
+  "scope": "real strawberry active perception with HSV and hash-pinned YOLO11 masks; the latest audited YOLO11 session updated one persistent voxel map across two robot-selected views and stopped when no positive-gain reachable candidate remained",
+  "source_baseline_before_this_closure": "d149adf1ec5fbbdd01b1467253dcc9714984a419",
   "submodules": {
     "camera_ws/src/OrbbecSDK_ROS2": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
     "nero_ws/src/agx_arm_ros": "22a9cf6c5ad2fd2e0743531936bc5dab007fa5bc"
@@ -95,6 +95,42 @@
     {
       "path": "validation/week9/artifacts/yolo11_nbv_preview_summary.json",
       "sha256": "bf069a3334e15921bf6ad999f5953ce3ee7e13c16932611ab3bc8d4f71a7cc88"
+    },
+    {
+      "path": "validation/week10/artifacts/evidence/yolo11_nbv_preview_target80.json",
+      "sha256": "43cb379c0add614d20ac2492d48e2f443c86e141aaf929ae2183f85b7e1626cf"
+    },
+    {
+      "path": "validation/week10/artifacts/evidence/yolo11_nbv_execution_target80.json",
+      "sha256": "e0d16b45392f956cebd57fae86e62b470ddadd4e8d4092e3d2d7ea749ca73136"
+    },
+    {
+      "path": "validation/week10/artifacts/yolo11_real_nbv_summary.json",
+      "sha256": "f9ec95e875c10b59e342eb12ef65d85f2aa4959a2a93e7282cd191e4334c4d1e"
+    },
+    {
+      "path": "validation/week10/artifacts/session/00_experiment_dashboard.png",
+      "sha256": "9d2fba091652a5a167f0e49648f9fff853d96bc0ddaec9c82f619cd7d899fc7e"
+    },
+    {
+      "path": "validation/week10/artifacts/session/01_coverage_curve.png",
+      "sha256": "d7d967a6362d4bb7bcade9ca7a0530d39740d7bd7b4b3df972ff2ad4f3708928"
+    },
+    {
+      "path": "validation/week10/artifacts/voxel/voxel_cloud_final_3d.png",
+      "sha256": "36a308d2cfd47ac20eaec1debac8bda8b83659f0b85ae3623dfd42a8947decf8"
+    },
+    {
+      "path": "validation/week10/artifacts/voxel/voxel_cloud_growth.gif",
+      "sha256": "084daf484f63c5aa4c04bf46d972f21a07bd718931ba1509eea4470b454872f0"
+    },
+    {
+      "path": "validation/week10/artifacts/depth_failure_recovery_story.png",
+      "sha256": "6f313c5a880662c2fb465ccd2f89734aca3ca06ee322a10d271229909d937f85"
+    },
+    {
+      "path": "validation/week10/artifacts/manifest.json",
+      "sha256": "f38cdd3e004a0ffc6dcba84609e22188ad1c388331323a0865082f70360f39dc"
     },
     {
       "path": "validation/week5/artifacts/real_strawberry_hsv_multistep_execution.json",
@@ -194,10 +230,12 @@
   "reproduce_command": "./verify_software.sh",
   "limitations": [
     "coverage is target-ROI valid-ray coverage, not ground-truth strawberry surface coverage",
-    "the completed five-step real-motion evidence used an HSV red-color mask; YOLO11 semantic segmentation has passed offline and current-camera read-only validation but has not yet controlled a real motion",
-    "the latest reachability-aware profile completed five real camera motions, travelled about 102 mm, and increased ROI valid-ray coverage from 15.06 to 60.84 percent",
+    "YOLO11 semantic segmentation controlled two real NBV motions and increased one persistent map from 24.06 to 44.87 percent ROI valid-ray coverage; it stopped normally when no positive-gain reachable candidate remained",
+    "the 80 percent setting in the latest YOLO11 run was an upper stopping condition, not a required or ground-truth reconstruction target",
+    "one earlier oblique view preserved an RGB mask but lost strawberry-surface depth; the supervisor rejected the background layer and did not update the map with it",
+    "the historical HSV reachability-aware profile completed five real camera motions, travelled about 102 mm, and increased ROI valid-ray coverage from 15.06 to 60.84 percent",
     "the 60 percent stopping line is an experiment setting for ROI valid-ray coverage, not a universal strawberry reconstruction-completeness threshold",
-    "historical real runs did not store dense voxel arrays; the latest 2026-09-13 run stores six reproducible visualization snapshots",
+    "historical real runs did not always store dense voxel arrays; the latest YOLO11 run stores three reproducible map snapshots for its initial view and two post-motion observations",
     "no environment collision model is active",
     "hardware state is intentionally not recorded as a persistent current-state claim"
   ]

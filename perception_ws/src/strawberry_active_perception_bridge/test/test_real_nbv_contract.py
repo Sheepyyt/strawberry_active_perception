@@ -503,6 +503,7 @@ def test_supervisor_large_profile_filters_ik_before_one_read_only_gain_call() ->
             "target_center_m": [0.0, 0.0, 0.0],
             "observation_min_m": [-0.31, -0.31, -0.91],
             "observation_max_m": [0.31, 0.31, -0.29],
+            "max_step_m": 0.10,
         },
         _solve_client=_SolveClient(),
         _evaluate_candidates_client=_GainClient(current),
@@ -534,6 +535,23 @@ def test_supervisor_large_profile_filters_ik_before_one_read_only_gain_call() ->
     assert node._solve_client.calls == len(records)
     assert node._evaluate_candidates_client.calls == 1
     assert len(node._evaluate_candidates_client.last_request.candidate_poses) <= 256
+
+    # A stricter frozen ConfigureNBV step is a real planning boundary, not
+    # merely a limit on the raw gradient optimizer.  The reachable lattice
+    # must not silently re-introduce its larger 50--100 mm radii.
+    node._active_nbv_configuration["max_step_m"] = 0.025
+    node._solve_client.calls = 0
+    node._evaluate_candidates_client.calls = 0
+    selected, records = RealNBVSupervisor._solve_reachable_view_lattice(
+        node,
+        current,
+        raw,
+        SimpleNamespace(sec=11, nanosec=0),
+        "obs-limited",
+    )
+    assert selected is not None
+    assert selected["camera_translation_m"] == pytest.approx(0.025)
+    assert max(record["camera_translation_m"] for record in records) <= 0.025 + 1e-9
 
 
 def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:

@@ -1,0 +1,186 @@
+{
+  "schema": "strawberry_yolo11_nbv_artifact_manifest/v1",
+  "file_count": 36,
+  "files": [
+    {
+      "path": "depth_failure_recovery_story.png",
+      "bytes": 797854,
+      "sha256": "6f313c5a880662c2fb465ccd2f89734aca3ca06ee322a10d271229909d937f85"
+    },
+    {
+      "path": "evidence/depth_failed_overlay.png",
+      "bytes": 247000,
+      "sha256": "d088437033a4ad6974048a4e015d2047343671c25e923a9ea834277d94df1e76"
+    },
+    {
+      "path": "evidence/depth_recovered_overlay.png",
+      "bytes": 260201,
+      "sha256": "f6e665ff7390f6367be86ad899d28b4d988e40b5b3961975068c3d6a3b0bc4eb"
+    },
+    {
+      "path": "evidence/final_overlay.png",
+      "bytes": 256976,
+      "sha256": "49184fa66ecf021e1148c484d4346df27873c6f2e647b7f51f0b6741babfe9c9"
+    },
+    {
+      "path": "evidence/map_step_001_agg5_387d856400f960635e9946d6.npz",
+      "bytes": 105899,
+      "sha256": "550ed136211f1bd811a83c60bec9cc845b804705a339844f274bb3ad9d34f716"
+    },
+    {
+      "path": "evidence/map_step_002_agg5_9bb94f0a6d96470731571241.npz",
+      "bytes": 116829,
+      "sha256": "50215066f8781cd818691d936fd0f3486a1bdec79791115273078abdbe04cdc8"
+    },
+    {
+      "path": "evidence/map_step_003_agg5_13857dc0a27537ba97a2f0e4.npz",
+      "bytes": 117127,
+      "sha256": "84cc59c2390c7b74c9c976a026ac3563b40be2359f7539772bfea2e8eb1eec10"
+    },
+    {
+      "path": "evidence/yolo11_nbv_execution_target80.json",
+      "bytes": 677011,
+      "sha256": "e0d16b45392f956cebd57fae86e62b470ddadd4e8d4092e3d2d7ea749ca73136"
+    },
+    {
+      "path": "evidence/yolo11_nbv_preview_target80.json",
+      "bytes": 220666,
+      "sha256": "43cb379c0add614d20ac2492d48e2f443c86e141aaf929ae2183f85b7e1626cf"
+    },
+    {
+      "path": "reachable_candidates.png",
+      "bytes": 340181,
+      "sha256": "f2c2f1acd8d9c6c426b4ad1e5185bbc4f1de6d2c77d8f54333e7cadcc69cd382"
+    },
+    {
+      "path": "session/00_experiment_dashboard.png",
+      "bytes": 240892,
+      "sha256": "9d2fba091652a5a167f0e49648f9fff853d96bc0ddaec9c82f619cd7d899fc7e"
+    },
+    {
+      "path": "session/01_coverage_curve.png",
+      "bytes": 119905,
+      "sha256": "d7d967a6362d4bb7bcade9ca7a0530d39740d7bd7b4b3df972ff2ad4f3708928"
+    },
+    {
+      "path": "session/02_camera_trajectory_3d.png",
+      "bytes": 313993,
+      "sha256": "731fbc1698276bbbad9866dca8f9f6344f20ab84bcdb3d65daa45b63dd98fa71"
+    },
+    {
+      "path": "session/03_candidate_funnel.png",
+      "bytes": 63141,
+      "sha256": "bd65e34f7ae193fa1e07c2a8ad5c55aa26bcda3901e5463e6c4d53a17af2dd69"
+    },
+    {
+      "path": "session/04_motion_profile.png",
+      "bytes": 74539,
+      "sha256": "7046ad2de94dd937dca264ae928df58cdc46505393bd04f451010be25732d947"
+    },
+    {
+      "path": "session/05_accuracy_safety.png",
+      "bytes": 191422,
+      "sha256": "58e7b97d0afc963343569038f2da03f5858674113f419466fe6f63daf850ca5d"
+    },
+    {
+      "path": "session/06_target_map_quality.png",
+      "bytes": 115160,
+      "sha256": "9b1941c0264b5f2453f375fa9bc12c426a91dfcbfaa2ca983dca8c9fe8fd74da"
+    },
+    {
+      "path": "session/07_session_timeline.png",
+      "bytes": 167714,
+      "sha256": "2086cee0c21315e7288fe8f1380db14a00fb819f7b03f1f964dde65b31661584"
+    },
+    {
+      "path": "session/REPORT_CN.md",
+      "bytes": 1492,
+      "sha256": "4e0dadff355f4fe367b5ab54964f2b565faa5f4d06947e02ebaf3b9dd63c85b0"
+    },
+    {
+      "path": "session/candidate_step_001.png",
+      "bytes": 307368,
+      "sha256": "78627ddcdac499a922417821a20db0c1a73f86026b6d9dc832b5768ebee7a340"
+    },
+    {
+      "path": "session/candidate_step_002.png",
+      "bytes": 302721,
+      "sha256": "2b786b64cc82e5d429b55fc97886bace9d2fcfec874f6e34adb9aca1179292c8"
+    },
+    {
+      "path": "session/candidate_step_003.png",
+      "bytes": 297538,
+      "sha256": "e37b96f02716ec07ffd8d3e400208614b0edc30216149197fb55313a3c79b08c"
+    },
+    {
+      "path": "session/index.html",
+      "bytes": 1683,
+      "sha256": "9356e731e9086071860f7c9da28c911d5a7ae4654e53238ff1464beba2619ed2"
+    },
+    {
+      "path": "session/manifest.json",
+      "bytes": 5952,
+      "sha256": "0d7d34d35da5ee630e9b20cb8826351507fe8411fb89a37e36db634f2beace22"
+    },
+    {
+      "path": "session/map/manifest.json",
+      "bytes": 1357,
+      "sha256": "3f4d76c303724ad7e1314a4497c163af4a24541b9b44b0d0afbb6e68d6387200"
+    },
+    {
+      "path": "session/map/map_step_001.png",
+      "bytes": 23968,
+      "sha256": "65f0e30e24a2823b14338a4b7ebeab8b6cff313fb17862621f465167f8d071df"
+    },
+    {
+      "path": "session/map/map_step_002.png",
+      "bytes": 24077,
+      "sha256": "03bf4617a4eb81cb99edec7cde69e1cac3bf08e413e6705e49209a2226131da2"
+    },
+    {
+      "path": "session/map/map_step_003.png",
+      "bytes": 24282,
+      "sha256": "db139e5f6cb42bccfdbd0833ba61f483879532765b47912c1e7a60904eb06239"
+    },
+    {
+      "path": "session/map/nbv_map_final.png",
+      "bytes": 24282,
+      "sha256": "db139e5f6cb42bccfdbd0833ba61f483879532765b47912c1e7a60904eb06239"
+    },
+    {
+      "path": "session/map/nbv_map_progress.gif",
+      "bytes": 60830,
+      "sha256": "5531c7e1d213065acdcf125f3b7540419b6b6a7fa974231b39a810e4e3974528"
+    },
+    {
+      "path": "voxel/voxel_cloud_final_3d.png",
+      "bytes": 1150276,
+      "sha256": "36a308d2cfd47ac20eaec1debac8bda8b83659f0b85ae3623dfd42a8947decf8"
+    },
+    {
+      "path": "voxel/voxel_cloud_growth.gif",
+      "bytes": 422454,
+      "sha256": "084daf484f63c5aa4c04bf46d972f21a07bd718931ba1509eea4470b454872f0"
+    },
+    {
+      "path": "voxel/voxel_cloud_manifest.json",
+      "bytes": 1923,
+      "sha256": "8fb5b0f75078318f17f6a2b08d69b70c243ac7aa62927e006beb72dc51c7f06e"
+    },
+    {
+      "path": "voxel/voxel_cloud_spin.gif",
+      "bytes": 2712664,
+      "sha256": "69644e5d794459a7fa57433d250a7796cb257f2da75d5bf9145a7aa74a05cc32"
+    },
+    {
+      "path": "yolo11_real_nbv_summary.json",
+      "bytes": 2532,
+      "sha256": "f9ec95e875c10b59e342eb12ef65d85f2aa4959a2a93e7282cd191e4334c4d1e"
+    },
+    {
+      "path": "yolo_nbv_pipeline.png",
+      "bytes": 133729,
+      "sha256": "c39b30319a5d27853882e10c072af278fd240552cf18c21705ef1bb7b21e2759"
+    }
+  ]
+}

@@ -16,19 +16,25 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 
 截至 2026-09-13，最新结果是：
 
-- **真实草莓五步闭环已经通过。** 在同一张体素地图中连续完成 5 次真实运动，coverage
-  `15.06% → 30.43% → 40.08% → 47.65% → 54.97% → 60.84%`，达到预先设置的
-  60% 停止线后自动结束。五步实际相机路径合计约 `102 mm`，五步都带来超过 1 个百分点
-  的新覆盖，五个高层运动目标全部到达，最终验收状态为
-  `executed_session_scientific_acceptance_passed`。图片、动画、审计 SHA 和复现命令见
-  [Week 8 报告](validation/week8/README.md)。
+- **YOLO11 mask 驱动的真实多步闭环已经通过。** 用户提供的 YOLO11m-seg 权重经
+  SHA-256 固定，模型类别表只有 `strawberry`。Gemini 拍照后，YOLO 自动给出草莓像素
+  mask；Gradient-NBV 在同一张体素地图中自动选择并执行 2 个新视角，coverage
+  `24.06% → 37.87% → 44.87%`，总增量 `20.81` 个百分点。随后固定候选网格中没有
+  剩余的“可达且正收益”视角，系统按算法停止；不是写死两步，也不是报错。完整 JSON、
+  地图快照、总仪表盘、coverage 曲线、三维点云/GIF、候选图和复现命令见
+  [Week 10 报告](validation/week10/README.md)。
 
-- **YOLO11m 草莓实例分割已经接入统一 Observation。** 用户提供的权重经 SHA-256 固定，
-  模型类别表只有 `strawberry`。历史 7 个真实机械臂视角全部通过，目标置信度
-  `0.909–0.930`；当前相机只读实测置信度 `0.925`、mask `394` 像素、其中有效深度
-  `352` 像素，推理约 `200 ms`。全链 `execute=false` 预演也已通过：五帧学习式 mask
-  成功进入体素地图、可达候选筛选和 Placo IK，全程运动命令为 0。学习式 mask 驱动的真实
-  运动尚未执行，历史 HSV 计划不可复用。图片与命令见 [Week 9](validation/week9/README.md)。
+- 本轮人为设置了 `80%` coverage 上限，但没有达到它。这里的 coverage 是 ROI 有效射线
+  覆盖，不是草莓表面完整率；80% 只是多个停止条件之一，不能在已经没有正收益可达点时
+  强迫机械臂继续运动。本次仍通过既定科学门槛：至少两步各增加 1 个百分点，最终增量至少
+  20 个百分点。两步实际平移约 `9.83 / 4.80 mm`，末端位置误差仅
+  `0.30 / 0.27 mm`，每步结束后两道执行门都关闭。
+
+- **此前 HSV 真实草莓五步闭环也已通过。** 在同一张体素地图中连续完成 5 次真实运动，
+  coverage `15.06% → 30.43% → 40.08% → 47.65% → 54.97% → 60.84%`，达到
+  预先设置的 60% 停止线后自动结束。该历史结果和展示包见
+  [Week 8 报告](validation/week8/README.md)。YOLO 的离线接入与七视角历史验证见
+  [Week 9 报告](validation/week9/README.md)。
 
 - 前一轮“停止条件驱动、最多 8 步”实验实际执行了 3 个约 10 cm 的高层动作；前两次
   动作后的观测成功加入同一张体素地图，coverage `4.94% → 11.05% → 17.77%`，两步分别
@@ -108,6 +114,7 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 - [学习式 mask 候选与 5–10 cm 大步真机实验](validation/week6/README.md)
 - [停止条件驱动的长闭环、相机断流安全停止历史实验](validation/week7/README.md)
 - [真实草莓五步闭环、60% 停止线与最新展示包](validation/week8/README.md)
+- [YOLO11 mask 真实多步闭环与最新展示包](validation/week10/README.md)
 - [固定版本、证据 SHA 与离线测试清单](validation/REPRODUCIBILITY_MANIFEST.json)
 - [交给网页端 GPT 制作进展汇报 PPT 的材料清单与 Prompt](PPT_HANDOFF_CN.md)
 
@@ -128,14 +135,14 @@ Gemini RGB-D → mono8 目标 mask → 统一 Observation
 [打开真实三步动态 GIF](artifacts/week6/reachable_large_step_map_r30_20260913/nbv_map_progress.gif) ·
 [打开可达候选点图](artifacts/week6/reachable_large_step_candidates_r30_20260913.png)
 
-下面是最新五步闭环中真实保存的三维体素云。淡蓝点是射线已经经过的体素，黑点是深度相机
+下面是最新 YOLO11 闭环中真实保存的三维体素云。淡蓝点是射线已经经过的体素，黑点是深度相机
 实际测到的表面，红点是草莓 mask 支持的目标体素，绿线是相机路径，绿色线框是目标 ROI：
 
-![最新真实三维体素云](validation/week8/artifacts/voxel_cloud_final_3d.png)
+![最新真实三维体素云](validation/week10/artifacts/voxel/voxel_cloud_final_3d.png)
 
-[旋转查看三维地图](validation/week8/artifacts/voxel_cloud_spin.gif) ·
-[查看五步地图更新动画](validation/week8/artifacts/voxel_cloud_growth.gif) ·
-[打开最新一页式总览](validation/week8/artifacts/experiment_dashboard.png)
+[旋转查看三维地图](validation/week10/artifacts/voxel/voxel_cloud_spin.gif) ·
+[查看地图更新动画](validation/week10/artifacts/voxel/voxel_cloud_growth.gif) ·
+[打开最新一页式总览](validation/week10/artifacts/session/00_experiment_dashboard.png)
 
 离线复现这张图（不会连接相机或机械臂）：
 
@@ -185,12 +192,14 @@ mask 是一张与彩色图同尺寸的黑白图：草莓像素为 255（白）�
 红纸或偏色光照都可能误判。
 
 现在已经接入用户提供的 YOLO11m-seg 权重。模型输出仍是同尺寸 `mono8` mask，后面的
-Observation、NBV、手眼、IK 和运动代码完全复用。默认只选置信度最高的一颗草莓；历史和
-当前相机只读验证均通过。模型失败时输出空 mask 并停止，不会静默改用 HSV 继续运动。
+Observation、NBV、手眼、IK 和运动代码完全复用。默认只选置信度最高的一颗草莓；历史
+七视角、当前相机和真实两步闭环均已通过。模型失败时输出空 mask 并停止，不会静默改用
+HSV 继续运动。
 
 通用 COCO Mask R-CNN 没有草莓类别，因此不如这份草莓专用权重直接。当前权重的训练数据
 来源与再分发许可尚未提供，所以 Git 只保存模型哈希、环境版本、接口和验证结果，不提交
-`best.pt` 本体。详细审计、HSV/YOLO 对比图和复现命令见 [Week 9](validation/week9/README.md)。
+`best.pt` 本体。离线审计与 HSV/YOLO 对比见 [Week 9](validation/week9/README.md)，
+真实闭环、地图和复现命令见 [Week 10](validation/week10/README.md)。
 
 ## 从新电脑复现
 
@@ -315,7 +324,7 @@ perception_ws/src/
   strawberry_handeye_calibration/      手眼标定与稳定性验证
   strawberry_active_perception_bridge/ NBV→手眼→IK→受监督运动
   strawberry_learned_mask/              YOLO11 草莓实例 mask
-validation/week1..week9/      可提交的小型数据、报告和真实执行证据
+validation/week1..week10/     可提交的小型数据、报告和真实执行证据
 vendor_patches/agx_arm_ros/   受版本/SHA 保护的 NERO v1.11 安全补丁
 nero_exhibition_demo/         与科研参数隔离的展示程序
 artifacts/                    大型 rosbag/现场原始数据（本机保留，不提交）
@@ -327,11 +336,10 @@ Python 缓存、现场失败草稿和重复 JSON 都不提交。`artifacts/week2
 备份后单独删除，不应把它与普通构建缓存混为一谈。
 
 当前已经完成“目标/平台期决定何时停，最大步数和累计运动只负责兜底”的有限状态循环，
-也已经用多方向、多距离、先做 Placo IK 筛选的候选完成真实五步实验：大动作不可达时会
-换方向或逐级缩小，仍有正收益时才运动。本轮在同一张地图中达到 60% 实验停止线后正常
-结束，证明这条流程已经跑通。
+也已经用 YOLO11 mask、多方向/多距离候选、Placo IK 筛选和同图更新完成真实多步实验。
+大动作不可达时会换方向或逐级缩小；没有正收益可达点时会停止，不会为了凑步数乱动。
 
-下一步不再寻找别的分割模型：学习式 mask 的 `execute:=false` NBV preview 已通过，下一轮
-应在明确的实验起始姿态重新生成计划，并先复查目标中心、关节余量、候选和停止条件，再做
-一次受监督的 YOLO-mask 真实闭环。历史 HSV 计划不能复用。同时应把“ROI 有效射线 coverage”
-逐步升级为更接近草莓表面完整度的指标。双臂、采摘和无人值守连续运动暂不进入本阶段。
+下一步重点不是再换一个分割模型或盲目把 coverage 上限调到 90%，而是提高小型光滑草莓的
+深度可靠性、让候选搜索记住“RGB 可见但深度失效”的方向，并把 ROI 射线 coverage 逐步
+升级为更接近草莓表面完整度的指标。之后应在不同草莓、位置和光照下重复实验并统计成功率。
+双臂、采摘和无人值守连续运动暂不进入本阶段。

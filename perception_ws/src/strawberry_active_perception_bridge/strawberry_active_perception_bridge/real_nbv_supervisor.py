@@ -2657,12 +2657,23 @@ class RealNBVSupervisor(Node):
         if not self._solve_client.wait_for_service(timeout_sec=5.0):
             raise SupervisorError("SolveIK service is unavailable")
         configuration = self._active_nbv_configuration
+        configured_step_limit = float(configuration["max_step_m"])
+        lattice_radii = tuple(
+            radius
+            for radius in REACHABLE_VIEW_RADII_M
+            if radius <= configured_step_limit + 1.0e-9
+        )
+        if not lattice_radii:
+            raise SupervisorError(
+                "frozen ConfigureNBV max_step is below every reachable-view radius"
+            )
         lattice = reachable_view_lattice(
             current_camera,
             raw_target,
             configuration["target_center_m"],
             configuration["observation_min_m"],
             configuration["observation_max_m"],
+            radii_m=lattice_radii,
         )
         max_rotation = math.radians(
             float(self.get_parameter("max_selected_camera_rotation_deg").value)
@@ -4299,7 +4310,8 @@ class RealNBVSupervisor(Node):
                 self.get_parameter("max_target_drift_m").value
             ):
                 raise SupervisorError(
-                    f"step {step_index} post-motion red target was lost or moved"
+                    f"step {step_index} post-motion segmented target depth was lost "
+                    "or inconsistent"
                 )
             achieved_error = camera_motion(current_planned_camera, post_camera)
             step_record["post_pose_error"] = {

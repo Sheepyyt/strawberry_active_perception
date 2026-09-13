@@ -86,6 +86,8 @@ validation/week6/artifacts/*
 !validation/week9/artifacts/yolo11_live_mask.png
 !validation/week9/artifacts/yolo11_live_report.json
 !validation/week9/artifacts/yolo11_nbv_preview_summary.json
+!validation/week10/artifacts/
+!validation/week10/artifacts/**
 validation/week2/artifacts/camera_*.json
 validation/week2/artifacts/cold_start_*.json
 validation/week2/artifacts/known_plane*.json

@@ -1,0 +1,128 @@
+{
+  "schema": "strawberry_nbv_presentation_bundle/v1",
+  "execution_json": "/home/yyt/strawberry_active_perception/artifacts/week10/yolo11_nbv_execution_target80_step25_retry.json",
+  "execution_sha256": "e0d16b45392f956cebd57fae86e62b470ddadd4e8d4092e3d2d7ea749ca73136",
+  "status": "executed_session_scientific_acceptance_passed",
+  "motion_goal_count": 2,
+  "mapped_motion_count": 2,
+  "session_progress": {
+    "authorization_consumed": true,
+    "converged_early": true,
+    "convergence_reason": "no positive-gain reachable candidate remained in the predeclared multi-radius search lattice",
+    "coverage_plateau_count": 0,
+    "coverage_plateau_delta": 0.005,
+    "coverage_plateau_patience": 2,
+    "coverage_target": 0.8,
+    "coverage_target_reached": false,
+    "final_coverage": 0.44871199131011963,
+    "gates_closed_at_termination": null,
+    "initial_coverage": 0.24061599373817444,
+    "motion_goal_count": 2,
+    "motion_limits": {
+      "cumulative_rotation_max_deg": 90.0,
+      "cumulative_translation_max_m": 0.6,
+      "maximum_ik_joint_delta_rad": 0.35,
+      "single_step_rotation_max_deg": 29.999999999999996,
+      "single_step_translation_max_m": 0.1,
+      "single_step_translation_min_inclusive": false,
+      "single_step_translation_min_m": 0.001
+    },
+    "motion_profile": "large_workspace_experimental",
+    "per_step_coverage_delta": [
+      0.13811200857162476,
+      0.06998398900032043
+    ],
+    "requested_max_motion_steps": 8,
+    "scientific_acceptance_passed": true,
+    "scientific_acceptance_required": true,
+    "steps_with_at_least_one_percentage_point_gain": 2,
+    "terminated": false,
+    "termination_reason": null,
+    "total_coverage_delta": 0.2080959975719452
+  },
+  "candidate_round_count": 3,
+  "generated_files": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/00_experiment_dashboard.png",
+      "sha256": "9d2fba091652a5a167f0e49648f9fff853d96bc0ddaec9c82f619cd7d899fc7e"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/01_coverage_curve.png",
+      "sha256": "d7d967a6362d4bb7bcade9ca7a0530d39740d7bd7b4b3df972ff2ad4f3708928"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/02_camera_trajectory_3d.png",
+      "sha256": "731fbc1698276bbbad9866dca8f9f6344f20ab84bcdb3d65daa45b63dd98fa71"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/03_candidate_funnel.png",
+      "sha256": "bd65e34f7ae193fa1e07c2a8ad5c55aa26bcda3901e5463e6c4d53a17af2dd69"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/04_motion_profile.png",
+      "sha256": "7046ad2de94dd937dca264ae928df58cdc46505393bd04f451010be25732d947"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/05_accuracy_safety.png",
+      "sha256": "58e7b97d0afc963343569038f2da03f5858674113f419466fe6f63daf850ca5d"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/06_target_map_quality.png",
+      "sha256": "9b1941c0264b5f2453f375fa9bc12c426a91dfcbfaa2ca983dca8c9fe8fd74da"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/07_session_timeline.png",
+      "sha256": "2086cee0c21315e7288fe8f1380db14a00fb819f7b03f1f964dde65b31661584"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/candidate_step_001.png",
+      "sha256": "78627ddcdac499a922417821a20db0c1a73f86026b6d9dc832b5768ebee7a340"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/candidate_step_002.png",
+      "sha256": "2b786b64cc82e5d429b55fc97886bace9d2fcfec874f6e34adb9aca1179292c8"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/candidate_step_003.png",
+      "sha256": "e37b96f02716ec07ffd8d3e400208614b0edc30216149197fb55313a3c79b08c"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/REPORT_CN.md",
+      "sha256": "4e0dadff355f4fe367b5ab54964f2b565faa5f4d06947e02ebaf3b9dd63c85b0"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/index.html",
+      "sha256": "9356e731e9086071860f7c9da28c911d5a7ae4654e53238ff1464beba2619ed2"
+    }
+  ],
+  "map_visualization": {
+    "schema": "strawberry_gradient_nbv_visualization/v1",
+    "scene_id": "real_nbv_once_20260913T152311Z",
+    "snapshot_count": 3,
+    "coverage": [
+      0.240616,
+      0.378728,
+      0.448712
+    ],
+    "snapshot_sha256": [
+      "550ed136211f1bd811a83c60bec9cc845b804705a339844f274bb3ad9d34f716",
+      "50215066f8781cd818691d936fd0f3486a1bdec79791115273078abdbe04cdc8",
+      "84cc59c2390c7b74c9c976a026ac3563b40be2359f7539772bfea2e8eb1eec10"
+    ],
+    "step_png": [
+      "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/map/map_step_001.png",
+      "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/map/map_step_002.png",
+      "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/map/map_step_003.png"
+    ],
+    "final_png": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/map/nbv_map_final.png",
+    "animated_gif": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/session/map/nbv_map_progress.gif",
+    "legend": {
+      "unknown": "gray: no valid ray has touched this voxel",
+      "observed": "blue: seen by at least one valid depth ray",
+      "occupied": "dark: a measured depth surface endpoint",
+      "target": "red: a mask-supported target endpoint",
+      "camera": "green: measured camera path",
+      "next": "orange ring: proposed next camera position"
+    }
+  }
+}

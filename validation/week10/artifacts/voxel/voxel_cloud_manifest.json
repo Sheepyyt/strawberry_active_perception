@@ -1,0 +1,54 @@
+{
+  "schema": "strawberry_voxel_cloud_visualization/v1",
+  "scene_id": "real_nbv_once_20260913T152311Z",
+  "inputs": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/nbv_map_snapshots/real_nbv_once_20260913T152311Z/generation_015/map_step_001_agg5_387d856400f960635e9946d6.npz",
+      "sha256": "550ed136211f1bd811a83c60bec9cc845b804705a339844f274bb3ad9d34f716"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/nbv_map_snapshots/real_nbv_once_20260913T152311Z/generation_015/map_step_002_agg5_9bb94f0a6d96470731571241.npz",
+      "sha256": "50215066f8781cd818691d936fd0f3486a1bdec79791115273078abdbe04cdc8"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/artifacts/nbv_map_snapshots/real_nbv_once_20260913T152311Z/generation_015/map_step_003_agg5_13857dc0a27537ba97a2f0e4.npz",
+      "sha256": "84cc59c2390c7b74c9c976a026ac3563b40be2359f7539772bfea2e8eb1eec10"
+    }
+  ],
+  "coverage": [
+    0.240616,
+    0.378728,
+    0.448712
+  ],
+  "voxel_counts": [
+    {
+      "observed": 272894,
+      "occupied": 1550,
+      "target": 82
+    },
+    {
+      "observed": 401673,
+      "occupied": 2667,
+      "target": 149
+    },
+    {
+      "observed": 462420,
+      "occupied": 3221,
+      "target": 213
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/voxel/voxel_cloud_final_3d.png",
+      "sha256": "36a308d2cfd47ac20eaec1debac8bda8b83659f0b85ae3623dfd42a8947decf8"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/voxel/voxel_cloud_growth.gif",
+      "sha256": "084daf484f63c5aa4c04bf46d972f21a07bd718931ba1509eea4470b454872f0"
+    },
+    {
+      "path": "/home/yyt/strawberry_active_perception/validation/week10/artifacts/voxel/voxel_cloud_spin.gif",
+      "sha256": "69644e5d794459a7fa57433d250a7796cb257f2da75d5bf9145a7aa74a05cc32"
+    }
+  ]
+}

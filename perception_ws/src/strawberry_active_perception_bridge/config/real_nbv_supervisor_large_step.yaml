@@ -64,8 +64,9 @@ real_nbv_supervisor:
     map_size_m: 0.30
     target_roi_size_m: 0.15
 
-    # The NBV optimizer may use the full 10 cm radius. The supervisor prefers
-    # visible 5--10 cm candidates, then falls back to 25/10/5 mm if needed.
+    # The NBV optimizer and reachable-view lattice may use the full 10 cm
+    # radius.  This value may be made stricter for a particular experiment;
+    # both planners then obey the frozen value.
     max_step_m: 0.10
     # The fixed box must cover the full 60 cm audited path envelope.  Each
     # individual motion remains at most 10 cm and is checked against this box.

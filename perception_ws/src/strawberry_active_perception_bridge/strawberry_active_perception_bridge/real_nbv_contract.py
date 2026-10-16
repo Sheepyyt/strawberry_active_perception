@@ -91,6 +91,7 @@ MOTION_LIMITS_BY_PROFILE = {
     LARGE_MOTION_PROFILE: LARGE_MOTION_LIMITS,
 }
 MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M = 1.0e-6
+MAX_FROZEN_START_TRANSLATION_DRIFT_M = 0.001
 
 
 def motion_limits_for_profile(profile: str) -> MotionLimits:
@@ -406,11 +407,34 @@ class MotionSessionLedger:
             return self.initial_coverage
         return self.steps[-1].coverage_after
 
+    def _frozen_start_allowance(
+        self,
+        start: np.ndarray,
+        target: np.ndarray,
+        frozen_start_camera: np.ndarray | None,
+    ) -> float:
+        """Recompute an allowance only for this session's frozen first step."""
+        if frozen_start_camera is None:
+            return 0.0
+        if self.steps:
+            raise ValueError("frozen start allowance is only valid for the first step")
+        reference = validate_rigid_transform(
+            frozen_start_camera, "frozen first-step start camera"
+        )
+        if not np.allclose(reference, self.initial_camera, rtol=0.0, atol=1.0e-12):
+            raise ValueError("frozen start must equal the session's initial camera")
+        validate_frozen_next_view(
+            reference, start, target, gain=1.0,
+            max_step_m=self.motion_limits.maximum_camera_step_m,
+        )
+        return camera_motion(reference, start).translation_m
+
     def validate_next_planned_step(
         self,
         *,
         planned_start_camera: np.ndarray,
         planned_camera: np.ndarray,
+        frozen_start_camera: np.ndarray | None = None,
     ) -> CameraMotion:
         """Reject a target that would exceed any per-step or path budget.
 
@@ -432,10 +456,14 @@ class MotionSessionLedger:
         )
         step = camera_motion(start, target)
         limits = self.motion_limits
+        start_allowance = self._frozen_start_allowance(
+            start, target, frozen_start_camera
+        )
         if not camera_step_above_minimum(step.translation_m, limits) or (
             step.translation_m
             > limits.maximum_camera_step_m
             + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+            + start_allowance
             + _EPS
         ):
             raise ValueError(
@@ -470,6 +498,7 @@ class MotionSessionLedger:
         self,
         *,
         planned_start_camera: np.ndarray | None = None,
+        frozen_start_camera: np.ndarray | None = None,
         planned_camera: np.ndarray,
         actual_camera: np.ndarray,
         coverage_after: float,
@@ -522,10 +551,14 @@ class MotionSessionLedger:
         )
         actual_step = camera_motion(self._last_actual_camera, actual_transform)
         limits = self.motion_limits
+        start_allowance = self._frozen_start_allowance(
+            planned_start, planned_transform, frozen_start_camera
+        )
         if not camera_step_above_minimum(planned_step.translation_m, limits) or (
             planned_step.translation_m
             > limits.maximum_camera_step_m
             + MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M
+            + start_allowance
             + _EPS
         ):
             raise ValueError(
@@ -1585,6 +1618,44 @@ def validate_raw_next_view(
             f"{tolerance:.9f} m numerical tolerance"
         )
     return motion
+
+
+def validate_frozen_next_view(
+    frozen_start: np.ndarray,
+    measured_start: np.ndarray,
+    frozen_target: np.ndarray,
+    gain: float,
+    *,
+    max_step_m: float = MAX_CAMERA_STEP_M,
+    max_start_translation_drift_m: float = MAX_FROZEN_START_TRANSLATION_DRIFT_M,
+) -> CameraMotion:
+    """Keep a frozen endpoint exact while accounting for measured start drift.
+
+    The original plan still obeys the unchanged step limit. Only its measured
+    start may differ, within the existing 1 mm / 0.5 degree stationary-start
+    gates. The triangle inequality bounds the resulting distance increase by
+    the actual measured drift, rather than granting every motion 1 mm extra.
+    """
+    maximum_drift = float(max_start_translation_drift_m)
+    if not math.isfinite(maximum_drift) or not (
+        0.0 <= maximum_drift <= MAX_FROZEN_START_TRANSLATION_DRIFT_M
+    ):
+        raise ValueError("frozen start translation allowance must be in [0, 0.001] m")
+    validate_raw_next_view(frozen_start, frozen_target, gain, max_step_m=max_step_m)
+    drift = camera_motion(frozen_start, measured_start)
+    if drift.translation_m > maximum_drift + _EPS:
+        raise ValueError("measured start drift exceeds the frozen start translation gate")
+    if drift.rotation_rad > math.radians(0.5) + _EPS:
+        raise ValueError("measured start drift exceeds the frozen start rotation gate")
+    return validate_raw_next_view(
+        measured_start,
+        frozen_target,
+        gain,
+        max_step_m=max_step_m,
+        overshoot_tolerance_m=(
+            MAX_RAW_STEP_NUMERICAL_OVERSHOOT_M + drift.translation_m
+        ),
+    )
 
 
 def project_numerical_step_overshoot(

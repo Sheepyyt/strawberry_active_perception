@@ -1,4 +1,4 @@
-"""Safe, motion-free adapters between NBV camera poses and NERO IK."""
+"""Camera-pose transforms and the real NERO active-perception supervisor."""
 
 from .transforms import (
     camera_target_to_link7,

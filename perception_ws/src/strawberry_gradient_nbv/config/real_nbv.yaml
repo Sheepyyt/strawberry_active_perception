@@ -11,4 +11,4 @@
     device: auto
     observation_cache_size: 32
     # Runtime artifacts stay outside git; render them with gradient_nbv_visualize.
-    map_snapshot_directory: /home/yyt/strawberry_active_perception/artifacts/nbv_map_snapshots
+    map_snapshot_directory: /home/yyt/strawberry_active_perception/results/nbv_map_snapshots

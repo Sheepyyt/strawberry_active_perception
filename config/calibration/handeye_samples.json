@@ -1,0 +1,3322 @@
+{
+  "checkerboard": {
+    "columns": 11,
+    "rows": 8,
+    "square_size_m": 0.03
+  },
+  "frames": {
+    "base": "base_link",
+    "camera_optical": "camera_color_optical_frame",
+    "checkerboard": "checkerboard",
+    "link": "link7"
+  },
+  "metadata": {
+    "D": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "K": [
+      [
+        304.12066650390625,
+        0.0,
+        313.2231140136719
+      ],
+      [
+        0.0,
+        304.1894226074219,
+        197.83775329589844
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "camera_model_reprocessing": {
+      "K_policy": {
+        "K_changed_beyond_tolerance": false,
+        "absolute_tolerance": 1e-09,
+        "allow_k_change": false,
+        "diagnostic_only_due_to_K_change": false,
+        "maximum_absolute_difference": 0.0
+      },
+      "audit_version": "strawberry_camera_model_reprocessing/v1",
+      "camera_model": {
+        "D": [
+          -0.9210747480392456,
+          0.3865680694580078,
+          -0.00040895267738960683,
+          4.880168489762582e-05,
+          -0.03716781362891197,
+          -0.9005345106124878,
+          0.3583218455314636,
+          -0.02648901753127575
+        ],
+        "K": [
+          [
+            304.12066650390625,
+            0.0,
+            313.2231140136719
+          ],
+          [
+            0.0,
+            304.1894226074219,
+            197.83775329589844
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "distortion_model": "rational_polynomial",
+        "image_size": {
+          "height": 400,
+          "width": 640
+        },
+        "provenance": {
+          "captured_at": "2026-08-13T23:42:00+08:00",
+          "device_model": "Orbbec Gemini 2 XL",
+          "device_serial": "AYML241003A",
+          "firmware_version": "2.1.3_23112010",
+          "image_topic": "/camera/color/image_raw",
+          "method": "exact live /camera/color/camera_info from raw color mode; K and D stable across the session",
+          "robot_motion_during_model_read": false,
+          "ros_driver_commit": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
+          "ros_wrapper_version": "1.5.21",
+          "sdk_version": "1.10.37",
+          "topic": "/camera/color/camera_info",
+          "vendor_undistortion_diagnostic": "same-stamp raw and vendor image_undistorted were byte-identical despite non-zero D; adapter-owned OpenCV rectification is used"
+        },
+        "schema_version": "strawberry_camera_model/v1",
+        "source_name": "gemini2xl_AYML241003A"
+      },
+      "camera_model_path": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001/gemini2xl_raw_color_camera_model.json",
+      "camera_model_sha256": "b66b71b5e291abd865db7fd4da408272ab56a2d5b6a262a8b5e9d8448032f696",
+      "input_directory": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001",
+      "opencv": {
+        "pnp_flag": "SOLVEPNP_IPPE",
+        "version": "4.6.0"
+      },
+      "operation": "recompute_T_camera_checkerboard_with_cv2_solvePnP_IPPE",
+      "original_camera_evidence": {
+        "D": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "D_was_exactly_zero": true,
+        "K": [
+          [
+            304.12066650390625,
+            0.0,
+            313.2231140136719
+          ],
+          [
+            0.0,
+            304.1894226074219,
+            197.83775329589844
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "image_size": {
+          "height": 400,
+          "width": 640
+        },
+        "source_name": "gemini2xl_AYML241003A"
+      },
+      "pose_change_summary": {
+        "original_reprojection_rms_px": {
+          "maximum": 0.2031162396786119,
+          "median": 0.17051796973354388,
+          "minimum": 0.12755751090807696,
+          "p95": 0.19618997073353636
+        },
+        "reprocessed_reprojection_rms_px": {
+          "maximum": 0.172505811120485,
+          "median": 0.15834297260349944,
+          "minimum": 0.11214846413351566,
+          "p95": 0.172432826790903
+        },
+        "rotation_deg": {
+          "maximum": 1.3680775830728937,
+          "median": 1.0918690509849553,
+          "minimum": 0.6160779886253102,
+          "p95": 1.3037409203535408
+        },
+        "translation_mm": {
+          "maximum": 6.9129653904434605,
+          "median": 3.358860987402424,
+          "minimum": 1.8235904245391965,
+          "p95": 5.936076168504131
+        }
+      },
+      "robot_contacted": false,
+      "safety": {
+        "reason": "dataset requires hand-eye solve and full cross-split stability validation before any robot use",
+        "requires_cross_split_stability_validation": true,
+        "requires_handeye_solve": true,
+        "safe_for_robot_use": false
+      },
+      "sample_audit": [
+        {
+          "T_base_link7_sha256": "720ef622e716ed5be67072a300a4bc18395b2863c476f15d6950697e78b22cdf",
+          "checkerboard_corners_sha256": "cbf3c92706337effc508b05beb1d32d73f00e3e8cd41ea5e6f628db277497447",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "78ce19c9b1b6532ed35dc058d58ec87303243233605d38faeae8bbb7750b6033",
+          "original_reprojection_rms_px": 0.14580309783436518,
+          "pose_change_rotation_deg": 0.6160779886253102,
+          "pose_change_translation_mm": 3.2357522787087087,
+          "reprocessed_reprojection_rms_px": 0.14524083923172038,
+          "sample_id": "pose_001",
+          "source_file": "pose_001.npz",
+          "source_npz_sha256": "33becc45bd6db5a15c7652b3bfbb031cbe55115217c681ff6023e9692f2ca2dd"
+        },
+        {
+          "T_base_link7_sha256": "073514b3ac3a84b50f3bb28872efd38e2918735a0fcc351aba9f4472559b0ecc",
+          "checkerboard_corners_sha256": "88723849adb8161e6dc48160377e14d032fdeb3146e08182adda13dd57ca9e4f",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "ff9e5d8981f3b20df75a78f0842e4aac53c3327f411a551cafed1ecb03ea44cf",
+          "original_reprojection_rms_px": 0.1524923470999438,
+          "pose_change_rotation_deg": 0.6242662656517524,
+          "pose_change_translation_mm": 3.2675648930733985,
+          "reprocessed_reprojection_rms_px": 0.1492742524580921,
+          "sample_id": "pose_002",
+          "source_file": "pose_002.npz",
+          "source_npz_sha256": "7ade218535cab5e3798afa84c143e899e6da5babb3424b1860329e6d1349486f"
+        },
+        {
+          "T_base_link7_sha256": "05258d364f2c5eca6cfbf26f87e72fc0296d6dcc1d6e4789c16814deceadf663",
+          "checkerboard_corners_sha256": "d1b4b9713c7dbdba209f4b36f258cf12030d3e4d097588bfbe7a9f2b94a69d44",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "f55b9cd1fa6de10f267e775cb19c9c8b8f051f7515d0856b82aca3dc0a442537",
+          "original_reprojection_rms_px": 0.16740635672517057,
+          "pose_change_rotation_deg": 0.9517064973445548,
+          "pose_change_translation_mm": 4.643767104214323,
+          "reprocessed_reprojection_rms_px": 0.16417909591183008,
+          "sample_id": "pose_003",
+          "source_file": "pose_003.npz",
+          "source_npz_sha256": "50bf80766b737c6a73070b7bc90a7b213723bd21a8db6b669d39628683f4c591"
+        },
+        {
+          "T_base_link7_sha256": "7d13a085f633bc0dc6169189da0f1091a5ce76ab1d87a7ca72c4ead3ca12dbe1",
+          "checkerboard_corners_sha256": "0ef96594afdaa31ec87c5a9aedc459cadb373b8cb24e63cd6372b09f745dfcde",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "1178468a260956a3b0e3094f4748785d9c7fd7b02ca5474178ef260f5e73083c",
+          "original_reprojection_rms_px": 0.1640496653084517,
+          "pose_change_rotation_deg": 1.082017377952546,
+          "pose_change_translation_mm": 5.584365210951459,
+          "reprocessed_reprojection_rms_px": 0.15693839405464924,
+          "sample_id": "pose_004",
+          "source_file": "pose_004.npz",
+          "source_npz_sha256": "c2c4074fe4d332d853f7e85d7993b186f45177e7536286367505fe82d0cb909f"
+        },
+        {
+          "T_base_link7_sha256": "a01a9b4e6094e9e5d56fa6e8ad11d85db3a689e29190fec9ecdd288261f01550",
+          "checkerboard_corners_sha256": "f082ab417b363cd8b4b3923ac25a69c799ba4ee2e359c8f9d8ce5e519bcd0c4d",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "f226caaca2ebc5ad8b5d8336d6ad2079395673033d697b0f0210ae7ba9913d45",
+          "original_reprojection_rms_px": 0.17089752868156793,
+          "pose_change_rotation_deg": 1.1017207240173645,
+          "pose_change_translation_mm": 5.676585684976333,
+          "reprocessed_reprojection_rms_px": 0.1621393582982596,
+          "sample_id": "pose_005",
+          "source_file": "pose_005.npz",
+          "source_npz_sha256": "cb90dd013747b390b57898aa3806cd013de854bab1b8cb40bc7d1e3c2e334e81"
+        },
+        {
+          "T_base_link7_sha256": "0d2dc314ff76fb6877528646f9766cce9712f31c760a9f6231b9f12fdeedf15f",
+          "checkerboard_corners_sha256": "cbd60d060e98d41fd2affb97888b69dd45b1acbd317e09b9763bc62bc54dc058",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "6b334de7ea223a1e7c8e077936a2963d54f9933b79e86528aafb6332fce9e364",
+          "original_reprojection_rms_px": 0.17612010689436006,
+          "pose_change_rotation_deg": 1.3680775830728937,
+          "pose_change_translation_mm": 6.9129653904434605,
+          "reprocessed_reprojection_rms_px": 0.17242895539360917,
+          "sample_id": "pose_006",
+          "source_file": "pose_006.npz",
+          "source_npz_sha256": "5e2356f53d92a8e5bb883aa96c1f8f6ce5e02e62d45151ad2b1b1d0fb61b02f0"
+        },
+        {
+          "T_base_link7_sha256": "e0020ae61780ff3e5febf4a3dc3c5c0fbdad989e0ce26f5c82adaeffd842bc58",
+          "checkerboard_corners_sha256": "9a9ae5cb41d023d008eb58dd921b162a3b4fa87d256af441d00c6f42d7e4b409",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "b09cb2cd44fafdc453fcb06f8bf687e25f46a10635bb0d753db1469d604c2098",
+          "original_reprojection_rms_px": 0.17995933946309178,
+          "pose_change_rotation_deg": 1.2616810844131514,
+          "pose_change_translation_mm": 5.937798058260217,
+          "reprocessed_reprojection_rms_px": 0.16095109919527242,
+          "sample_id": "pose_007",
+          "source_file": "pose_007.npz",
+          "source_npz_sha256": "256e1da0b7c43b0593ae48026c3d7626252e7ef1115a908394634b1bb1cb3841"
+        },
+        {
+          "T_base_link7_sha256": "a831676bc948a14630068fbfaa77ed0e4698bd7feb8ecc518ad59fa730b56f1d",
+          "checkerboard_corners_sha256": "90237d129347b4b6dd917fa8dcd2c879d053f1bc27e843b8d78c560c6098b8a9",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "bfff7ad5d7abe048051d65b5e2d30cc7f7a1b1bb03af6f76d5088c4da0e67d6e",
+          "original_reprojection_rms_px": 0.18216680300947172,
+          "pose_change_rotation_deg": 1.2459238208166439,
+          "pose_change_translation_mm": 5.933971636580025,
+          "reprocessed_reprojection_rms_px": 0.17243599429777975,
+          "sample_id": "pose_008",
+          "source_file": "pose_008.npz",
+          "source_npz_sha256": "7cc2d7bfbef133388412c6089c5bcfb9d89001c353f836bec83a1dfdf7304e4f"
+        },
+        {
+          "T_base_link7_sha256": "67716b1bdbbdc9416203c962bfdc290ab9930658dd1916cd2334d71f5a83cc34",
+          "checkerboard_corners_sha256": "3227372e853ef4811f1572b6866a7d2be8c05490249293665a5177b973f060db",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "62784591050d4ccea2a7940d130dab3ad214063d09cf704547571588bc35bfd1",
+          "original_reprojection_rms_px": 0.1729581083390609,
+          "pose_change_rotation_deg": 0.9596558053914763,
+          "pose_change_translation_mm": 4.686783107129761,
+          "reprocessed_reprojection_rms_px": 0.171417368946326,
+          "sample_id": "pose_009",
+          "source_file": "pose_009.npz",
+          "source_npz_sha256": "53c6d3e1f9c9a66f04f83c92444d59be0d803bcca3b9c3ae9c87053da6d1d0ef"
+        },
+        {
+          "T_base_link7_sha256": "704c79f2e446ebe8aaf19a815f918b83a804fd75defcf2c11556391fae078951",
+          "checkerboard_corners_sha256": "97f176092f3e289c3a44e6425d27bd2f616b9b26f40e880ab91af56fcd75600c",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "3056559819ad2e772765a5a52dc6e094534d81cc31b1d5975c0fb167accb1bfa",
+          "original_reprojection_rms_px": 0.1595965386693552,
+          "pose_change_rotation_deg": 0.8948930910736622,
+          "pose_change_translation_mm": 3.770394814100733,
+          "reprocessed_reprojection_rms_px": 0.1588806163877834,
+          "sample_id": "pose_010",
+          "source_file": "pose_010.npz",
+          "source_npz_sha256": "14aaf0fbe0b90d1ce8b67a768b04afbdfb05aee3c5f6d892144dd85ec4b292d5"
+        },
+        {
+          "T_base_link7_sha256": "bb3fc02a14733dbd9f36a6fb16a4924d3f1d29ef8bab9512617b39b4af6069e5",
+          "checkerboard_corners_sha256": "fc5e98eac6c32f3688ce797d2d7105cf034cf92cc848de1b17903a29de773935",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "43ca79e1d255800ba8443b6303ab04a985d90cbf469bc253a1bdbc94edeb9acd",
+          "original_reprojection_rms_px": 0.1649060311944651,
+          "pose_change_rotation_deg": 0.8681209634006644,
+          "pose_change_translation_mm": 3.69680838990631,
+          "reprocessed_reprojection_rms_px": 0.16117522722616204,
+          "sample_id": "pose_011",
+          "source_file": "pose_011.npz",
+          "source_npz_sha256": "8ec8c906aaf26649ea6fdbf57f79b56f8b1af6d6590a20e23a48d4b4af0fc5f0"
+        },
+        {
+          "T_base_link7_sha256": "06a602dd59a5431f6cc8317e851972b45692ce2162db3ffc4264743f88d362ef",
+          "checkerboard_corners_sha256": "8067d9c42718255fa6f6dc3f56546a9b671633743389860b3345a24cf2574dcb",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "ef4f8f0f34adfaaa782fd278389cadc81694d81bfb5315aa563f05838e3607db",
+          "original_reprojection_rms_px": 0.1704098240845889,
+          "pose_change_rotation_deg": 1.2021657667375638,
+          "pose_change_translation_mm": 4.951610906958729,
+          "reprocessed_reprojection_rms_px": 0.1597221198999877,
+          "sample_id": "pose_012",
+          "source_file": "pose_012.npz",
+          "source_npz_sha256": "8fa1f24fbf46fec51963f0b349c834b139ee6d2a258c9878b0f3ee73a1954dd3"
+        },
+        {
+          "T_base_link7_sha256": "85046b588662f3e0e8c1754cc893359d6fa193d5c8e9b52b015fd7a974a824f5",
+          "checkerboard_corners_sha256": "323c43033fe15e215253c82cba1399c70f869531688b600357e2b9b693a46b73",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "60747fed2fa1cbf614e7a5f4b44d605353cb8a8c09c137aae58f03cd3b3e7415",
+          "original_reprojection_rms_px": 0.18350385075336292,
+          "pose_change_rotation_deg": 1.1935981838361183,
+          "pose_change_translation_mm": 4.129472473370407,
+          "reprocessed_reprojection_rms_px": 0.172505811120485,
+          "sample_id": "pose_013",
+          "source_file": "pose_013.npz",
+          "source_npz_sha256": "4b9ac3b1c547f80d1190c1210dc6ddd36bf85db43ea5eb0525086472581b9106"
+        },
+        {
+          "T_base_link7_sha256": "cb134e28713af8541ad114fb0453e0e3753415e8d72e9de42375823e5d9b53f5",
+          "checkerboard_corners_sha256": "46852030c0127fe0534cad07db0ebcceabd13f1c9fccdeed22ede5849bff1ef5",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "4e4671dff258cbf355be4409072501103ec3cbdfea082235a988d4f36967d6a6",
+          "original_reprojection_rms_px": 0.1728690970208312,
+          "pose_change_rotation_deg": 1.1844928216856485,
+          "pose_change_translation_mm": 4.081138579861426,
+          "reprocessed_reprojection_rms_px": 0.16041670842667646,
+          "sample_id": "pose_014",
+          "source_file": "pose_014.npz",
+          "source_npz_sha256": "766e48c052ddde582353c2576c9bf3dbf4d877c085ca84fb8737fbe545b28070"
+        },
+        {
+          "T_base_link7_sha256": "a4f54949ddfd8fe30656eb2d1d98db2248dd20e6dc3f1408737814b9f4e67863",
+          "checkerboard_corners_sha256": "19ac1b5da54f649348cd4ea25366b3a6c38d9aeb55e3bf4d79c62e61873e9611",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "e8e28d0fc7215af91c80046201e98d735302954520b7a88baab0e6a706d94ab3",
+          "original_reprojection_rms_px": 0.17062611538249883,
+          "pose_change_rotation_deg": 0.9182381835979015,
+          "pose_change_translation_mm": 3.019267220698741,
+          "reprocessed_reprojection_rms_px": 0.1666924232060117,
+          "sample_id": "pose_015",
+          "source_file": "pose_015.npz",
+          "source_npz_sha256": "4f636b7c3fe75258c9e4873e331cd8a0c8b7700a7f6fcfd4efff68537a37d1b6"
+        },
+        {
+          "T_base_link7_sha256": "f1cf449386d8151aa36aee322144765f69926f9521e890595d7b35fd2a7d2789",
+          "checkerboard_corners_sha256": "0db89e99dad2fbbb06691d47ea5b7ae07b6837b2a5d676f372fd476da7ac0f1d",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "d56f464b9504d8f49ef485c6da2c180d4629108a083b369de8d9329da8e7678f",
+          "original_reprojection_rms_px": 0.15676253067849602,
+          "pose_change_rotation_deg": 0.8670486592946255,
+          "pose_change_translation_mm": 2.9057145310191657,
+          "reprocessed_reprojection_rms_px": 0.1523744132284748,
+          "sample_id": "pose_016",
+          "source_file": "pose_016.npz",
+          "source_npz_sha256": "39c0d0f871343b4c8e7171ee4332e10f50da17044e0d45801a29e01b2ae9af8b"
+        },
+        {
+          "T_base_link7_sha256": "609625dfa1708d39bbd24a542c795c90035441203a9cf61432a0dd472eb05e29",
+          "checkerboard_corners_sha256": "b5c06bcb0e126456d35c1a53e78b52d741e729de5d66778ef55299ff6458e797",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "8272208e6cf519e60a9e80aabe40785db1d3e94532b358594a76f5d64dd707b5",
+          "original_reprojection_rms_px": 0.19171911132276664,
+          "pose_change_rotation_deg": 1.2958923665250925,
+          "pose_change_translation_mm": 4.547466589623861,
+          "reprocessed_reprojection_rms_px": 0.1665526387335798,
+          "sample_id": "pose_017",
+          "source_file": "pose_017.npz",
+          "source_npz_sha256": "e237e9b706720ef838f5f52b06ba6ec46ae8825dad80cd54f476525c4b06bbe9"
+        },
+        {
+          "T_base_link7_sha256": "febd5e2f0f10eef4a843e790459df594ec3c8f69d4f5dd34204be8a6366fb04f",
+          "checkerboard_corners_sha256": "f2bc17a7a93d0f125901612d0ad770d5d428be4a3337d4a35725d44a3a46771c",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "59c0289d7ed5413d6bebd4100246f9fb2bdbff1376451fad27d25fc99d217c64",
+          "original_reprojection_rms_px": 0.1929424026917204,
+          "pose_change_rotation_deg": 1.3002225270850936,
+          "pose_change_translation_mm": 3.4831215735426464,
+          "reprocessed_reprojection_rms_px": 0.16900887331547879,
+          "sample_id": "pose_018",
+          "source_file": "pose_018.npz",
+          "source_npz_sha256": "97834cfebf1bd92d27f4e1e25aa7e702e8a9af6dc1d466ec6d51dbe249d8da71"
+        },
+        {
+          "T_base_link7_sha256": "ccabb7f405b07b40ee7138b19e237264b740539d0de4d6f55bc7824076a89dab",
+          "checkerboard_corners_sha256": "c2eb8d81ff8f5cb986d26f39a5d5cc860c6336158f7bc74ce4bc63490cb95c82",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "b88a449e7a682f95baba836c95a64e4cf7ac5a6cb5efc60d38576237e3b7bdd7",
+          "original_reprojection_rms_px": 0.1711387868805305,
+          "pose_change_rotation_deg": 1.0124100820040778,
+          "pose_change_translation_mm": 2.1041932094578444,
+          "reprocessed_reprojection_rms_px": 0.15705883625907724,
+          "sample_id": "pose_019",
+          "source_file": "pose_019.npz",
+          "source_npz_sha256": "20db20bb8b3e1ca293265b5356591153d2f8f8a746e3737c56f9c1ea87d335c6"
+        },
+        {
+          "T_base_link7_sha256": "0e008746db9cb500858e2840cf2e8cd1b071ef274a2ea727b2e00f46645c5522",
+          "checkerboard_corners_sha256": "0cee4040ab73e21ace350bffa2d0601e00580eebdd9d05b7d671172a17eca696",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "d7e7bc57ccccab432f502f06d1f2c7ac4b4d7749ac0306a6e6c799b3b3bb2917",
+          "original_reprojection_rms_px": 0.15817480757728078,
+          "pose_change_rotation_deg": 0.9946107058424093,
+          "pose_change_translation_mm": 2.111944036122169,
+          "reprocessed_reprojection_rms_px": 0.1474679264769115,
+          "sample_id": "pose_020",
+          "source_file": "pose_020.npz",
+          "source_npz_sha256": "b3454d64138a54f6bd2a85cc87e7ad193be489d29d6b2f5d3817c03203dc5363"
+        },
+        {
+          "T_base_link7_sha256": "3968ecb99ebded0a8b7f67c4fdbc4507d77f2b887c3d56ddf4958118c6621edd",
+          "checkerboard_corners_sha256": "78ffccbec9cf1b9a3a8e5c58df0c744ef83524530c0c35611ed1cd35571a32ee",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "4d3a02a97a7d9e09e8182b0ada72128fd9c0034caa99282fa77623f97cc53e6f",
+          "original_reprojection_rms_px": 0.12755751090807696,
+          "pose_change_rotation_deg": 0.9701500659202992,
+          "pose_change_translation_mm": 2.217614156302243,
+          "reprocessed_reprojection_rms_px": 0.11214846413351566,
+          "sample_id": "pose_021",
+          "source_file": "pose_021.npz",
+          "source_npz_sha256": "9001d9838db1d3518c00e1443ba5e5a71549b87ba65cca8ea113a48413929372"
+        },
+        {
+          "T_base_link7_sha256": "484ca58e336986934cda0758aa53ab4566f2a8ea1e0845753979b7688a194ca9",
+          "checkerboard_corners_sha256": "e19cf8e1d7fc9a214685c02c8cf588521a4890d15309c0e7ee4b4e91e0dc035f",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "f86156cdec497c80c9cf7911e0b8f14c6d5df6882d292247e02d5bf97cbcc47c",
+          "original_reprojection_rms_px": 0.16054848013164516,
+          "pose_change_rotation_deg": 1.3066196057549977,
+          "pose_change_translation_mm": 3.407534509864271,
+          "reprocessed_reprojection_rms_px": 0.1252273578444428,
+          "sample_id": "pose_022",
+          "source_file": "pose_022.npz",
+          "source_npz_sha256": "2bacaa425632e785f935e3213a955f0fbe3744aa2dded080a9bc510abd35615b"
+        },
+        {
+          "T_base_link7_sha256": "f132da475d729591945774a446344409aa8153b38a4f23da57d54a6a89b937a8",
+          "checkerboard_corners_sha256": "f8e739a88aa684f559db028fa61f72accf67bac15eaabb415bf6658fd97bb980",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "a1d1a73e52a71caed90c7b9e18e7a04f8ce366f72cc80a38af26dc87d76802d0",
+          "original_reprojection_rms_px": 0.2031162396786119,
+          "pose_change_rotation_deg": 1.2367838140709035,
+          "pose_change_translation_mm": 2.8519713295827978,
+          "reprocessed_reprojection_rms_px": 0.13517374475985758,
+          "sample_id": "pose_023",
+          "source_file": "pose_023.npz",
+          "source_npz_sha256": "e2ab1dd25a2372ea110a4cf9e490e0bd3d20291f84ca6d4cd24f8ee409666827"
+        },
+        {
+          "T_base_link7_sha256": "6c0bfed051f2dae46098825bdeefd11baaabe81733820c13d31287d2d43fae81",
+          "checkerboard_corners_sha256": "8e259a31ce6797fdbdcc5b613926c05f627d569fab603b2aebd7b05ada7c67b7",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "35baeec39585158a19ae965f57f7b47a35fc6d8757939ae3d6681ec3fc7a25e8",
+          "original_reprojection_rms_px": 0.17225610415255593,
+          "pose_change_rotation_deg": 1.2427480943211329,
+          "pose_change_translation_mm": 2.9269209144103696,
+          "reprocessed_reprojection_rms_px": 0.1270260889164677,
+          "sample_id": "pose_024",
+          "source_file": "pose_024.npz",
+          "source_npz_sha256": "1a7970d7d1b9a5f5210ac1b7bec91887327580bc6c739e2eafa7f8a098c88b47"
+        },
+        {
+          "T_base_link7_sha256": "2c9b6e54a1f884e1a8bee70011c38691ab2eaad2104fc4eaf75dc0e469ba8956",
+          "checkerboard_corners_sha256": "b99d92a04ba2bbd736429bf864894ca42d2f2dba45d1da38baa711d00addde5f",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "f2e94b1b44be25671de5ff32eeb134e66a7399401619604a2e55d3ea4c2d923d",
+          "original_reprojection_rms_px": 0.14674072778483402,
+          "pose_change_rotation_deg": 1.0565381973425008,
+          "pose_change_translation_mm": 1.8235904245391965,
+          "reprocessed_reprojection_rms_px": 0.12014014249214981,
+          "sample_id": "pose_025",
+          "source_file": "pose_025.npz",
+          "source_npz_sha256": "77cbb103fdeaffc95b6b660b54266e9f71a5b76df220f27214180d4c5d8ed6e8"
+        },
+        {
+          "T_base_link7_sha256": "64cf17b0fb8561c76f8bd45d835348c7d9b5fe6d07e9552aaf79844235d396b4",
+          "checkerboard_corners_sha256": "e442de85f3c678eec19c5ede06dbbae83ad89b23915140819778140a6ae6f6e3",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "840ac82f3500e0302c925f5adb40e8168f454e8a1c112ef8d056932a7bd2f47d",
+          "original_reprojection_rms_px": 0.16220198717760628,
+          "pose_change_rotation_deg": 1.0370559544815283,
+          "pose_change_translation_mm": 1.9509848879000575,
+          "reprocessed_reprojection_rms_px": 0.13915713784926073,
+          "sample_id": "pose_026",
+          "source_file": "pose_026.npz",
+          "source_npz_sha256": "eea90e82b43d9c46191a51b8229a0429aa9f6e594d9a55d39c730709eb33def7"
+        },
+        {
+          "T_base_link7_sha256": "0747a47b9cd65dc130de4cbe4701b5eeeb338333384b5c45bfc2d3580a320b21",
+          "checkerboard_corners_sha256": "dc60934d38b9369575e8808bad637b046ab00d342ef39a1aa7d57f26a5506c67",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "7132481045828875ff29096925812f6b5f2dff70cec5bff440a1f389832c9ee8",
+          "original_reprojection_rms_px": 0.19884707185865855,
+          "pose_change_rotation_deg": 1.210083146189227,
+          "pose_change_translation_mm": 3.0644093377041655,
+          "reprocessed_reprojection_rms_px": 0.15780532881921552,
+          "sample_id": "pose_027",
+          "source_file": "pose_027.npz",
+          "source_npz_sha256": "f37798e2be10fe7f355779b86738489c49f1dc6b9887ed3779fb061608a17806"
+        },
+        {
+          "T_base_link7_sha256": "b78de5e0eb74d140897f1241975028b13746565534f0549a92b4c63910192f12",
+          "checkerboard_corners_sha256": "95c392501d3be71971fcb83f5ef39face730e9f0a218436b9738a8b6b0664c40",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "159834d4f4c9049acc336d1b4157944f233eb45727c65b2433699289238c9cd7",
+          "original_reprojection_rms_px": 0.18356171357951914,
+          "pose_change_rotation_deg": 1.213864084302822,
+          "pose_change_translation_mm": 3.1794638983302432,
+          "reprocessed_reprojection_rms_px": 0.16761358374417965,
+          "sample_id": "pose_028",
+          "source_file": "pose_028.npz",
+          "source_npz_sha256": "506d3d4f54eab74e0da5ee61d8a5b9479ac6409584eb3a113e6a475bc59f112a"
+        },
+        {
+          "T_base_link7_sha256": "e5bc7dafd0be51f5f313c902fd66bd847b1b830251500a3dbe3a1c90877b5a1b",
+          "checkerboard_corners_sha256": "44bd4d033dbf29cccc3a6492666bd0ceaae2e5f09ac4f11293cdee961a6531e6",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "ec4d14be469a1f09d903700e1fa9b8f58aadeac227f6fe9a2ef2a2235d94e39d",
+          "original_reprojection_rms_px": 0.15485300028894886,
+          "pose_change_rotation_deg": 1.0105919007251698,
+          "pose_change_translation_mm": 2.215721134150001,
+          "reprocessed_reprojection_rms_px": 0.13425732048395778,
+          "sample_id": "pose_029",
+          "source_file": "pose_029.npz",
+          "source_npz_sha256": "5ee9100b41006c528b7037053cfc7cca86e2f7125ed1ce3dc3f28a3716bd70b0"
+        },
+        {
+          "T_base_link7_sha256": "303a1c9c0e8dc2612bf791358f8e44406f5549d8b108ae99540787c2d7704bdb",
+          "checkerboard_corners_sha256": "4ead67a52810f3f552ed67022e044b332e4453087b21c02674186a84534f9a2d",
+          "checkerboard_object_points_sha256": "2df1c2a9a3e911d3c29f561ceb538b6618f704d36f078810e62bffe4d04e7189",
+          "original_T_camera_checkerboard_sha256": "74800288683556e4c2acf565372ebedf536a1b3a3cbac7883476f699527ed4d4",
+          "original_reprojection_rms_px": 0.14660272618093115,
+          "pose_change_rotation_deg": 1.1144754041881113,
+          "pose_change_translation_mm": 3.3101874649405767,
+          "reprocessed_reprojection_rms_px": 0.14089758552031484,
+          "sample_id": "pose_030",
+          "source_file": "pose_030.npz",
+          "source_npz_sha256": "0c435d13fa768c0f78bced579a7dfbe822c0e42d5515b5583cbab28b837298a9"
+        }
+      ],
+      "sample_count": 30,
+      "sample_ids": [
+        "pose_001",
+        "pose_002",
+        "pose_003",
+        "pose_004",
+        "pose_005",
+        "pose_006",
+        "pose_007",
+        "pose_008",
+        "pose_009",
+        "pose_010",
+        "pose_011",
+        "pose_012",
+        "pose_013",
+        "pose_014",
+        "pose_015",
+        "pose_016",
+        "pose_017",
+        "pose_018",
+        "pose_019",
+        "pose_020",
+        "pose_021",
+        "pose_022",
+        "pose_023",
+        "pose_024",
+        "pose_025",
+        "pose_026",
+        "pose_027",
+        "pose_028",
+        "pose_029",
+        "pose_030"
+      ],
+      "source_npz_modified": false
+    },
+    "capture_audit": [
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001745329251994325,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9262287807408708,
+          -1.6830559042831719,
+          0.438915400291534,
+          2.083067915547752,
+          0.8281936366563493,
+          0.006230825429619756,
+          1.0713180014591592
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786629094_417296896",
+        "observation_stamp_ns": 1786629094417296896,
+        "reprojection_rms_px": 0.14580309783436518,
+        "sha256": "33becc45bd6db5a15c7652b3bfbb031cbe55115217c681ff6023e9692f2ca2dd",
+        "source_file": "pose_001.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 8.726646259972493e-05,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9396154561036673,
+          -1.6715716378050491,
+          0.4516563038310926,
+          2.0780762738870484,
+          0.7849792843769696,
+          -0.04183554217030409,
+          1.0577742464636835
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786629265_123116032",
+        "observation_stamp_ns": 1786629265123116032,
+        "reprojection_rms_px": 0.1524923470999438,
+        "sha256": "7ade218535cab5e3798afa84c143e899e6da5babb3424b1860329e6d1349486f",
+        "source_file": "pose_002.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0004014257279587041,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9603848742023998,
+          -1.6580278828095734,
+          0.47544514153577533,
+          2.0799786827717224,
+          0.832906025636734,
+          -0.058643062867009474,
+          1.0350849661877572
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786630629_207077120",
+        "observation_stamp_ns": 1786630629207077120,
+        "reprojection_rms_px": 0.16740635672517057,
+        "sha256": "50bf80766b737c6a73070b7bc90a7b213723bd21a8db6b669d39628683f4c591",
+        "source_file": "pose_003.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.939074404035549,
+          -1.6692154433148567,
+          0.4549549761173619,
+          2.079420177411084,
+          0.8463276075845704,
+          -0.0765501409924713,
+          0.9871233183429529
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786630931_821658880",
+        "observation_stamp_ns": 1786630931821658880,
+        "reprojection_rms_px": 0.1640496653084517,
+        "sha256": "c2c4074fe4d332d853f7e85d7993b186f45177e7536286367505fe82d0cb909f",
+        "source_file": "pose_004.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 8.726646259972493e-05,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9485166352888385,
+          -1.6596859455989679,
+          0.4637863421324532,
+          2.073957296852342,
+          0.7993084375358431,
+          -0.12452924212979541,
+          0.9742427884632348
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631008_852257024",
+        "observation_stamp_ns": 1786631008852257024,
+        "reprojection_rms_px": 0.17089752868156793,
+        "sha256": "cb90dd013747b390b57898aa3806cd013de854bab1b8cb40bc7d1e3c2e334e81",
+        "source_file": "pose_005.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001396263401596265,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9706125036190866,
+          -1.644536487691657,
+          0.4892157893340106,
+          2.0753186536688975,
+          0.8413883258014263,
+          -0.14486232791552936,
+          0.9542064086503399
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631049_149300992",
+        "observation_stamp_ns": 1786631049149300992,
+        "reprojection_rms_px": 0.17612010689436006,
+        "sha256": "5e2356f53d92a8e5bb883aa96c1f8f6ce5e02e62d45151ad2b1b1d0fb61b02f0",
+        "source_file": "pose_006.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0012391837689160745,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9894271529555854,
+          -1.6183216423267022,
+          0.5050284723570792,
+          2.063118802197457,
+          0.820269841852295,
+          -0.12795008746370432,
+          1.0021156966175842
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631166_523625984",
+        "observation_stamp_ns": 1786631166523625984,
+        "reprojection_rms_px": 0.17995933946309178,
+        "sha256": "256e1da0b7c43b0593ae48026c3d7626252e7ef1115a908394634b1bb1cb3841",
+        "source_file": "pose_007.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9722356598234413,
+          -1.6352862426560872,
+          0.5017647066558498,
+          2.056451644454839,
+          0.8782322263110267,
+          -0.06791076119509937,
+          1.0244559110431117
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631341_248668928",
+        "observation_stamp_ns": 1786631341248668928,
+        "reprojection_rms_px": 0.18216680300947172,
+        "sha256": "7cc2d7bfbef133388412c6089c5bcfb9d89001c353f836bec83a1dfdf7304e4f",
+        "source_file": "pose_008.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00012217304763950665,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9581508527598471,
+          -1.65593348770718,
+          0.46642178930296463,
+          2.049540140616941,
+          0.8243015524244018,
+          -0.04569271981721155,
+          1.0636909126279441
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631384_076086016",
+        "observation_stamp_ns": 1786631384076086016,
+        "reprojection_rms_px": 0.1729581083390609,
+        "sha256": "53c6d3e1f9c9a66f04f83c92444d59be0d803bcca3b9c3ae9c87053da6d1d0ef",
+        "source_file": "pose_009.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001745329251994325,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9833534071586452,
+          -1.6598604785241673,
+          0.4918861430895619,
+          2.064026373408494,
+          0.8161857714026283,
+          -0.024748768793279592,
+          1.1117049203503082
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631479_662808064",
+        "observation_stamp_ns": 1786631479662808064,
+        "reprojection_rms_px": 0.1595965386693552,
+        "sha256": "14aaf0fbe0b90d1ce8b67a768b04afbdfb05aee3c5f6d892144dd85ec4b292d5",
+        "source_file": "pose_010.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.9894620595406253,
+          -1.6329998613359746,
+          0.4986754738798198,
+          2.045648056384994,
+          0.7712609964562942,
+          -0.0787318025574642,
+          1.0984229647426313
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631644_149617920",
+        "observation_stamp_ns": 1786631644149617920,
+        "reprojection_rms_px": 0.1649060311944651,
+        "sha256": "8ec8c906aaf26649ea6fdbf57f79b56f8b1af6d6590a20e23a48d4b4af0fc5f0",
+        "source_file": "pose_011.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00012217304763950665,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0165670228240973,
+          -1.6242906683685228,
+          0.5123239486304155,
+          2.0405167883841306,
+          0.8132536182592779,
+          -0.08648106443631903,
+          1.0944436140480842
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631726_101153024",
+        "observation_stamp_ns": 1786631726101153024,
+        "reprojection_rms_px": 0.1704098240845889,
+        "sha256": "8fa1f24fbf46fec51963f0b349c834b139ee6d2a258c9878b0f3ee73a1954dd3",
+        "source_file": "pose_012.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00017453292519943597,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0298140718467341,
+          -1.616489046612108,
+          0.5393765520363276,
+          2.0301495326272843,
+          0.8102167453608078,
+          -0.058555796404409756,
+          1.148409194519749
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631752_680485888",
+        "observation_stamp_ns": 1786631752680485888,
+        "reprojection_rms_px": 0.18350385075336292,
+        "sha256": "4b9ac3b1c547f80d1190c1210dc6ddd36bf85db43ea5eb0525086472581b9106",
+        "source_file": "pose_013.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00022689280275933754,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.014524987599264,
+          -1.631027639281221,
+          0.5234591492581393,
+          2.035455333553347,
+          0.8504814912043168,
+          -0.010611601852125523,
+          1.1657926738696125
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631777_957715968",
+        "observation_stamp_ns": 1786631777957715968,
+        "reprojection_rms_px": 0.1728690970208312,
+        "sha256": "766e48c052ddde582353c2576c9bf3dbf4d877c085ca84fb8737fbe545b28070",
+        "source_file": "pose_014.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00013962634015954637,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          0.996966975324201,
+          -1.643314757215261,
+          0.5022533988464082,
+          2.0329246061379553,
+          0.7964111909775325,
+          0.0008028514559173916,
+          1.1885692206081384
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786631807_043927040",
+        "observation_stamp_ns": 1786631807043927040,
+        "reprojection_rms_px": 0.17062611538249883,
+        "sha256": "4f636b7c3fe75258c9e4873e331cd8a0c8b7700a7f6fcfd4efff68537a37d1b6",
+        "source_file": "pose_015.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0046115174479362,
+          -1.6007112701740793,
+          0.5141041844674497,
+          2.004702632133207,
+          0.735935532395929,
+          -0.08323475202760958,
+          1.1677823492168862
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632133_822717952",
+        "observation_stamp_ns": 1786632133822717952,
+        "reprojection_rms_px": 0.15676253067849602,
+        "sha256": "39c0d0f871343b4c8e7171ee4332e10f50da17044e0d45801a29e01b2ae9af8b",
+        "source_file": "pose_016.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0438465190327686,
+          -1.5871326085935635,
+          0.5333202595319073,
+          1.994806615274399,
+          0.8019787912913945,
+          -0.08801695417807404,
+          1.1653912481416537
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632216_059712000",
+        "observation_stamp_ns": 1786632216059712000,
+        "reprojection_rms_px": 0.19171911132276664,
+        "sha256": "e237e9b706720ef838f5f52b06ba6ec46ae8825dad80cd54f476525c4b06bbe9",
+        "source_file": "pose_017.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001221730476396038,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0700090045201636,
+          -1.5714595519106545,
+          0.5699023606537084,
+          1.986184688769547,
+          0.7871609459419625,
+          -0.049549897464119017,
+          1.2433725591207603
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632349_566970112",
+        "observation_stamp_ns": 1786632349566970112,
+        "reprojection_rms_px": 0.1929424026917204,
+        "sha256": "97834cfebf1bd92d27f4e1e25aa7e702e8a9af6dc1d466ec6d51dbe249d8da71",
+        "source_file": "pose_018.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0006806784082777906,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0364637762968325,
+          -1.5853000128789696,
+          0.5573883499169091,
+          1.995783999655516,
+          0.7163180316035127,
+          -0.04553564018453206,
+          1.2447688225223559
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632390_791377920",
+        "observation_stamp_ns": 1786632390791377920,
+        "reprojection_rms_px": 0.1711387868805305,
+        "sha256": "20db20bb8b3e1ca293265b5356591153d2f8f8a746e3737c56f9c1ea87d335c6",
+        "source_file": "pose_019.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00012217304763961767,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0391690366374238,
+          -1.5438658964366243,
+          0.5707924785722256,
+          1.9659388694464128,
+          0.6628411433224065,
+          -0.12953833708301915,
+          1.2247324427094608
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632431_111994112",
+        "observation_stamp_ns": 1786632431111994112,
+        "reprojection_rms_px": 0.15817480757728078,
+        "sha256": "b3454d64138a54f6bd2a85cc87e7ad193be489d29d6b2f5d3817c03203dc5363",
+        "source_file": "pose_020.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00013962634015951547,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.041612497590216,
+          -1.5031299116950765,
+          0.5872509334185321,
+          1.9328823334136405,
+          0.6070604204286678,
+          -0.2074847414770859,
+          1.2041026509508879
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632727_491490048",
+        "observation_stamp_ns": 1786632727491490048,
+        "reprojection_rms_px": 0.12755751090807696,
+        "sha256": "9001d9838db1d3518c00e1443ba5e5a71549b87ba65cca8ea113a48413929372",
+        "source_file": "pose_021.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00010471975511960885,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.081283831488047,
+          -1.4843850755286574,
+          0.6084043239527034,
+          1.9220612920512754,
+          0.673138585909173,
+          -0.2035752039526186,
+          1.2158661701093298
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632763_607727104",
+        "observation_stamp_ns": 1786632763607727104,
+        "reprojection_rms_px": 0.16054848013164516,
+        "sha256": "2bacaa425632e785f935e3213a955f0fbe3744aa2dded080a9bc510abd35615b",
+        "source_file": "pose_022.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00019198621771943092,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0995399754639077,
+          -1.4766358136498026,
+          0.6477440452926555,
+          1.9085175370557994,
+          0.6662794419488354,
+          -0.15741124523736857,
+          1.3058204397571174
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632795_903830016",
+        "observation_stamp_ns": 1786632795903830016,
+        "reprojection_rms_px": 0.2031162396786119,
+        "sha256": "e2ab1dd25a2372ea110a4cf9e490e0bd3d20291f84ca6d4cd24f8ee409666827",
+        "source_file": "pose_023.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.0001570796326795243,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0989989233957895,
+          -1.4356380295204558,
+          0.6684261969287884,
+          1.875024668710028,
+          0.6173055031378745,
+          -0.23539255621647523,
+          1.2840387306922283
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632824_589762048",
+        "observation_stamp_ns": 1786632824589762048,
+        "reprojection_rms_px": 0.17225610415255593,
+        "sha256": "1a7970d7d1b9a5f5210ac1b7bec91887327580bc6c739e2eafa7f8a098c88b47",
+        "source_file": "pose_024.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00015707963267941327,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0602526140015154,
+          -1.4591476145448194,
+          0.6479883913879347,
+          1.8860202429975925,
+          0.5513146041199688,
+          -0.24513149344260357,
+          1.2675453692608818
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786632858_290620928",
+        "observation_stamp_ns": 1786632858290620928,
+        "reprojection_rms_px": 0.14674072778483402,
+        "sha256": "77cbb103fdeaffc95b6b660b54266e9f71a5b76df220f27214180d4c5d8ed6e8",
+        "source_file": "pose_025.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00015707963267941327,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0590832434026791,
+          -1.4200347860076263,
+          0.6712361770244992,
+          1.8497348478486304,
+          0.49960049838337683,
+          -0.3171263250873697,
+          1.2473693631078275
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786634071_426910976",
+        "observation_stamp_ns": 1786634071426910976,
+        "reprojection_rms_px": 0.16220198717760628,
+        "sha256": "eea90e82b43d9c46191a51b8229a0429aa9f6e594d9a55d39c730709eb33def7",
+        "source_file": "pose_026.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00020943951023932872,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0993828958312282,
+          -1.3950067645340276,
+          0.6960198524028186,
+          1.837866608935069,
+          0.5655564908162426,
+          -0.30344294375173414,
+          1.2722403049487467
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786634109_023836928",
+        "observation_stamp_ns": 1786634109023836928,
+        "reprojection_rms_px": 0.19884707185865855,
+        "sha256": "f37798e2be10fe7f355779b86738489c49f1dc6b9887ed3779fb061608a17806",
+        "source_file": "pose_027.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00012217304763961767,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.094810133191003,
+          -1.3583897568271868,
+          0.7200879427878205,
+          1.7995740851463133,
+          0.5153608215288856,
+          -0.37540286881146034,
+          1.253041683176809
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786634143_545382912",
+        "observation_stamp_ns": 1786634143545382912,
+        "reprojection_rms_px": 0.18356171357951914,
+        "sha256": "506d3d4f54eab74e0da5ee61d8a5b9479ac6409584eb3a113e6a475bc59f112a",
+        "source_file": "pose_028.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00012217304763967318,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.0500947977549084,
+          -1.3894391642201658,
+          0.6915169029326733,
+          1.80987152773308,
+          0.4561068934236781,
+          -0.39135517817468857,
+          1.2235630721106248
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786634170_432387072",
+        "observation_stamp_ns": 1786634170432387072,
+        "reprojection_rms_px": 0.15485300028894886,
+        "sha256": "5ee9100b41006c528b7037053cfc7cca86e2f7125ed1ce3dc3f28a3716bd70b0",
+        "source_file": "pose_029.npz",
+        "tf_lookup_mode": "observation_stamp"
+      },
+      {
+        "corner_count": 88,
+        "joint_maximum_position_span_rad": 0.00013962634015957098,
+        "joint_names": [
+          "joint1",
+          "joint2",
+          "joint3",
+          "joint4",
+          "joint5",
+          "joint6",
+          "joint7"
+        ],
+        "joint_positions_rad": [
+          1.035468938623196,
+          -1.430594027982192,
+          0.6536956180419562,
+          1.8371684772342711,
+          0.49024553359268724,
+          -0.4358785273930639,
+          1.1395778285046576
+        ],
+        "joint_selection_mode": "nearest_observation_ros_stamp",
+        "motion_commands_sent": 0,
+        "observation_id": "obs_1786634212_149999104",
+        "observation_stamp_ns": 1786634212149999104,
+        "reprojection_rms_px": 0.14660272618093115,
+        "sha256": "0c435d13fa768c0f78bced579a7dfbe822c0e42d5515b5583cbab28b837298a9",
+        "source_file": "pose_030.npz",
+        "tf_lookup_mode": "observation_stamp"
+      }
+    ],
+    "capture_schema_version": "strawberry_handeye_capture/v1",
+    "importer": "strawberry_handeye_capture_npz/v1",
+    "input_directory": "/home/yyt/strawberry_active_perception/artifacts/week3/handeye_session_001",
+    "source_name": "gemini2xl_AYML241003A"
+  },
+  "samples": [
+    {
+      "T_base_link7": [
+        [
+          0.048067117188880015,
+          -0.031094542065185915,
+          0.9983599960429639,
+          0.2238192004053935
+        ],
+        [
+          -0.9960296220976333,
+          0.0734884764934699,
+          0.050243763062834845,
+          0.10127872528561617
+        ],
+        [
+          -0.0749302619052945,
+          -0.9968112024232197,
+          -0.027438705770842287,
+          0.3291545337475209
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9993121584187862,
+          0.021803048458741564,
+          0.02999728511536635,
+          0.2962991465306368
+        ],
+        [
+          -0.02053685571263735,
+          -0.9989111506286441,
+          0.041889744654229254,
+          0.1430270685825654
+        ],
+        [
+          0.03087794672294657,
+          0.04124488122984452,
+          0.9986718240635966,
+          0.6467426490995957
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.14524083923172038
+      },
+      "sample_id": "pose_001",
+      "timestamp_sec": 1786629094.417297
+    },
+    {
+      "T_base_link7": [
+        [
+          0.0480952179310441,
+          -0.10039319607309466,
+          0.993784713202208,
+          0.22411187705541394
+        ],
+        [
+          -0.9960339823750652,
+          0.06974102940161031,
+          0.0552493870741782,
+          0.10140233630662217
+        ],
+        [
+          -0.0748542314517624,
+          -0.9925005768261463,
+          -0.0966408248802395,
+          0.3290024515329667
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9954005403826306,
+          0.0917460352464486,
+          0.02757588117403432,
+          0.284787668387875
+        ],
+        [
+          -0.09045169376762198,
+          -0.9948835835550057,
+          0.045001625163079005,
+          0.16362843256533535
+        ],
+        [
+          0.0315635121704696,
+          0.04230035684609935,
+          0.9986062409729661,
+          0.6469233137728242
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1492742524580921
+      },
+      "sample_id": "pose_002",
+      "timestamp_sec": 1786629265.123116
+    },
+    {
+      "T_base_link7": [
+        [
+          0.11682135930961224,
+          -0.10051378840898084,
+          0.9880535149214991,
+          0.22397248551244323
+        ],
+        [
+          -0.9898067227328311,
+          0.06981527835028067,
+          0.12413089277760453,
+          0.10163466331244475
+        ],
+        [
+          -0.08145809746088362,
+          -0.9924831511156988,
+          -0.0913333077770957,
+          0.329125399535215
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.99051256717371,
+          0.09625158424798233,
+          0.09808408026127552,
+          0.3335769948196734
+        ],
+        [
+          -0.09232694595661486,
+          -0.9947646782844896,
+          0.043806048530772385,
+          0.16268372154595537
+        ],
+        [
+          0.10178698011666862,
+          0.03433463801046442,
+          0.9942135300384014,
+          0.6255677888700386
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16417909591183008
+      },
+      "sample_id": "pose_003",
+      "timestamp_sec": 1786630629.207077
+    },
+    {
+      "T_base_link7": [
+        [
+          0.12359771239719897,
+          -0.09220774282653199,
+          0.9880391377131859,
+          0.22404865688537087
+        ],
+        [
+          -0.9922548403526472,
+          0.0009650924879978096,
+          0.1242151375365852,
+          0.10188470332809194
+        ],
+        [
+          -0.01240714660679093,
+          -0.9957393236983896,
+          -0.09137429591385038,
+          0.3291293182079806
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9906290929915597,
+          0.09655523799029647,
+          0.09659754725331876,
+          0.3341606533655618
+        ],
+        [
+          -0.08552184453791942,
+          -0.9899659959780035,
+          0.1124870699863388,
+          0.21062529395581536
+        ],
+        [
+          0.10648950288902603,
+          0.10317176369490223,
+          0.9889466987409035,
+          0.6126575126720881
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.15693839405464924
+      },
+      "sample_id": "pose_004",
+      "timestamp_sec": 1786630931.8216588
+    },
+    {
+      "T_base_link7": [
+        [
+          0.12352834624915388,
+          -0.16055287381580324,
+          0.9792668290013893,
+          0.22433138437881434
+        ],
+        [
+          -0.9922645017998226,
+          -0.007727851228977567,
+          0.12390092325456215,
+          0.10201454449901713
+        ],
+        [
+          -0.012325020928956099,
+          -0.9869969883565349,
+          -0.16026552603174293,
+          0.328995247752519
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9819839120470796,
+          0.16642626071065017,
+          0.08949802359038041,
+          0.31857854804047203
+        ],
+        [
+          -0.1549903789419023,
+          -0.9803089740007952,
+          0.12236134164413974,
+          0.23400759637543117
+        ],
+        [
+          0.10809985622635733,
+          0.10628553636021719,
+          0.9884421105175865,
+          0.6120850265954976
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1621393582982596
+      },
+      "sample_id": "pose_005",
+      "timestamp_sec": 1786631008.852257
+    },
+    {
+      "T_base_link7": [
+        [
+          0.19127633332724447,
+          -0.1606539313999153,
+          0.968299374488405,
+          0.22419514088388587
+        ],
+        [
+          -0.9812513721182803,
+          -0.007532854993130833,
+          0.1925850482556864,
+          0.10218494515151492
+        ],
+        [
+          -0.02364548635315794,
+          -0.986982051722018,
+          -0.159082747504935,
+          0.32911428564221434
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.97140173845515,
+          0.17476376123973583,
+          0.1607367110639412,
+          0.3646080849159239
+        ],
+        [
+          -0.1563415268635769,
+          -0.9802668188516692,
+          0.12097227300664509,
+          0.23329862773447693
+        ],
+        [
+          0.17870643386369098,
+          0.0923828534727599,
+          0.9795557252550526,
+          0.5889803669987143
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.17242895539360917
+      },
+      "sample_id": "pose_006",
+      "timestamp_sec": 1786631049.149301
+    },
+    {
+      "T_base_link7": [
+        [
+          0.1797822913642213,
+          -0.17313995355255296,
+          0.9683495671479645,
+          0.2244405710874016
+        ],
+        [
+          -0.9794186010635432,
+          0.06030559880879638,
+          0.1926199331404843,
+          0.10181077656863942
+        ],
+        [
+          -0.09174710678033599,
+          -0.9830492313389663,
+          -0.1587346123607114,
+          0.33360881889207866
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9699275612977952,
+          0.1813031982029862,
+          0.1623874261027636,
+          0.36614517020065174
+        ],
+        [
+          -0.17530094715178005,
+          -0.9832095900121567,
+          0.050680173991569384,
+          0.1947749956126283
+        ],
+        [
+          0.1688493522717829,
+          0.020689427964436687,
+          0.9854247022517264,
+          0.6025684695128187
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16095109919527242
+      },
+      "sample_id": "pose_007",
+      "timestamp_sec": 1786631166.523626
+    },
+    {
+      "T_base_link7": [
+        [
+          0.17975910950335638,
+          -0.10590578826775687,
+          0.9779931628400813,
+          0.22890768305535938
+        ],
+        [
+          -0.9794058335766972,
+          0.07363966102428665,
+          0.18799312083202235,
+          0.10251515960309449
+        ],
+        [
+          -0.09192864464624467,
+          -0.9916456848772214,
+          -0.09048734694912497,
+          0.3329371461021824
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9794753789424565,
+          0.11383731046133165,
+          0.16634015989069392,
+          0.38354648459146307
+        ],
+        [
+          -0.10869788752907207,
+          -0.9932813240150279,
+          0.03971121516234914,
+          0.16838653774193438
+        ],
+        [
+          0.169743192182333,
+          0.02081533352804083,
+          0.9852684764052217,
+          0.6020350856538681
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.17243599429777975
+      },
+      "sample_id": "pose_008",
+      "timestamp_sec": 1786631341.248669
+    },
+    {
+      "T_base_link7": [
+        [
+          0.11159548799683128,
+          -0.10577615179269512,
+          0.9881082191595606,
+          0.22820660891552003
+        ],
+        [
+          -0.990092177560443,
+          0.0734425871922395,
+          0.11968152037859053,
+          0.10704016883362116
+        ],
+        [
+          -0.08522867470734108,
+          -0.9916741360439121,
+          -0.09653227910492568,
+          0.333227303051839
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9889372464025623,
+          0.11072531269143127,
+          0.0987067769056542,
+          0.33669784551859816
+        ],
+        [
+          -0.10711455004233236,
+          -0.9933937203820907,
+          0.04117510746381996,
+          0.16891445517150358
+        ],
+        [
+          0.1026138189862676,
+          0.030146665401221667,
+          0.9942643424755006,
+          0.6312564432034657
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.171417368946326
+      },
+      "sample_id": "pose_009",
+      "timestamp_sec": 1786631384.076086
+    },
+    {
+      "T_base_link7": [
+        [
+          0.10387242186487822,
+          -0.11336318584930405,
+          0.9881089555661466,
+          0.22760590824763408
+        ],
+        [
+          -0.9825968373899618,
+          0.14212536061721215,
+          0.11959864974435253,
+          0.10709706389786258
+        ],
+        [
+          -0.15399342559723023,
+          -0.9833357361367091,
+          -0.09662740247624768,
+          0.3283271958103161
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9888972766711362,
+          0.11050475126540736,
+          0.0993522830144357,
+          0.33610236669107296
+        ],
+        [
+          -0.11358074940295217,
+          -0.9931927056114926,
+          -0.025839173461753476,
+          0.11459135520217255
+        ],
+        [
+          0.09582061133949137,
+          -0.03683679502743491,
+          0.9947167742501554,
+          0.6406411495276859
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1588806163877834
+      },
+      "sample_id": "pose_010",
+      "timestamp_sec": 1786631479.6628082
+    },
+    {
+      "T_base_link7": [
+        [
+          0.1039102600720706,
+          -0.18173162758360972,
+          0.9778426629001042,
+          0.228404219171261
+        ],
+        [
+          -0.9825892809315585,
+          0.1334898606009448,
+          0.12922369022413477,
+          0.10652900463729362
+        ],
+        [
+          -0.15401611230698387,
+          -0.9742453862618763,
+          -0.1646965831378724,
+          0.33301687062925966
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9809947015065221,
+          0.17008526164183338,
+          0.09338307870464807,
+          0.32472467542512373
+        ],
+        [
+          -0.17277681813643678,
+          -0.9847268110280286,
+          -0.021477401081553618,
+          0.13981088372648914
+        ],
+        [
+          0.08830383191446486,
+          -0.0372036478695081,
+          0.9953985743682894,
+          0.642843695640048
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16117522722616204
+      },
+      "sample_id": "pose_011",
+      "timestamp_sec": 1786631644.149618
+    },
+    {
+      "T_base_link7": [
+        [
+          0.1715995989538257,
+          -0.1817509277462172,
+          0.9682562563197183,
+          0.2277033415794302
+        ],
+        [
+          -0.9712072968747574,
+          0.13365670564894505,
+          0.19721123581656935,
+          0.11150546013643906
+        ],
+        [
+          -0.16525726651531386,
+          -0.9742189103576573,
+          -0.15358239015403452,
+          0.3339040039890564
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9718453719071862,
+          0.16810406547632203,
+          0.1650987470361762,
+          0.3734347313429963
+        ],
+        [
+          -0.17408535590087407,
+          -0.984476967251069,
+          -0.022347031413671267,
+          0.1388296071702273
+        ],
+        [
+          0.15877928694716095,
+          -0.05045913319182205,
+          0.9860238404390028,
+          0.623824577669426
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1597221198999877
+      },
+      "sample_id": "pose_012",
+      "timestamp_sec": 1786631726.1011531
+    },
+    {
+      "T_base_link7": [
+        [
+          0.15881041210033842,
+          -0.1936125146630298,
+          0.9681391672556063,
+          0.23207903326046758
+        ],
+        [
+          -0.9596366868613044,
+          0.20026234277347488,
+          0.1974649925853647,
+          0.11170196074828079
+        ],
+        [
+          -0.2321135115377379,
+          -0.9604213597337043,
+          -0.15399392692208091,
+          0.333133453826546
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.969591685130589,
+          0.17653926877008644,
+          0.16948702223989862,
+          0.3793648288108306
+        ],
+        [
+          -0.19369206959807736,
+          -0.976875596771778,
+          -0.09053977361688068,
+          0.09407824944173729
+        ],
+        [
+          0.14958391056673928,
+          -0.12061490378019471,
+          0.9813647123703073,
+          0.6302314518653807
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.172505811120485
+      },
+      "sample_id": "pose_013",
+      "timestamp_sec": 1786631752.680486
+    },
+    {
+      "T_base_link7": [
+        [
+          0.15892200947229163,
+          -0.1259236509525915,
+          0.9792277717855323,
+          0.2317436820858296
+        ],
+        [
+          -0.9596151236648419,
+          0.21349265725927746,
+          0.18319306681772274,
+          0.11149622781709975
+        ],
+        [
+          -0.23212627886346426,
+          -0.9687951896180856,
+          -0.08690955778197584,
+          0.3332612890755122
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9805864641646167,
+          0.10814796522503768,
+          0.16356712357567119,
+          0.38530879656465655
+        ],
+        [
+          -0.12625133535769392,
+          -0.986463489747643,
+          -0.1046440811288485,
+          0.0676576125598145
+        ],
+        [
+          0.15003595108351184,
+          -0.12326313728193826,
+          0.9809665704650085,
+          0.6299948490083173
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16041670842667646
+      },
+      "sample_id": "pose_014",
+      "timestamp_sec": 1786631777.957716
+    },
+    {
+      "T_base_link7": [
+        [
+          0.09047823389782539,
+          -0.12591765697086554,
+          0.9879060850372863,
+          0.23192322973761034
+        ],
+        [
+          -0.9700740072586584,
+          0.21329141078103153,
+          0.11603100675321903,
+          0.11128230681628018
+        ],
+        [
+          -0.22532223510310456,
+          -0.9688402952757511,
+          -0.10285121592930535,
+          0.3331267550365707
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9885594864094182,
+          0.11167044572382188,
+          0.10138961180412083,
+          0.3421061363325822
+        ],
+        [
+          -0.12199508283963019,
+          -0.9872662755821007,
+          -0.10209065021440193,
+          0.06699394209991368
+        ],
+        [
+          0.0886980360148923,
+          -0.1132917148342744,
+          0.9895946876155969,
+          0.6520816346921009
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1666924232060117
+      },
+      "sample_id": "pose_015",
+      "timestamp_sec": 1786631807.043927
+    },
+    {
+      "T_base_link7": [
+        [
+          0.09043536293482335,
+          -0.22807474817989587,
+          0.9694345539403493,
+          0.23322704396171806
+        ],
+        [
+          -0.9700537925595203,
+          0.20016489880539634,
+          0.1375850748704841,
+          0.10974460723023333
+        ],
+        [
+          -0.22542645069232226,
+          -0.9528462218684097,
+          -0.20314278918868744,
+          0.3405733274579692
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9730432954407897,
+          0.20805583488230872,
+          0.09949630530403346,
+          0.3257490240169318
+        ],
+        [
+          -0.21727756961944666,
+          -0.971662398100805,
+          -0.09307331442072542,
+          0.10730217730722899
+        ],
+        [
+          0.07731237247681934,
+          -0.1121826799841143,
+          0.9906754480522809,
+          0.6557086128810417
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1523744132284748
+      },
+      "sample_id": "pose_016",
+      "timestamp_sec": 1786632133.822718
+    },
+    {
+      "T_base_link7": [
+        [
+          0.1910888947324878,
+          -0.22824858594890773,
+          0.9546662334670899,
+          0.2323386717931331
+        ],
+        [
+          -0.9504001975783426,
+          0.2001371527136192,
+          0.23808524638610568,
+          0.1175728638104222
+        ],
+        [
+          -0.2454068025808645,
+          -0.9528104234925274,
+          -0.17868351387586667,
+          0.3424455615658851
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9593676847293239,
+          0.19829810527794026,
+          0.20072744441225623,
+          0.3983835109963356
+        ],
+        [
+          -0.22008100443885417,
+          -0.9710824831185152,
+          -0.09253735713517829,
+          0.10610520769705925
+        ],
+        [
+          0.1765729225625536,
+          -0.1329536476504402,
+          0.9752667996985035,
+          0.6267717886725201
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1665526387335798
+      },
+      "sample_id": "pose_017",
+      "timestamp_sec": 1786632216.059712
+    },
+    {
+      "T_base_link7": [
+        [
+          0.1662862709259033,
+          -0.24681489878998475,
+          0.954689102188166,
+          0.23595027205564753
+        ],
+        [
+          -0.924397343010195,
+          0.2980235135757805,
+          0.2380578450537565,
+          0.11807042190180878
+        ],
+        [
+          -0.34327602353972936,
+          -0.9220978207821751,
+          -0.17859781793604013,
+          0.34167275493520505
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9566407837255948,
+          0.20447808584547425,
+          0.20742980335971628,
+          0.40487416285941014
+        ],
+        [
+          -0.24526830213873904,
+          -0.9496362261724022,
+          -0.19502435208716465,
+          0.03653660495024877
+        ],
+        [
+          0.15710464945016717,
+          -0.23744420470925168,
+          0.9586127365996815,
+          0.6327665630168551
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16900887331547879
+      },
+      "sample_id": "pose_018",
+      "timestamp_sec": 1786632349.56697
+    },
+    {
+      "T_base_link7": [
+        [
+          0.06604760968761192,
+          -0.24661105246556136,
+          0.9668612630860651,
+          0.23741400395563225
+        ],
+        [
+          -0.9441345720536805,
+          0.29809662072677057,
+          0.14052869658647577,
+          0.11060222447927275
+        ],
+        [
+          -0.32287400500437746,
+          -0.9221287293610954,
+          -0.21314545122832285,
+          0.33884536975730517
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.968199929968176,
+          0.2240329249952411,
+          0.1113469538321347,
+          0.3354806768750949
+        ],
+        [
+          -0.24211009289441301,
+          -0.9511740037540178,
+          -0.19144377112147126,
+          0.03678604490564616
+        ],
+        [
+          0.06302061986586267,
+          -0.21231406712846007,
+          0.9751672361041948,
+          0.660385940734892
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.15705883625907724
+      },
+      "sample_id": "pose_019",
+      "timestamp_sec": 1786632390.791378
+    },
+    {
+      "T_base_link7": [
+        [
+          0.06571421632600172,
+          -0.3462103351756889,
+          0.93585257684648,
+          0.2396140379849175
+        ],
+        [
+          -0.9441850094550428,
+          0.28182401401850277,
+          0.17055759450367436,
+          0.10844258042370143
+        ],
+        [
+          -0.3227945316963108,
+          -0.8948260327795767,
+          -0.3083667643682173,
+          0.34592404304639157
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9408431444319645,
+          0.3137155650678974,
+          0.12804968492543642,
+          0.3266664205109625
+        ],
+        [
+          -0.33319028768476916,
+          -0.925280789238543,
+          -0.1812172543071986,
+          0.07648358661520795
+        ],
+        [
+          0.0616312401945189,
+          -0.2131619227259619,
+          0.9750710666058433,
+          0.6623210782485117
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1474679264769115
+      },
+      "sample_id": "pose_020",
+      "timestamp_sec": 1786632431.111994
+    },
+    {
+      "T_base_link7": [
+        [
+          0.06572914714244282,
+          -0.44175441889890843,
+          0.8947249368376935,
+          0.24258523227994416
+        ],
+        [
+          -0.9441758778932454,
+          0.26255258166058826,
+          0.19899259651524526,
+          0.1063918324593268
+        ],
+        [
+          -0.32281820088162033,
+          -0.8578573163683152,
+          -0.3998365090045004,
+          0.35281642898117793
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.9004482324127356,
+          0.4109821681774036,
+          0.14243116999091307,
+          0.3153468666617464
+        ],
+        [
+          -0.43101786169606476,
+          -0.8870905881511397,
+          -0.16520862965540573,
+          0.11832895384255446
+        ],
+        [
+          0.05845154954089768,
+          -0.21015219688089243,
+          0.9759198074137043,
+          0.6623982358221614
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.11214846413351566
+      },
+      "sample_id": "pose_021",
+      "timestamp_sec": 1786632727.4914901
+    },
+    {
+      "T_base_link7": [
+        [
+          0.15872716027954314,
+          -0.441765121500555,
+          0.8829775002881965,
+          0.2418897037389502
+        ],
+        [
+          -0.9182564746289211,
+          0.2625549231253844,
+          0.29642867463302036,
+          0.11387136908480851
+        ],
+        [
+          -0.3627819391751163,
+          -0.8578510883412246,
+          -0.36397908571801074,
+          0.35543713764908985
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.8866366394756341,
+          0.39406626871074213,
+          0.2420480229288141,
+          0.38626478926159147
+        ],
+        [
+          -0.43817901343608356,
+          -0.8832056139365816,
+          -0.16717354962758466,
+          0.11788832837026246
+        ],
+        [
+          0.14790071576410668,
+          -0.2542825581421171,
+          0.9557540263588562,
+          0.6360632846007112
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1252273578444428
+      },
+      "sample_id": "pose_022",
+      "timestamp_sec": 1786632763.607727
+    },
+    {
+      "T_base_link7": [
+        [
+          0.112016546837026,
+          -0.45615296329974553,
+          0.8828231800918968,
+          0.24871778896849744
+        ],
+        [
+          -0.8859865639692367,
+          0.35645260302004633,
+          0.29659627486908724,
+          0.11578846244434803
+        ],
+        [
+          -0.4499778902353918,
+          -0.8153931664375748,
+          -0.364216806896952,
+          0.3524318054227094
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.884867023435241,
+          0.39431203600558073,
+          0.24804912638021964,
+          0.39971068292099665
+        ],
+        [
+          -0.4536258377085747,
+          -0.8504989999672302,
+          -0.2662236849304269,
+          0.04574591515218848
+        ],
+        [
+          0.10599033069129703,
+          -0.34809405239945557,
+          0.9314486461872573,
+          0.6411556021224409
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.13517374475985758
+      },
+      "sample_id": "pose_023",
+      "timestamp_sec": 1786632795.90383
+    },
+    {
+      "T_base_link7": [
+        [
+          0.11198432377844914,
+          -0.5455484904704707,
+          0.830563878201595,
+          0.25253094638380064
+        ],
+        [
+          -0.8859709926797709,
+          0.32370034797424885,
+          0.3320745170159427,
+          0.11320156221492342
+        ],
+        [
+          -0.4500165678704561,
+          -0.7730426438863129,
+          -0.4470907730823286,
+          0.35869473366798565
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.8375830530909312,
+          0.47459886421167863,
+          0.27057447637177295,
+          0.39082386550187576
+        ],
+        [
+          -0.5361459612142091,
+          -0.8091931013605351,
+          -0.24032068779905458,
+          0.0917394854651347
+        ],
+        [
+          0.1048910742082771,
+          -0.3463559481220201,
+          0.9322206926216187,
+          0.6424081835995973
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.1270260889164677
+      },
+      "sample_id": "pose_024",
+      "timestamp_sec": 1786632824.589762
+    },
+    {
+      "T_base_link7": [
+        [
+          0.024710829519625332,
+          -0.5454510101043949,
+          0.8377783540296009,
+          0.2536175626874662
+        ],
+        [
+          -0.9156840798029214,
+          0.3239207978720944,
+          0.23790330536035575,
+          0.10618453991798198
+        ],
+        [
+          -0.4011384310932187,
+          -0.7730190892093164,
+          -0.49145645465093857,
+          0.3550602711245122
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.8447023350717485,
+          0.506694650470186,
+          0.1724485323487308,
+          0.31588551255508485
+        ],
+        [
+          -0.5349712021150675,
+          -0.8094025146085236,
+          -0.24222589096328648,
+          0.09317058933270977
+        ],
+        [
+          0.016845712567140195,
+          -0.29686377436510253,
+          0.9547712403700745,
+          0.6716196409347573
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.12014014249214981
+      },
+      "sample_id": "pose_025",
+      "timestamp_sec": 1786632858.290621
+    },
+    {
+      "T_base_link7": [
+        [
+          0.024761771277545974,
+          -0.6297309603561991,
+          0.7764185548092328,
+          0.25814595168027504
+        ],
+        [
+          -0.9156810202891599,
+          0.29735818147258986,
+          0.2703819169129429,
+          0.1038225221531476
+        ],
+        [
+          -0.4011422737201875,
+          -0.717646869623336,
+          -0.5692695730095059,
+          0.3609701383870237
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.7841367898496985,
+          0.5891847532800619,
+          0.1949123426223246,
+          0.3036355120315715
+        ],
+        [
+          -0.6203369930647095,
+          -0.7530888223212636,
+          -0.21917855901115613,
+          0.1338191778498438
+        ],
+        [
+          0.01764964134605755,
+          -0.2927773082004219,
+          0.9560177498160118,
+          0.6715484667354018
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.13915713784926073
+      },
+      "sample_id": "pose_026",
+      "timestamp_sec": 1786634071.4269109
+    },
+    {
+      "T_base_link7": [
+        [
+          0.10576530491625968,
+          -0.629801282090573,
+          0.7695219589804057,
+          0.2577341586605314
+        ],
+        [
+          -0.8825091117237753,
+          0.2971713381691701,
+          0.36450907189706233,
+          0.11101463954101472
+        ],
+        [
+          -0.458248151115183,
+          -0.7176625536056729,
+          -0.5243749528264112,
+          0.364209638856531
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.7710730512869481,
+          0.5631278328969342,
+          0.29720934271290667,
+          0.3802765542063493
+        ],
+        [
+          -0.6292371218557657,
+          -0.7453558099687962,
+          -0.22023932669809887,
+          0.13562717900305052
+        ],
+        [
+          0.0975038156058918,
+          -0.35683576104779935,
+          0.929064715496036,
+          0.6431123524004403
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.15780532881921552
+      },
+      "sample_id": "pose_027",
+      "timestamp_sec": 1786634109.0238369
+    },
+    {
+      "T_base_link7": [
+        [
+          0.10581581484545755,
+          -0.7064834629719343,
+          0.6997743421102086,
+          0.2629163534401288
+        ],
+        [
+          -0.8824395906267564,
+          0.2576723217847341,
+          0.3935801614417921,
+          0.10888634892514845
+        ],
+        [
+          -0.45837035486937255,
+          -0.6591555894728102,
+          -0.5961631711567543,
+          0.3696809080106245
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.7069462317667274,
+          0.6319423796911219,
+          0.3176095939060193,
+          0.36310380035337725
+        ],
+        [
+          -0.7002582727907662,
+          -0.6884600618667217,
+          -0.1888414536127132,
+          0.17962106241702294
+        ],
+        [
+          0.09932460308965381,
+          -0.3559094996832646,
+          0.9292271257643587,
+          0.6442049962088915
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.16761358374417965
+      },
+      "sample_id": "pose_028",
+      "timestamp_sec": 1786634143.545383
+    },
+    {
+      "T_base_link7": [
+        [
+          0.03208577653522582,
+          -0.706412186320792,
+          0.7070730697471163,
+          0.26400435277074347
+        ],
+        [
+          -0.9185943227548397,
+          0.2579589824475029,
+          0.29940212687492135,
+          0.10214011415413968
+        ],
+        [
+          -0.39389716062280666,
+          -0.6591198573796178,
+          -0.6406294096130485,
+          0.36607704766580035
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.7137193939355362,
+          0.6664173565743133,
+          0.21562127347920795,
+          0.2875285577220923
+        ],
+        [
+          -0.7000396562534522,
+          -0.6889784466789465,
+          -0.187758301239691,
+          0.1814446903416227
+        ],
+        [
+          0.023433019285602513,
+          -0.28495018313447446,
+          0.9582558566159614,
+          0.67010087119786
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.13425732048395778
+      },
+      "sample_id": "pose_029",
+      "timestamp_sec": 1786634170.432387
+    },
+    {
+      "T_base_link7": [
+        [
+          0.10550700999573148,
+          -0.699044638467593,
+          0.7072516272667551,
+          0.2588118113244869
+        ],
+        [
+          -0.9403580807973326,
+          0.1611721088467999,
+          0.2995834294633679,
+          0.10486086176351539
+        ],
+        [
+          -0.3234114263920156,
+          -0.6966779347443032,
+          -0.6403474873219186,
+          0.3610966591143698
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "T_camera_checkerboard": [
+        [
+          -0.7132795494555703,
+          0.6656972169330632,
+          0.21927038034361315,
+          0.2880157910891067
+        ],
+        [
+          -0.6939774587067599,
+          -0.7146006830871559,
+          -0.08798380838698494,
+          0.2496805638474806
+        ],
+        [
+          0.09812018719593865,
+          -0.21492575252617918,
+          0.9716889161484191,
+          0.6483103086287052
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "detection": {
+        "corner_count": 88,
+        "reprojection_rms_px": 0.14089758552031484
+      },
+      "sample_id": "pose_030",
+      "timestamp_sec": 1786634212.1499991
+    }
+  ],
+  "schema_version": "strawberry_handeye_samples/v1",
+  "session_id": "handeye_session_001",
+  "transform_convention": {
+    "T_base_link7": "maps a point expressed in link7 into base_link; p_base = T_base_link7 p_link7",
+    "T_camera_checkerboard": "maps a checkerboard point into camera optical coordinates; p_camera = T_camera_checkerboard p_checkerboard",
+    "camera_optical_axes": "+X right, +Y down, +Z forward",
+    "matrix_layout": "row-major homogeneous 4x4",
+    "result_T_link7_camera_optical": "maps a camera optical point into link7; p_link7 = T_link7_camera_optical p_camera",
+    "units": "metres and radians unless a field name states otherwise"
+  }
+}

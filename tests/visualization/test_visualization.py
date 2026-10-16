@@ -1,0 +1,271 @@
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+
+from tools.recording.observation_recorder import (
+    observation_arrays,
+    save_observation_snapshot,
+)
+from tools.visualization.observation_visualization import render_sequence
+from tools.visualization.session_visualization import render_session
+
+
+def _stamp(seconds: int, nanoseconds: int = 0) -> SimpleNamespace:
+    return SimpleNamespace(sec=seconds, nanosec=nanoseconds)
+
+
+def _image(array: np.ndarray, encoding: str, stamp: SimpleNamespace) -> SimpleNamespace:
+    channels = 3 if array.ndim == 3 else 1
+    return SimpleNamespace(
+        header=SimpleNamespace(stamp=stamp, frame_id="camera_color_optical_frame"),
+        height=array.shape[0],
+        width=array.shape[1],
+        encoding=encoding,
+        is_bigendian=b"\x00",
+        step=array.shape[1] * channels * array.dtype.itemsize,
+        data=array.tobytes(),
+    )
+
+
+def _observation() -> SimpleNamespace:
+    stamp = _stamp(42, 10)
+    rgb = np.zeros((24, 32, 3), dtype=np.uint8)
+    rgb[7:17, 12:22] = (220, 30, 40)
+    depth = np.full((24, 32), 0.7, dtype=np.float32)
+    depth[:2] = np.nan
+    mask = np.zeros((24, 32), dtype=np.uint8)
+    mask[7:17, 12:22] = 255
+    pose = SimpleNamespace(
+        position=SimpleNamespace(x=0.1, y=-0.2, z=0.3),
+        orientation=SimpleNamespace(x=0.0, y=0.0, z=0.0, w=1.0),
+    )
+    return SimpleNamespace(
+        header=SimpleNamespace(stamp=stamp, frame_id="camera_color_optical_frame"),
+        scene_id="fixture_scene",
+        observation_id="fixture_observation",
+        source_type=b"\x01",
+        source_name="fixture_camera",
+        color=_image(rgb, "rgb8", stamp),
+        depth=_image(depth, "32FC1", stamp),
+        target_mask=_image(mask, "mono8", stamp),
+        camera_info=SimpleNamespace(
+            k=[30.0, 0.0, 15.5, 0.0, 30.0, 11.5, 0.0, 0.0, 1.0],
+            d=[0.0] * 8,
+        ),
+        camera_pose=SimpleNamespace(
+            header=SimpleNamespace(stamp=stamp, frame_id="base_link"),
+            pose=pose,
+        ),
+        pose_valid=True,
+        valid_depth_fraction=22 / 24,
+        color_depth_skew_sec=0.0,
+    )
+
+
+def _pose(x: float, y: float, z: float) -> list[list[float]]:
+    result = np.eye(4)
+    result[:3, 3] = (x, y, z)
+    return result.tolist()
+
+
+def _candidate(x: float, useful: bool, reachable: bool = True) -> dict:
+    return {
+        "T_base_camera": _pose(x, 0.1, 0.5),
+        "ik_gate_passed": reachable,
+        "gain_scored": reachable,
+        "gain_improvement": 0.01 if useful else 0.0,
+    }
+
+
+def _execution() -> dict:
+    steps = []
+    coverages = ((0.10, 0.14), (0.14, 0.21))
+    for index, (before, after) in enumerate(coverages, start=1):
+        target = _pose(index * 0.05, 0.1, 0.5)
+        step = {
+            "step_index": index,
+            "planned_start_camera": _pose((index - 1) * 0.05, 0.1, 0.5),
+            "T_base_camera": target,
+            "selected_candidate": {"T_base_camera": target},
+            "ik_candidates": [
+                _candidate(index * 0.05, True),
+                _candidate(index * 0.04, False),
+                _candidate(index * 0.06, False, reachable=False),
+            ],
+            "coverage": {"before": before, "after": after, "delta": after - before},
+            "cumulative_camera_motion": {
+                "planned_step_translation_m": 0.05,
+                "actual_step_translation_m": 0.049,
+                "planned_step_rotation_deg": 4.0,
+                "actual_step_rotation_deg": 3.9,
+            },
+            "post_pose_error": {"translation_m": 0.0012, "rotation_deg": 0.04},
+            "fresh_execution_ik": {
+                "sigma_min": 0.18,
+                "condition_number": 9.5,
+                "independent_max_joint_delta_rad": 0.21,
+            },
+            "post_target": {"mask_pixels": 500, "valid_mask_pixels": 420},
+            "post_map_update": {
+                "T_base_camera_raw": target,
+                "voxel_counts": {"observed": 10000 * index, "occupied": 500 * index},
+            },
+            "motion_command_count_step": 55 + index,
+        }
+        steps.append(step)
+    return {
+        "status": "executed_session_scientific_acceptance_passed",
+        "final_target": {"base_xyz_m": [0.0, 0.0, 0.5]},
+        "final_tf": {"T_base_camera_optical": _pose(0.0, 0.1, 0.5)},
+        "ik_candidates": steps[0]["ik_candidates"],
+        "motion_steps": steps,
+        "session_progress": {
+            "initial_coverage": 0.10,
+            "final_coverage": 0.21,
+            "coverage_target": 0.20,
+            "convergence_reason": "coverage target 0.200000 reached",
+        },
+    }
+
+
+def test_observation_recording_and_visualization(tmp_path: Path) -> None:
+    arrays = observation_arrays(_observation())
+    assert arrays["rgb"].shape == (24, 32, 3)
+    assert arrays["mask"].sum() == 100 * 255
+    assert np.count_nonzero(np.isfinite(arrays["depth_m"])) == 22 * 32
+    assert arrays["T_world_camera_optical"][0, 3] == 0.1
+    snapshot = save_observation_snapshot(arrays, tmp_path / "observation.npz")
+    manifest = render_sequence([snapshot], tmp_path / "observation_figures")
+    assert manifest["observation_count"] == 1
+    assert (tmp_path / "observation_figures/observation_001.png").is_file()
+    assert (tmp_path / "observation_figures/observation_contact_sheet.png").is_file()
+    assert (tmp_path / "observation_figures/observation_progress.gif").is_file()
+
+
+@pytest.mark.parametrize("observation_count", [1, 2])
+def test_compact_observations_omit_individual_images_and_single_frame_gif(tmp_path: Path, observation_count: int) -> None:
+    snapshots = []
+    for index in range(observation_count):
+        arrays = observation_arrays(_observation())
+        arrays["observation_id"] = np.asarray(f"view_{index}")
+        arrays["stamp_ns"] = np.asarray(42_000_000_010 + index)
+        snapshots.append(save_observation_snapshot(arrays, tmp_path / f"observation_{index}.npz"))
+    output = tmp_path / "compact_observations"
+    manifest = render_sequence(snapshots, output, compact=True)
+    expected = {"observation_contact_sheet.png", "manifest.json"}
+    if observation_count > 1:
+        expected.add("observation_progress.gif")
+    assert {path.name for path in output.iterdir()} == expected
+    assert manifest["render_mode"] == "compact"
+    assert manifest["observation_count"] == observation_count
+    assert all(path.is_file() for path in snapshots)
+    assert len(manifest["rendered"]) == observation_count
+
+
+def test_session_dashboard_creates_all_presentation_views(tmp_path: Path) -> None:
+    execution = tmp_path / "execution.json"
+    import json
+
+    execution.write_text(json.dumps(_execution()), encoding="utf-8")
+    manifest = render_session(execution, tmp_path / "dashboard")
+    assert manifest["motion_goal_count"] == 2
+    assert manifest["candidate_round_count"] == 2
+    for name in (
+        "00_experiment_dashboard.png",
+        "01_coverage_curve.png",
+        "02_camera_trajectory_3d.png",
+        "03_candidate_funnel.png",
+        "04_motion_profile.png",
+        "05_accuracy_safety.png",
+        "06_target_map_quality.png",
+        "07_session_timeline.png",
+        "candidate_step_001.png",
+        "candidate_step_002.png",
+        "REPORT_CN.md",
+        "index.html",
+        "manifest.json",
+    ):
+        assert (tmp_path / "dashboard" / name).is_file(), name
+
+
+def test_session_dashboard_keeps_failed_post_view_truthful(tmp_path: Path) -> None:
+    import json
+
+    document = _execution()
+    document["status"] = "failed"
+    document["motion_goal_count"] = 3
+    document["reason"] = "target depth unavailable"
+    document["session_progress"].update(
+        {
+            "terminated": True,
+            "termination_reason": "target depth unavailable",
+            "gates_closed_at_termination": True,
+        }
+    )
+    document["motion_steps"].append(
+        {
+            "step_index": 3,
+            "T_base_camera": _pose(0.15, 0.1, 0.5),
+            "selected_candidate": {
+                "T_base_camera": _pose(0.15, 0.1, 0.5),
+            },
+            "execution": {"action_status": 4},
+            "motion_command_count_step": 62,
+            "postaction_gate_closure": {
+                "controller_false_ack_count": 2,
+                "driver_false_ack_count": 2,
+                "controller_diagnostic": {
+                    "values": {"execution_enabled": False},
+                },
+            },
+        }
+    )
+    execution = tmp_path / "aborted.json"
+    execution.write_text(json.dumps(document), encoding="utf-8")
+    manifest = render_session(execution, tmp_path / "aborted_dashboard")
+    assert manifest["motion_goal_count"] == 3
+    assert manifest["mapped_motion_count"] == 2
+    report = (tmp_path / "aborted_dashboard/REPORT_CN.md").read_text(
+        encoding="utf-8"
+    )
+    assert "实际高层运动次数：3" in report
+    assert "成功拍照并更新地图的运动次数：2" in report
+
+
+def test_compact_session_writes_only_three_figures_and_manifest(tmp_path: Path) -> None:
+    import json
+
+    execution = tmp_path / "execution.json"
+    execution.write_text(json.dumps(_execution()), encoding="utf-8")
+    output = tmp_path / "compact"
+    # Compact rendering must not open snapshots or invoke the map renderer.
+    manifest = render_session(execution, output, compact=True,
+                              snapshot_paths=[tmp_path / "unread_snapshot.npz"])
+    assert manifest["render_mode"] == "compact"
+    assert manifest["map_visualization"] is None
+    assert manifest["motion_goal_count"] == manifest["mapped_motion_count"] == 2
+    assert {path.name for path in output.iterdir()} == {
+        "00_experiment_dashboard.png", "01_coverage_curve.png",
+        "02_camera_trajectory_3d.png", "manifest.json",
+    }
+    assert len(manifest["generated_files"]) == 3
+
+
+def test_observation_recorder_has_no_command_surface() -> None:
+    source = Path("tools/recording/observation_recorder.py").read_text(
+        encoding="utf-8"
+    )
+    tree = ast.parse(source)
+    attributes = {
+        node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)
+    }
+    assert "create_subscription" in attributes
+    assert "create_publisher" not in attributes
+    assert "create_client" not in attributes
+    assert "create_service" not in attributes
+    assert "create_action_client" not in attributes

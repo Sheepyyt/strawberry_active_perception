@@ -1,6 +1,6 @@
 strawberry_learned_mask:
   ros__parameters:
-    checkpoint_path: artifacts/models/yolo11m_strawberry_best.pt
+    checkpoint_path: config/models/yolo11m_strawberry_best.pt
     checkpoint_sha256: 7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357
     # This is allowed only because the user supplied this exact weight and its
     # SHA is checked before Ultralytics unpickles it.
@@ -17,4 +17,4 @@ strawberry_learned_mask:
     minimum_valid_depth_pixels: 100
     device: "cpu"
     image_size: 640
-    audit_directory: artifacts/learned_mask/runtime
+    audit_directory: results/mask_audit

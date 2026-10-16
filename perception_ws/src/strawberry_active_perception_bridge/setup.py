@@ -1,4 +1,4 @@
-"""ROS 2 package metadata for NBV preview and one-shot supervision."""
+"""ROS 2 package metadata for the real NBV session supervisor."""
 
 import os
 from glob import glob
@@ -20,27 +20,18 @@ setup(
         ),
         ("share/" + PACKAGE_NAME, ["package.xml", "README.md"]),
         (os.path.join("share", PACKAGE_NAME, "config"), glob("config/*.yaml")),
-        (os.path.join("share", PACKAGE_NAME, "launch"), glob("launch/*.launch.py")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="yyt",
     maintainer_email="22313022@zju.edu.cn",
     description=(
-        "Gradient-NBV to Placo preview and SHA-bound one-shot supervisor."
+        "Gradient-NBV to Placo transforms and SHA-bound real-session supervisor."
     ),
     license="Apache-2.0",
     extras_require={"test": ["pytest"]},
     entry_points={
         "console_scripts": [
-            "nbv_ik_preview = "
-            "strawberry_active_perception_bridge.preview_node:main",
-            "nbv_ik_preview_fixture = "
-            "strawberry_active_perception_bridge.simulation_fixture:main",
-            "gradient_placo_pipeline_fixture = "
-            "strawberry_active_perception_bridge.gradient_pipeline_fixture:main",
-            "real_handeye_preview = "
-            "strawberry_active_perception_bridge.real_preview_fixture:main",
             "real_nbv_supervisor = "
             "strawberry_active_perception_bridge.real_nbv_supervisor:main",
         ],

@@ -24,7 +24,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "checkpoint_path",
                 default_value=(
-                    "/home/yyt/strawberry_active_perception/artifacts/models/"
+                    "/home/yyt/strawberry_active_perception/config/models/"
                     "yolo11m_strawberry_best.pt"
                 ),
             ),

@@ -54,12 +54,29 @@ from strawberry_active_perception_bridge.real_nbv_supervisor import (
     _validate_bound_session_policy,
     _validate_controller_parameter_values,
     _validate_upstream_mask_source,
+    _validated_stored_session_policy,
     _verify_new_aggregate_batch,
     _verify_new_batch_pair,
 )
 from strawberry_active_perception_bridge.transforms import (
     pose_components_to_matrix,
 )
+
+
+# Historical evidence is an explicit test fixture, never a runtime authorization
+# default. Resolve it relative to this checkout so offline tests are portable.
+REVIEWED_PLAN_FIXTURE = (
+    Path(__file__).resolve().parents[4]
+    / "tests/fixtures/real_nbv_frozen_config_v3_preview.json"
+)
+REVIEWED_PLAN_FIXTURE_SHA256 = (
+    "8e3d032a794a9a5a37dfed4e24964daffefde32fd17df11d97fba529f14e256f"
+)
+
+
+def test_runtime_defaults_do_not_authorize_a_historical_plan() -> None:
+    assert DEFAULT_PLAN_PATH == ""
+    assert DEFAULT_PLAN_SHA256 == ""
 
 
 def test_upstream_mask_can_be_disabled_only_for_learned_observation() -> None:
@@ -504,6 +521,8 @@ def test_supervisor_large_profile_filters_ik_before_one_read_only_gain_call() ->
             "observation_min_m": [-0.31, -0.31, -0.91],
             "observation_max_m": [0.31, 0.31, -0.29],
             "max_step_m": 0.10,
+            "depth_min_m": 0.4,
+            "depth_max_m": 2.5,
         },
         _solve_client=_SolveClient(),
         _evaluate_candidates_client=_GainClient(current),
@@ -552,6 +571,95 @@ def test_supervisor_large_profile_filters_ik_before_one_read_only_gain_call() ->
     assert selected is not None
     assert selected["camera_translation_m"] == pytest.approx(0.025)
     assert max(record["camera_translation_m"] for record in records) <= 0.025 + 1e-9
+
+    # A target near the camera's minimum working depth must not invite a
+    # forward move into the blind zone.  Sideways useful views remain eligible;
+    # over-distant views are rejected by the same frozen optical-z interval.
+    current[2, 3] = -0.45
+    raw = current.copy()
+    raw[2, 3] += 0.10
+    node._active_nbv_configuration.update(
+        max_step_m=0.10, depth_min_m=0.4, depth_max_m=0.52
+    )
+    node._solve_client.calls = 0
+    node._evaluate_candidates_client.calls = 0
+    selected, records = RealNBVSupervisor._solve_reachable_view_lattice(
+        node, current, raw, SimpleNamespace(sec=12, nanosec=0), "obs-depth-gated"
+    )
+    assert selected is not None
+    assert selected["camera_translation_m"] == pytest.approx(0.10)
+    assert 0.4 <= selected["target_depth_m"] <= 0.52
+    assert abs(selected["direction_world"][2]) < 0.9
+    rejected = [record for record in records if not record["depth_gate_passed"]]
+    assert any(record["target_depth_m"] < 0.4 for record in rejected)
+    assert any(record["target_depth_m"] > 0.52 for record in rejected)
+    assert all(not record["ik_requested"] for record in rejected)
+    assert all(not record["gain_scored"] for record in rejected)
+    assert all("target optical depth" in record["rejection"] for record in rejected)
+    assert all("frozen depth range" in record["rejection"] for record in rejected)
+    assert node._solve_client.calls == len(records) - len(rejected)
+    assert node._evaluate_candidates_client.calls == 1
+    assert len(node._evaluate_candidates_client.last_request.candidate_poses) == sum(
+        record["ik_gate_passed"] for record in records
+    )
+
+    # Both inclusive boundaries tolerate float32 wire round-off.  The first
+    # lattice direction is the raw forward/backward motion, exactly 100 mm.
+    current[2, 3] = -0.5
+    node._active_nbv_configuration.update(
+        depth_min_m=0.4 + 1.0e-8, depth_max_m=0.6 - 1.0e-8
+    )
+    for offset, expected_depth in ((0.10, 0.4), (-0.10, 0.6)):
+        raw = current.copy()
+        raw[2, 3] += offset
+        _, records = RealNBVSupervisor._solve_reachable_view_lattice(
+            node, current, raw, SimpleNamespace(sec=13, nanosec=0), "obs-boundary"
+        )
+        assert records[0]["target_depth_m"] == pytest.approx(expected_depth)
+        assert records[0]["depth_gate_passed"] is True
+        assert records[0]["ik_requested"] is True
+
+    # A camera working-distance gate must not alter measured-depth filtering
+    # or eliminate the native 100 mm sideways/backward views. Check two fresh
+    # starts, representing the initial selection and a later replanning call.
+    node.minimum_target_view_distance_m = 0.42
+    node._active_nbv_configuration.update(depth_min_m=0.2, depth_max_m=2.5)
+    for start_depth in (0.47, 0.43):
+        current[2, 3] = -start_depth
+        raw = current.copy()
+        raw[2, 3] += 0.10
+        selected, records = RealNBVSupervisor._solve_reachable_view_lattice(
+            node, current, raw, SimpleNamespace(sec=14, nanosec=0), "obs-camera-distance"
+        )
+        assert selected is not None
+        assert selected["camera_translation_m"] == pytest.approx(0.10)
+        assert selected["target_depth_m"] >= 0.42
+        too_close = [
+            record for record in records if not record["target_view_distance_gate_passed"]
+        ]
+        assert too_close
+        assert all(record["depth_gate_passed"] for record in too_close)
+        assert all(
+            not record["ik_requested"] and not record["gain_scored"] for record in too_close
+        )
+        assert all(
+            "minimum planned target view distance" in record["rejection"]
+            for record in too_close
+        )
+        assert node._active_nbv_configuration["depth_min_m"] == .2
+
+    # An entirely out-of-range lattice sends neither IK requests nor a gain
+    # request, and returns the rejected candidate evidence to the caller.
+    node._active_nbv_configuration.update(depth_min_m=0.9, depth_max_m=2.5)
+    node._solve_client.calls = 0
+    node._evaluate_candidates_client.calls = 0
+    selected, records = RealNBVSupervisor._solve_reachable_view_lattice(
+        node, current, raw, SimpleNamespace(sec=14, nanosec=0), "obs-no-depth"
+    )
+    assert selected is None
+    assert records and all(not record["depth_gate_passed"] for record in records)
+    assert node._solve_client.calls == 0
+    assert node._evaluate_candidates_client.calls == 0
 
 
 def test_raw_step_and_segmented_rotation_use_true_so3_distance() -> None:
@@ -754,11 +862,11 @@ def test_supervisor_motion_surface_is_one_shot_and_explicitly_guarded() -> None:
 
 def test_execution_plan_is_bound_to_exact_reviewed_bytes_and_semantics() -> None:
     document, digest, path = _load_execution_plan(
-        DEFAULT_PLAN_PATH,
-        DEFAULT_PLAN_SHA256,
+        REVIEWED_PLAN_FIXTURE,
+        REVIEWED_PLAN_FIXTURE_SHA256,
         DEFAULT_REPORT_SHA256,
     )
-    assert digest == DEFAULT_PLAN_SHA256
+    assert digest == REVIEWED_PLAN_FIXTURE_SHA256
     assert path.is_file()
     assert document["scene_id"] == "real_nbv_once_20260814T032716Z"
     assert document["observation"]["observation_id"] == (
@@ -767,7 +875,7 @@ def test_execution_plan_is_bound_to_exact_reviewed_bytes_and_semantics() -> None
     assert document["selected_candidate"]["alpha"] == 0.5
     with pytest.raises(RuntimeError, match="SHA256 mismatch"):
         _load_execution_plan(
-            DEFAULT_PLAN_PATH,
+            REVIEWED_PLAN_FIXTURE,
             "0" * 64,
             DEFAULT_REPORT_SHA256,
         )
@@ -775,7 +883,7 @@ def test_execution_plan_is_bound_to_exact_reviewed_bytes_and_semantics() -> None
 
 def _minimal_aggregate_v2_outer_preview() -> dict:
     source_outer = json.loads(
-        Path(DEFAULT_PLAN_PATH).read_text(encoding="utf-8")
+        REVIEWED_PLAN_FIXTURE.read_text(encoding="utf-8")
     )
     source = source_outer.get("execution_plan_candidate", source_outer)
     scene_id = "aggregate_v2_contract_scene"
@@ -892,7 +1000,7 @@ def _minimal_aggregate_v2_outer_preview() -> dict:
 def _minimal_frozen_config_v3_outer_preview() -> dict:
     document = _minimal_aggregate_v2_outer_preview()
     source_outer = json.loads(
-        Path(DEFAULT_PLAN_PATH).read_text(encoding="utf-8")
+        REVIEWED_PLAN_FIXTURE.read_text(encoding="utf-8")
     )
     source = source_outer.get("execution_plan_candidate", source_outer)
     candidate = document["execution_plan_candidate"]
@@ -1015,6 +1123,27 @@ def test_v3_plan_rejects_changed_config_or_derived_origin(tmp_path: Path) -> Non
         _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
 
 
+def test_frozen_preview_rechecks_planned_sensor_distance(tmp_path: Path) -> None:
+    document = _minimal_frozen_config_v3_outer_preview()
+    candidate = document["execution_plan_candidate"]
+    pose = np.asarray(candidate["selected_candidate"]["T_base_camera"])
+    center = np.asarray(candidate["nbv_configuration"]["target_center_m"])
+    optical_depth = float((pose[:3, :3].T @ (center - pose[:3, 3]))[2])
+    policy = _session_policy(1, minimum_target_view_distance_m=optical_depth + .01)
+    document["session_policy"] = policy
+    candidate["session_policy"] = copy.deepcopy(policy)
+    path = tmp_path / "sensor_distance_preview.json"
+    digest = _write_exact_json(path, document)
+    with pytest.raises(SupervisorError, match="minimum planned target view distance"):
+        _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+    policy = _session_policy(1, minimum_target_view_distance_m=optical_depth - .01)
+    document["session_policy"] = policy
+    candidate["session_policy"] = copy.deepcopy(policy)
+    digest = _write_exact_json(path, document)
+    loaded, _, _ = _load_execution_plan(path, digest, DEFAULT_REPORT_SHA256)
+    assert loaded["session_policy"] == policy
+
+
 def test_bounded_session_policy_is_exactly_sha_bound_in_outer_preview(
     tmp_path: Path,
 ) -> None:
@@ -1086,6 +1215,22 @@ def test_large_motion_policy_prefers_visible_steps_but_allows_safe_fallback() ->
         minimum_target_pixels=100,
         coverage_target=0.20,
     ) == policy
+
+    assert "minimum_target_view_distance_m" not in policy
+    distance_policy = _session_policy(
+        8, motion_profile=LARGE_MOTION_PROFILE, minimum_target_pixels=100,
+        coverage_target=.20, minimum_target_view_distance_m=.42,
+    )
+    assert distance_policy["single_step_translation_max_m"] == .10
+    assert distance_policy["minimum_target_view_distance_m"] == .42
+    assert distance_policy["sha256"] != policy["sha256"]
+    assert _validated_stored_session_policy(distance_policy) == distance_policy
+    with pytest.raises(SupervisorError, match="differs from requested"):
+        _validate_bound_session_policy(
+            {"session_policy": distance_policy}, 8,
+            motion_profile=LARGE_MOTION_PROFILE, minimum_target_pixels=100,
+            coverage_target=.20, minimum_target_view_distance_m=.40,
+        )
 
     ledger = MotionSessionLedger(
         max_motion_steps=8,

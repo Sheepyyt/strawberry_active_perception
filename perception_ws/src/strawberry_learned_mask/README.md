@@ -28,11 +28,11 @@
 从项目根目录执行：
 
 ```bash
-mkdir -p artifacts/models
-cp /home/yyt/Downloads/best.pt artifacts/models/yolo11m_strawberry_best.pt
+mkdir -p config/models
+cp /home/yyt/Downloads/best.pt config/models/yolo11m_strawberry_best.pt
 
 python3 -m venv --system-site-packages --prompt sap-mask .venv-mask
-.venv-mask/bin/python -m pip install -r validation/week9/requirements-yolo11.txt
+.venv-mask/bin/python -m pip install -r requirements-yolo11.txt
 
 source /opt/ros/jazzy/setup.bash
 source perception_ws/install/setup.bash
@@ -56,10 +56,10 @@ deactivate
 source .venv-mask/bin/activate
 PYTHONPATH=perception_ws/src/strawberry_learned_mask \
 python -m strawberry_learned_mask.offline \
-  --checkpoint artifacts/models/yolo11m_strawberry_best.pt \
+  --checkpoint config/models/yolo11m_strawberry_best.pt \
   --checkpoint-sha256 7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357 \
-  --input artifacts/week8/run_20260913_2025/observations/observation_010_agg5_29655c33de25b1d05b49bf7c.npz \
-  --output-directory artifacts/week9/offline \
+  --input results/本次实验/observations/观测文件.npz \
+  --output-directory results/本次实验/offline_mask \
   --confidence 0.70 --labels strawberry --accept-pickle-checkpoint
 ```
 

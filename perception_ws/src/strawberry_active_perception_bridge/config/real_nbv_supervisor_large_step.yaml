@@ -4,11 +4,11 @@ real_nbv_supervisor:
     # defaults in real_nbv_supervisor.yaml.
     motion_profile: large_workspace_experimental
     execute: false
-    # Eight is only a hard safety backstop.  The normal exit is reaching 20%
+    # Eight is a finite session backstop. The normal exit is reaching 80%
     # ROI ray coverage, two consecutive gains below 0.5 percentage point, or
     # finding no positive-gain reachable candidate.
     max_motion_steps: 8
-    coverage_target: 0.20
+    coverage_target: 0.80
     coverage_plateau_delta: 0.005
     coverage_plateau_patience: 2
     operator_workspace_clearance_confirmed: false
@@ -17,7 +17,7 @@ real_nbv_supervisor:
     execution_plan_sha256: ""
     authorization_receipt_path: ""
     require_aggregate_execution_plan: true
-    execution_output_path: /home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_execution.json
+    execution_output_path: /home/yyt/strawberry_active_perception/results/runs/execution.json
 
     base_frame: base_link
     link_frame: link7
@@ -38,10 +38,10 @@ real_nbv_supervisor:
     controller_gate_service: /strawberry_nero/enable_execution
     move_action: /strawberry_nero/move_to_pose
 
-    handeye_report_path: /home/yyt/strawberry_active_perception/validation/week3/artifacts/stability_pose001_030_factory_raw_D.json
+    handeye_report_path: /home/yyt/strawberry_active_perception/config/calibration/handeye_report.json
     handeye_report_sha256: 31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f
     minimum_calibration_samples: 30
-    output_path: /home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_preview.json
+    output_path: /home/yyt/strawberry_active_perception/results/runs/preview.json
 
     capture_timeout_sec: 5.0
     capture_discard_frames: 3
@@ -53,11 +53,15 @@ real_nbv_supervisor:
     post_motion_camera_settle_delay_sec: 2.0
     operation_timeout_sec: 20.0
     tf_timeout_sec: 1.0
-    # The HSV component must still contain at least 200 pixels in the camera
-    # adapter.  Here 100 means that at least 100 of them must also survive the
+    # The YOLO overlay replaces the adapter's optional HSV mask.
+    # Here 100 means that at least 100 target pixels must also survive the
     # registered-depth outlier trim; this tolerates the missing-depth rim of
     # the small fruit while retaining a 10x10-equivalent robust sample.
     minimum_target_pixels: 100
+    # Gemini 2 XL specified minimum depth is 0.4 m; allow 2 cm between the
+    # target centre and its nearest surface. This constrains planned views,
+    # while depth_min_m below remains the measured-pixel filtering threshold.
+    minimum_target_view_distance_m: 0.42
     depth_min_m: 0.20
     depth_max_m: 2.50
     voxel_size_m: 0.003

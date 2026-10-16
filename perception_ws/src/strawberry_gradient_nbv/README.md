@@ -101,7 +101,7 @@ strawberry_gradient_nbv/config/real_nbv.yaml
 ## 体素地图快照与可视化
 
 `map_snapshot_directory` 为空时不写文件；真实配置默认写入
-`artifacts/nbv_map_snapshots/`。每个成功且唯一的 Observation 会保存一份 pickle-free NPZ，
+`results/nbv_map_snapshots/`。每个成功且唯一的 Observation 会保存一份 pickle-free NPZ，
 包含 observed/occupied/target 三类体素、地图原点/尺寸、ROI、coverage、已知相机路径和下一
 建议位姿。Configure 或 Reset 会开启新的 generation，避免把两张地图混在一起。
 
@@ -117,7 +117,7 @@ PYTHONPATH=perception_ws/src/strawberry_gradient_nbv \
 
 ```bash
 .venv-nbv/bin/python -m strawberry_gradient_nbv.map_visualization \
-  render --output-dir /tmp/real-map artifacts/nbv_map_snapshots/SCENE/generation_001/*.npz
+  render --output-dir /tmp/real-map results/nbv_map_snapshots/SCENE/generation_001/*.npz
 ```
 
 输出包括逐步 PNG、最终 PNG、动态 GIF 和带 SHA-256 的 manifest。蓝色是曾被有效射线触及

@@ -96,6 +96,7 @@ from .real_nbv_contract import (
     select_near_best_reachable_candidate,
     stamp_nanoseconds,
     transform_point,
+    validate_frozen_next_view,
     validate_ik_solution,
     validate_raw_next_view,
     wire_bool,
@@ -110,23 +111,17 @@ from .transforms import (
 
 
 DEFAULT_REPORT_PATH = (
-    "/home/yyt/strawberry_active_perception/validation/week3/artifacts/"
-    "stability_pose001_030_factory_raw_D.json"
+    "/home/yyt/strawberry_active_perception/config/calibration/handeye_report.json"
 )
 DEFAULT_REPORT_SHA256 = (
     "31eb93b2b80663b895eac564afc8f633b4310a6b7c5e519340d97d163f22825f"
 )
 DEFAULT_OUTPUT_PATH = (
-    "/home/yyt/strawberry_active_perception/artifacts/week4/"
-    "real_nbv_frozen_config_v3_preview.json"
+    "/home/yyt/strawberry_active_perception/results/runs/preview.json"
 )
-DEFAULT_PLAN_PATH = (
-    "/home/yyt/strawberry_active_perception/validation/week4/artifacts/"
-    "real_nbv_frozen_config_v3_preview.json"
-)
-DEFAULT_PLAN_SHA256 = (
-    "8e3d032a794a9a5a37dfed4e24964daffefde32fd17df11d97fba529f14e256f"
-)
+# A real execution must explicitly bind a freshly generated plan.
+DEFAULT_PLAN_PATH = ""
+DEFAULT_PLAN_SHA256 = ""
 ONE_STEP_AUTHORIZATION_TOKEN = "EXECUTE_REAL_NBV_ONCE"
 SESSION_AUTHORIZATION_TOKEN_PREFIX = "EXECUTE_REAL_NBV_SESSION_"
 FEEDBACK_MAX_AGE_SEC = 0.20
@@ -307,6 +302,7 @@ def _session_policy(
     *,
     motion_profile: str = SMALL_MOTION_PROFILE,
     minimum_target_pixels: int = 200,
+    minimum_target_view_distance_m: float = 0.0,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
@@ -338,6 +334,11 @@ def _session_policy(
             "minimum_target_pixels must be at least "
             f"{minimum_pixels_floor} for profile {limits.profile}"
         )
+    if isinstance(minimum_target_view_distance_m, bool):
+        raise SupervisorError("minimum_target_view_distance_m must be numeric")
+    minimum_view_distance = float(minimum_target_view_distance_m)
+    if not math.isfinite(minimum_view_distance) or minimum_view_distance < 0.0:
+        raise SupervisorError("minimum_target_view_distance_m must be finite and nonnegative")
     if isinstance(coverage_plateau_delta, bool):
         raise SupervisorError("coverage_plateau_delta must be numeric")
     plateau_delta = float(coverage_plateau_delta)
@@ -416,6 +417,10 @@ def _session_policy(
             "finite_direction_distance_lattice_ik_first_then_gain; "
             "within_90_percent_of_best_gain_choose_largest_translation"
         )
+    # Zero preserves the exact existing policy/SHA for other camera profiles.
+    # This is a planned target optical-depth gate, not a measured pixel filter.
+    if minimum_view_distance > 0.0:
+        policy["minimum_target_view_distance_m"] = minimum_view_distance
     payload = json.dumps(
         policy, ensure_ascii=False, separators=(",", ":"), sort_keys=True
     ).encode("utf-8")
@@ -441,6 +446,7 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
                 minimum_target_pixels=policy.get(
                     "minimum_valid_mask_depth_pixels"
                 ),
+                minimum_target_view_distance_m=policy.get("minimum_target_view_distance_m", 0.0),
                 coverage_target=policy.get("coverage_target"),
                 coverage_plateau_delta=policy.get("coverage_plateau_delta"),
                 coverage_plateau_patience=policy.get(
@@ -491,6 +497,7 @@ def _validated_stored_session_policy(policy: Any) -> dict[str, Any]:
                 minimum_target_pixels=policy.get(
                     "minimum_valid_mask_depth_pixels"
                 ),
+                minimum_target_view_distance_m=policy.get("minimum_target_view_distance_m", 0.0),
                 coverage_target=policy.get("coverage_target"),
                 coverage_plateau_delta=policy.get("coverage_plateau_delta"),
                 coverage_plateau_patience=policy.get(
@@ -538,6 +545,7 @@ def _validate_bound_session_policy(
     *,
     motion_profile: str = SMALL_MOTION_PROFILE,
     minimum_target_pixels: int = 200,
+    minimum_target_view_distance_m: float = 0.0,
     coverage_target: float | None = None,
     coverage_plateau_delta: float = CONVERGENCE_COVERAGE_DELTA,
     coverage_plateau_patience: int = DEFAULT_COVERAGE_PLATEAU_PATIENCE,
@@ -547,6 +555,7 @@ def _validate_bound_session_policy(
         max_motion_steps,
         motion_profile=motion_profile,
         minimum_target_pixels=minimum_target_pixels,
+        minimum_target_view_distance_m=minimum_target_view_distance_m,
         coverage_target=coverage_target,
         coverage_plateau_delta=coverage_plateau_delta,
         coverage_plateau_patience=coverage_plateau_patience,
@@ -554,7 +563,8 @@ def _validate_bound_session_policy(
     stored = execution_plan.get("session_policy")
     if stored is None and max_motion_steps == 1:
         if (
-            coverage_target is not None
+            minimum_target_view_distance_m != 0.0
+            or coverage_target is not None
             or abs(
                 float(coverage_plateau_delta) - CONVERGENCE_COVERAGE_DELTA
             ) > 1.0e-12
@@ -571,6 +581,20 @@ def _validate_bound_session_policy(
             "execution plan session policy differs from requested runtime policy"
         )
     return copy.deepcopy(expected)
+
+
+def _require_target_view_distance(camera_pose, target_center, minimum_distance_m: float) -> float:
+    """Keep planned target optical depth inside the camera's working range."""
+    pose = np.asarray(camera_pose, dtype=float)
+    target = np.asarray(target_center, dtype=float)
+    target_camera = pose[:3, :3].T @ (target - pose[:3, 3])
+    depth = float(target_camera[2])
+    if not math.isfinite(depth) or depth + 1.0e-9 < minimum_distance_m:
+        raise SupervisorError(
+            f"target optical depth {depth:.9f} m is below minimum planned "
+            f"target view distance {minimum_distance_m:.9f} m"
+        )
+    return depth
 
 
 def _utc_now() -> str:
@@ -1168,6 +1192,13 @@ def _load_execution_plan(
     motion = camera_motion(artifact_current, artifact_target)
     if configuration_evidence is not None:
         configuration = configuration_evidence.request
+        minimum_view_distance = float(
+            document.get("session_policy", {}).get("minimum_target_view_distance_m", 0.0)
+        )
+        if minimum_view_distance > 0.0:
+            _require_target_view_distance(
+                artifact_target, configuration["target_center_m"], minimum_view_distance
+            )
         observation_min = np.asarray(configuration["observation_min_m"], dtype=float)
         observation_max = np.asarray(configuration["observation_max_m"], dtype=float)
         for label, position in (
@@ -1253,8 +1284,7 @@ class RealNBVSupervisor(Node):
         self.declare_parameter("require_aggregate_execution_plan", True)
         self.declare_parameter(
             "execution_output_path",
-            "/home/yyt/strawberry_active_perception/artifacts/week4/"
-            "real_nbv_motion_session_execution.json",
+            "/home/yyt/strawberry_active_perception/results/runs/execution.json",
         )
         self.declare_parameter("scene_id", "")
         self.declare_parameter("base_frame", "base_link")
@@ -1313,6 +1343,7 @@ class RealNBVSupervisor(Node):
         self.declare_parameter("operation_timeout_sec", 20.0)
         self.declare_parameter("tf_timeout_sec", 1.0)
         self.declare_parameter("minimum_target_pixels", 200)
+        self.declare_parameter("minimum_target_view_distance_m", 0.0)
         self.declare_parameter("depth_min_m", 0.20)
         self.declare_parameter("depth_max_m", 2.50)
         self.declare_parameter("voxel_size_m", 0.003)
@@ -1392,10 +1423,14 @@ class RealNBVSupervisor(Node):
         ):
             raise SupervisorError("minimum_target_pixels must be an integer")
         self.minimum_target_pixels = int(minimum_target_pixels_value)
+        self.minimum_target_view_distance_m = self.get_parameter(
+            "minimum_target_view_distance_m"
+        ).value
         self.session_policy = _session_policy(
             self.max_motion_steps,
             motion_profile=self.motion_profile,
             minimum_target_pixels=self.minimum_target_pixels,
+            minimum_target_view_distance_m=self.minimum_target_view_distance_m,
             coverage_target=self.coverage_target,
             coverage_plateau_delta=self.coverage_plateau_delta,
             coverage_plateau_patience=self.coverage_plateau_patience,
@@ -2591,6 +2626,16 @@ class RealNBVSupervisor(Node):
             try:
                 if not result.success or int(result.code) != IKResult.SUCCESS:
                     raise ValueError("SolveIK did not return exact SUCCESS")
+                minimum_view_distance = getattr(self, "minimum_target_view_distance_m", 0.0)
+                if minimum_view_distance > 0.0:
+                    try:
+                        _require_target_view_distance(
+                            camera_target,
+                            self._active_nbv_configuration["target_center_m"],
+                            minimum_view_distance,
+                        )
+                    except SupervisorError as error:
+                        raise ValueError(str(error)) from error
                 if not camera_step_above_minimum(
                     motion.translation_m, self.motion_limits
                 ):
@@ -2657,6 +2702,16 @@ class RealNBVSupervisor(Node):
         if not self._solve_client.wait_for_service(timeout_sec=5.0):
             raise SupervisorError("SolveIK service is unavailable")
         configuration = self._active_nbv_configuration
+        target_center = np.asarray(configuration["target_center_m"], dtype=float)
+        depth_min = float(configuration["depth_min_m"])
+        depth_max = float(configuration["depth_max_m"])
+        minimum_view_distance = float(getattr(self, "minimum_target_view_distance_m", 0.0))
+        # ConfigureNBV depth bounds cross a float32 ROS boundary.  Admit only
+        # round-off at an inclusive boundary, not an additional working range.
+        depth_tolerance = max(
+            1.0e-9,
+            np.finfo(np.float32).eps * max(1.0, abs(depth_min), abs(depth_max)),
+        )
         configured_step_limit = float(configuration["max_step_m"])
         lattice_radii = tuple(
             radius
@@ -2687,18 +2742,15 @@ class RealNBVSupervisor(Node):
             link7_target = camera_target_to_link7(
                 candidate.pose, self.report.transform_link7_camera_optical
             )
-            request = SolveIK.Request()
-            _fill_pose_stamped(
-                request.target_pose, link7_target, self.base_frame, stamp
+            target_camera = candidate.pose[:3, :3].T @ (
+                target_center - candidate.pose[:3, 3]
             )
-            request.controlled_frame = "link7"
-            current_joints = self._fresh_joints()
-            response = self._wait_future(
-                self._solve_client.call_async(request),
-                self.operation_timeout,
-                f"SolveIK reachable lattice candidate {candidate.candidate_index}",
+            target_depth = float(target_camera[2])
+            depth_gate_passed = bool(
+                np.all(np.isfinite(target_camera))
+                and depth_min - depth_tolerance <= target_depth
+                <= depth_max + depth_tolerance
             )
-            result = response.result
             record: dict[str, Any] = {
                 "candidate_index": candidate.candidate_index,
                 "direction_index": candidate.direction_index,
@@ -2712,6 +2764,46 @@ class RealNBVSupervisor(Node):
                 "T_base_link7": array_list(link7_target),
                 "camera_translation_m": candidate.motion.translation_m,
                 "camera_rotation_deg": math.degrees(candidate.motion.rotation_rad),
+                "target_center_camera_m": array_list(target_camera),
+                "target_depth_m": target_depth,
+                "configured_depth_range_m": [depth_min, depth_max],
+                "depth_gate_passed": depth_gate_passed,
+                "minimum_target_view_distance_m": minimum_view_distance,
+                "target_view_distance_gate_passed": target_depth + 1.0e-9 >= minimum_view_distance,
+                "ik_requested": False,
+                "ik_success": False,
+                "accepted": False,
+                "rejection": "",
+                "ik_gate_passed": False,
+                "gain_scored": False,
+            }
+            if not depth_gate_passed:
+                record["rejection"] = (
+                    f"target optical depth {target_depth:.9f} m lies outside "
+                    f"frozen depth range [{depth_min:.9f}, {depth_max:.9f}] m"
+                )
+                records.append(record)
+                continue
+            try:
+                _require_target_view_distance(candidate.pose, target_center, minimum_view_distance)
+            except SupervisorError as error:
+                record["rejection"] = str(error)
+                records.append(record)
+                continue
+            request = SolveIK.Request()
+            _fill_pose_stamped(
+                request.target_pose, link7_target, self.base_frame, stamp
+            )
+            request.controlled_frame = "link7"
+            current_joints = self._fresh_joints()
+            response = self._wait_future(
+                self._solve_client.call_async(request),
+                self.operation_timeout,
+                f"SolveIK reachable lattice candidate {candidate.candidate_index}",
+            )
+            result = response.result
+            record.update({
+                "ik_requested": True,
                 "ik_success": bool(result.success),
                 "ik_code": int(result.code),
                 "ik_reason": str(result.reason),
@@ -2724,11 +2816,7 @@ class RealNBVSupervisor(Node):
                 "solution_positions_rad": [
                     float(value) for value in result.solution_joint_state.position
                 ],
-                "accepted": False,
-                "rejection": "",
-                "ik_gate_passed": False,
-                "gain_scored": False,
-            }
+            })
             try:
                 if not result.success or int(result.code) != IKResult.SUCCESS:
                     raise ValueError("SolveIK did not return exact SUCCESS")
@@ -3368,6 +3456,11 @@ class RealNBVSupervisor(Node):
         link7_target = camera_target_to_link7(
             camera_target, self.report.transform_link7_camera_optical
         )
+        minimum_view_distance = float(getattr(self, "minimum_target_view_distance_m", 0.0))
+        if minimum_view_distance > 0.0:
+            _require_target_view_distance(
+                camera_target, frozen_configuration["target_center_m"], minimum_view_distance
+            )
         selected_link7 = validate_rigid_transform(
             np.asarray(selected["T_base_link7"], dtype=float),
             f"step {step_index} selected link7",
@@ -3439,6 +3532,8 @@ class RealNBVSupervisor(Node):
         link7_target = camera_target_to_link7(
             camera_target, self.report.transform_link7_camera_optical
         )
+        if minimum_view_distance > 0.0:
+            _require_target_view_distance(camera_target, frozen_target, minimum_view_distance)
         immediate = validate_raw_next_view(
             pre_camera,
             camera_target,
@@ -3566,6 +3661,7 @@ class RealNBVSupervisor(Node):
                 self.max_motion_steps,
                 motion_profile=self.motion_profile,
                 minimum_target_pixels=self.minimum_target_pixels,
+                minimum_target_view_distance_m=self.minimum_target_view_distance_m,
                 coverage_target=self.coverage_target,
                 coverage_plateau_delta=self.coverage_plateau_delta,
                 coverage_plateau_patience=self.coverage_plateau_patience,
@@ -4165,11 +4261,15 @@ class RealNBVSupervisor(Node):
             self.get_parameter("max_frozen_target_center_drift_m").value
         ):
             raise SupervisorError("red target changed before execution")
-        immediate_motion = validate_raw_next_view(
+        immediate_motion = validate_frozen_next_view(
+            artifact_current,
             execution_pre_camera,
             execution_camera_target,
             float(next_view.gain),
             max_step_m=float(frozen_configuration["max_step_m"]),
+            max_start_translation_drift_m=float(
+                self.get_parameter("max_plan_start_translation_drift_m").value
+            ),
         )
         if immediate_motion.rotation_rad > math.radians(
             float(self.get_parameter("max_selected_camera_rotation_deg").value)
@@ -4178,6 +4278,17 @@ class RealNBVSupervisor(Node):
         audit["immediate_preexecution_camera_motion"] = {
             "translation_m": immediate_motion.translation_m,
             "rotation_deg": math.degrees(immediate_motion.rotation_rad),
+            "frozen_start_translation_m": camera_motion(
+                artifact_current, execution_camera_target
+            ).translation_m,
+            "measured_start_translation_drift_m": pre_start_drift.translation_m,
+            "step_translation_excess_m": max(
+                0.0,
+                immediate_motion.translation_m
+                - float(frozen_configuration["max_step_m"]),
+            ),
+            "drift_allowance_source": "measured frozen-to-preflight start displacement",
+            "frozen_target_changed": False,
         }
         _ik_result, planned_joints, audit["fresh_execution_ik"] = (
             self._solve_execution_target(
@@ -4233,6 +4344,7 @@ class RealNBVSupervisor(Node):
             "preflight_capture": copy.deepcopy(audit["execution_pre_capture"]),
             "preflight_tf": copy.deepcopy(audit["execution_pre_tf"]),
             "planned_start_camera": array_list(execution_pre_camera),
+            "frozen_start_camera": array_list(artifact_current),
             "preflight_target": copy.deepcopy(audit["execution_pre_target"]),
             "preflight_target_to_frozen_center_m": pre_target_drift,
             "immediate_camera_motion": copy.deepcopy(
@@ -4244,6 +4356,7 @@ class RealNBVSupervisor(Node):
         first_budget_step = ledger.validate_next_planned_step(
             planned_start_camera=execution_pre_camera,
             planned_camera=execution_camera_target,
+            frozen_start_camera=artifact_current,
         )
         first_step["session_motion_budget_preflight"] = {
             "translation_m": first_budget_step.translation_m,
@@ -4348,6 +4461,10 @@ class RealNBVSupervisor(Node):
                     step_record["planned_start_camera"], dtype=float
                 ),
                 planned_camera=current_planned_camera,
+                frozen_start_camera=(
+                    np.asarray(step_record["frozen_start_camera"], dtype=float)
+                    if "frozen_start_camera" in step_record else None
+                ),
                 actual_camera=post_camera,
                 coverage_after=float(post_view.coverage),
                 target_valid_mask_depth_pixels=int(
@@ -4680,7 +4797,12 @@ def main(args=None) -> None:
         node = RealNBVSupervisor()
         output_path = node.output_path
         audit = node.run_once()
-    except Exception as error:  # write the refusal before returning non-zero
+    except (Exception, KeyboardInterrupt) as error:
+        # An operator interruption must preserve the latest step evidence too.
+        # Otherwise finally would replace the last checkpoint with an empty JSON.
+        interrupted = isinstance(error, KeyboardInterrupt)
+        if interrupted:
+            error = SupervisorError("operator interrupted the NBV supervisor")
         exit_error = error
         audit = copy.deepcopy(node._audit) if node is not None else {}
         if node is not None and node._session_ledger is not None:
@@ -4716,6 +4838,12 @@ def main(args=None) -> None:
         if isinstance(error, GateClosureError):
             audit["onsite_stop_required"] = True
             audit["post_capture_attempted_after_close_failure"] = False
+        if interrupted:
+            audit["operator_interrupted"] = True
+            if node is not None and node.execute_requested and not getattr(
+                node, "_gates_closed_proven", False
+            ):
+                audit["onsite_stop_required"] = True
         if node is not None:
             output_path = node.output_path
             audit["scene_id"] = node.scene_id

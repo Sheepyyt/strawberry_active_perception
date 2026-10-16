@@ -161,7 +161,7 @@ python -m colcon test-result \
 callback 调度漏收 color；不能据此直接宣布相机掉帧。正式 30 分钟结果以并行 C++
 `ros2 bag record` 的 topic count 和离线顺序解析的 sensor header stamp 为权威：在当前
 USB 2.0 480M、640x400@10 Hz profile 下，color/depth 均约 9.97 Hz，估算丢帧约
-0.0434%，sensor gap P99 约 100.73 ms，K/frame/encoding 稳定。该结果只通过 transport
-子项；已知距离平面和 color-depth 边缘对齐尚未测，因此完整 G3 仍未通过。可提交摘要见
-`validation/week2/artifacts/g3_camera_runtime_summary.json`，大型 bag 与五个完整 NPZ
-Observation 样本保存在 Git 忽略的 `artifacts/week2/`。
+0.0434%，sensor gap P99 约 100.73 ms，K/frame/encoding 稳定。这是历史固定配置的结果，
+不能代替每次启动时的设备检查。后续也完成了标定板尺度和彩深边缘检查；最终相机模型和
+手眼外参位于 `config/calibration/`，历史原始数据保留在本机归档。
+需要重新检查时运行 `tools/camera/collect_camera_metrics.py` 和标定板分析工具。

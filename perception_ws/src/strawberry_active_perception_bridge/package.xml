@@ -3,7 +3,7 @@
 <package format="3">
   <name>strawberry_active_perception_bridge</name>
   <version>0.1.0</version>
-  <description>Gradient-NBV to Placo preview and SHA-bound one-shot supervisor.</description>
+  <description>Gradient-NBV to Placo transforms and SHA-bound real-session supervisor.</description>
 
   <maintainer email="22313022@zju.edu.cn">yyt</maintainer>
   <license>Apache-2.0</license>

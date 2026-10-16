@@ -1,0 +1,38 @@
+{
+  "schema_version": "strawberry_camera_model/v1",
+  "source_name": "gemini2xl_AYML241003A",
+  "image_size": {
+    "width": 640,
+    "height": 400
+  },
+  "K": [
+    [304.12066650390625, 0.0, 313.2231140136719],
+    [0.0, 304.1894226074219, 197.83775329589844],
+    [0.0, 0.0, 1.0]
+  ],
+  "D": [
+    -0.9210747480392456,
+    0.3865680694580078,
+    -0.00040895267738960683,
+    0.00004880168489762582,
+    -0.03716781362891197,
+    -0.9005345106124878,
+    0.3583218455314636,
+    -0.02648901753127575
+  ],
+  "distortion_model": "rational_polynomial",
+  "provenance": {
+    "method": "exact live /camera/color/camera_info from raw color mode; K and D stable across the session",
+    "device_model": "Orbbec Gemini 2 XL",
+    "device_serial": "AYML241003A",
+    "firmware_version": "2.1.3_23112010",
+    "sdk_version": "1.10.37",
+    "ros_wrapper_version": "1.5.21",
+    "ros_driver_commit": "3812e0f5adbb5a3796242bdff0ef90d173f7ca2f",
+    "captured_at": "2026-08-13T23:42:00+08:00",
+    "topic": "/camera/color/camera_info",
+    "image_topic": "/camera/color/image_raw",
+    "vendor_undistortion_diagnostic": "same-stamp raw and vendor image_undistorted were byte-identical despite non-zero D; adapter-owned OpenCV rectification is used",
+    "robot_motion_during_model_read": false
+  }
+}

@@ -19,59 +19,57 @@ if ! git -C nero_ws/src/agx_arm_ros apply --unidiff-zero --reverse --check \
 fi
 
 export PYTHONDONTWRITEBYTECODE=1
+export PYTEST_ADDOPTS="${PYTEST_ADDOPTS:-} -p no:cacheprovider"
 source /opt/ros/jazzy/setup.bash
 source nero_ws/install/setup.bash
 source perception_ws/install/setup.bash
 set -u
 
-echo "[1/10] NERO 主控制测试"
+echo "[1/9] NERO 主控制测试"
 .venv/bin/python -m pytest -q nero_ws/src/strawberry_nero_control/test
 
-echo "[2/10] AGX 安全服务测试"
+echo "[2/9] AGX 安全服务测试"
 PYTHONPATH="${sap_directory}/nero_ws/src/agx_arm_ros/src/agx_arm_ctrl:${PYTHONPATH:-}" \
   .venv/bin/python -m pytest -q \
     nero_ws/src/agx_arm_ros/src/agx_arm_ctrl/test/test_safety_services.py
 
-echo "[3/10] 展示程序隔离测试"
-./nero_exhibition_demo/check_demo.sh
-
 export PYTHONPATH="${sap_directory}/perception_ws/src/strawberry_gradient_nbv:${PYTHONPATH:-}"
 
-echo "[4/10] Gradient-NBV（含地图可视化）"
+echo "[3/9] Gradient-NBV（含地图可视化）"
 .venv-nbv/bin/python -m pytest -q \
     perception_ws/src/strawberry_gradient_nbv/test
 
-echo "[5/10] 手眼、桥接和闭环监督器"
+echo "[4/9] 手眼、桥接和闭环监督器"
 /usr/bin/python3 -m pytest -q perception_ws/src/strawberry_handeye_calibration/test
 /usr/bin/python3 -m pytest -q \
     perception_ws/src/strawberry_active_perception_bridge/test \
-    validation/week4/test
+    tests/nbv tests/demo
 
-echo "[6/10] 相机/采集验证工具"
-/usr/bin/python3 -m pytest -q validation/week2/test validation/week3/test
+echo "[5/9] 相机/采集验证工具"
+/usr/bin/python3 -m pytest -q tests/camera tests/calibration
 
-echo "[7/10] 学习式 mask 离线边界与大步 IK 预检"
+echo "[6/9] 可达候选可视化与大步 IK 预检"
 /usr/bin/python3 -m pytest -q \
-    validation/week6/test_mask_model_evaluator.py \
-    validation/week6/test_reachable_candidate_visualization.py
+    tests/visualization/test_reachable_candidate_visualization.py
 PYTHONPATH="${sap_directory}/nero_ws/src/strawberry_nero_control:${PYTHONPATH:-}" \
-  .venv/bin/python validation/week6/large_step_ik_preflight.py \
+  .venv/bin/python tools/nbv/large_step_ik_preflight.py \
   --output /tmp/strawberry_large_step_ik_preflight.json >/dev/null
 
-echo "[8/10] 长闭环证据记录和展示图生成测试"
+echo "[7/9] 闭环证据记录、展示图与离线周报分析测试"
 PYTHONPATH="${sap_directory}/perception_ws/src/strawberry_gradient_nbv:${PYTHONPATH:-}" \
-  /usr/bin/python3 -m pytest -q validation/week7/test
+  /usr/bin/python3 -m pytest -q \
+    tests/visualization/test_visualization.py \
+    tests/visualization/test_voxel_cloud_visualization.py tests/analysis
 
-echo "[9/10] YOLO11 草莓 mask 接口与安全边界"
+echo "[8/9] YOLO11 草莓 mask 接口与安全边界"
 PYTHONPATH="${sap_directory}/perception_ws/src/strawberry_learned_mask:${PYTHONPATH:-}" \
   .venv-mask/bin/python -m pytest -q \
     perception_ws/src/strawberry_learned_mask/test
 .venv-mask/bin/python -m flake8 \
   --config perception_ws/src/strawberry_learned_mask/setup.cfg \
-  validation/week9/evaluate_historical_session.py \
-  validation/week9/capture_learned_snapshot.py
+  tools/mask/capture_learned_snapshot.py
 
-echo "[10/10] ROS 接口与 C++ 相机适配器的已构建测试"
+echo "[9/9] ROS 接口与 C++ 相机适配器的已构建测试"
 (
     cd perception_ws
     ../.venv-nbv/bin/python -m colcon test \

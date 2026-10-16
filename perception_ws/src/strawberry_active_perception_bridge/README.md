@@ -1,159 +1,58 @@
 # Strawberry active-perception bridge
 
-这个包是 Gradient-NBV 相机位姿与 NERO Placo 控制之间的窄接口。普通 preview 节点
-只调用 `/strawberry_nero/solve_ik`，不创建运动 Action client，也不发布关节/CAN 命令。
-`real_nbv_supervisor` 是唯一允许真实闭环运动的入口。
-
-相机目标通过正式手眼外参转换为：
-
-```text
-T_base_link7 = T_base_camera * inverse(T_link7_camera)
-```
-
-真实外参只能从 SHA 绑定的 30 姿态正式报告读取。仿真配置中的
-`T_link7_camera` 只是 fixture，绝不能用于真机。
-
-## 无运动仿真预检
+本包连接 Gradient-NBV 的相机目标位姿与 NERO 的 Placo IK / 运动接口。
+`real_nbv_supervisor` 负责本轮预览、SHA 绑定、逐步执行、持续地图更新和停止记录。
+日常从项目根目录使用统一入口，无需单独启动本包节点：
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source /home/yyt/strawberry_active_perception/.venv/bin/activate
-source /home/yyt/strawberry_active_perception/nero_ws/install/setup.bash
-source /home/yyt/strawberry_active_perception/perception_ws/install/setup.bash
-ros2 launch strawberry_active_perception_bridge simulation_preview.launch.py
+./demo_operator.sh prepare
+./demo_operator.sh run --workspace-clear
+./demo_operator.sh open
+./demo_operator.sh analyze
 ```
 
-第二个终端可运行固定变换/IK fixture：
+上电、初始摆放、中止及安全断电步骤见[演示说明](../../../DEMO_GUIDE_CN.md)。
+停止运动使用 `./demo_operator.sh stop`；扶稳机械臂后使用
+`./demo_operator.sh shutdown --arm-supported` 完成失能与进程收尾。
 
-```bash
-ros2 run strawberry_active_perception_bridge nbv_ik_preview_fixture
-ros2 run strawberry_active_perception_bridge gradient_placo_pipeline_fixture
-```
+## 当前闭环
 
-两者都不会驱动机械臂。后者覆盖 synthetic Observation → Gradient-NBV → NextView →
-SolveIK，并验证重复 ID 的幂等结果。
+演示入口加载 `config/real_nbv_supervisor_large_step.yaml`，叠加 YOLO11 mask 配置，
+并匹配 NERO 的 `large_nbv_experiment.yaml` 控制器配置。
+每轮根据当前测得的相机、关节和草莓位姿重新规划，不要求复用上轮起点。
 
-## 正式手眼外参的只读预检
+1. 采集新观测，通过正式手眼报告和曝光时刻的机械臂 TF 得到相机世界位姿。
+2. 生成本轮预览并冻结配置、第一步目标和文件 SHA；执行前用新观测复核现场。
+3. 在 100、75、50、25、10、5 mm 半径的候选中筛选 Placo 可达解，
+   根据地图收益选择目标；运动后静止采集，并更新同一张地图。
+4. 达到覆盖率或增量停止条件、无可达且有收益的候选、达到 8 步上限，
+   或观测、IK、反馈检查失败时停止，并记录原因。步数上限不是必须完成的次数。
 
-```bash
-ros2 launch strawberry_active_perception_bridge real_preview.launch.py
-ros2 run strawberry_active_perception_bridge real_handeye_preview \
-  --ros-args \
-  --params-file /home/yyt/strawberry_active_perception/perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_preview.yaml \
-  -p preview_mode:=current
-```
+候选需满足当前配置中的相机工作距离、关节、IK 残差和反馈条件。
+这些数值由配置及对应测试维护；本包不做环境碰撞检测。
+`config/real_nbv_supervisor.yaml` 保留保守默认参数及其回归验证，演示入口显式使用
+上面的厘米级配置。
 
-将 `preview_mode` 改为 `small_nbv` 可只读求解一个确定性的 5 mm 候选。它仍不会把
-关节解发送给控制器。real 模式严格拒绝仿真相机 frame 和 synthetic Observation。
+## 数据约定
 
-## 真实 NBV 监督器
+- 坐标变换为 `T_base_link7 = T_base_camera × inverse(T_link7_camera)`。
+  手眼外参仅从 SHA 校验通过的正式报告读取。
+- 每次地图更新使用五帧聚合：深度至少 3/5 有效才取中位数，mask 至少 3/5 为前景。
+  每帧都检查身份、时间、相机模型和曝光时刻 TF，批内位姿变化需满足配置。
+- 本轮只初始化一次地图；随后保持相同场景、配置 SHA、体素原点和地图。
+  执行前的新照片不能替换第一步冻结目标；后续目标在运动前写入执行记录。
+- 每个动作完成后关闭控制器与驱动的软件运动门，确认静止后再采集。
+  停止后不会自动回位；断电收尾由统一演示入口完成。
+- ROI 射线覆盖率表示目标区域中被有效观测射线经过的体素比例，
+  不等同于草莓表面完整度。
 
-监督器默认 `execute=false`、`max_motion_steps=1`。只读 preview 固定采两批、每批五帧：
+每轮证据写入 `results/demo/run_日期_时间_编号/`，包括预览、授权、执行记录、
+实际观测、地图和图表。周报由 `analyze` 离线读取这些文件生成。
+旧预览只能作为历史证据，不能作为新一轮运动授权。
 
-- 每个深度像素至少 3/5 有效才取中位数，否则为 NaN；
-- mask 至少 3/5 帧为前景才保留；
-- 五个 ID/scene/stamp 必须唯一且时间递增；
-- K、D、图像网格必须完全一致；
-- 每帧都必须取得曝光时刻精确的 `base_link <- link7` TF；
-- 批内相机位姿跨度不超过 0.25 mm / 0.10°。
+## 保留模块与验证
 
-preview 会把完整 ConfigureNBV 请求、体素维度和地图原点写入 v3 候选，并由整个 JSON
-文件 SHA 绑定。execution 的新照片只能复核现场，不能替换第一步冻结目标。
-
-### 由停止条件控制的持久地图
-
-`max_motion_steps` 可设为 `1` 到 `10`。它是硬上限，不是要求必须运动这么多次。一个授权
-允许程序在这个上限内持续观察，直到达到停止条件：
-
-- 只在开始时调用一次 ConfigureNBV；全部动作共用同一 scene、配置 SHA、体素原点和地图；
-- 每个动作关门并静止后，再采固定五帧并只融合一次；
-- 后续目标来自累积地图，并在开门前原子写入 execution JSON；
-- 每步相机平移 `(1, 5] mm`、旋转 `≤10°`、IK 最大关节变化 `≤0.08 rad`、
-  残差 `≤3 mm / 2°`、`sigma_min≥0.10`、条件数 `≤20`；
-- 相对会话起点累计相机变化 `≤15 mm / 30°`；
-- 每一步结束都要让控制器门和驱动门分别获得两次关闭回执，并重新证明健康、静止；
-- 目标少于 200 个有效 mask 深度像素、IK 失败、重复 Observation、coverage 下降、
-  额外命令发布者或关门失败都会立即终止后续 Goal；不自动回位或失能；
-- 达到可选的 `coverage_target` 时停止；设为 `0` 时禁用此条件；
-- 默认连续两步 coverage 增量都小于 0.5 个百分点时停止；
-- 下一位移不超过 1 mm 时停止；任何错误则立即停止。
-
-多步实验的科学验收要求：coverage 单调不降；至少两步各增加 1 个百分点；最终比第一帧
-增加至少 20 个百分点。安全完成但未达到这些数字时，artifact 会写明未通过科学验收。
-
-默认的一步模式继续使用授权词 `EXECUTE_REAL_NBV_ONCE`。多步授权词为
-`EXECUTE_REAL_NBV_SESSION_N`，其中 `N` 必须与 preview 的 `max_motion_steps` 完全相同，
-例如 10 步上限使用 `EXECUTE_REAL_NBV_SESSION_10`。最大步数、coverage 目标、平台期阈值和
-连续次数都进入 SHA，执行时不能临时改动。旧单帧/v1/v2 工具和 artifact 已删除，v2 schema 只保留
-读取历史证据的兼容代码，永远不能执行。
-
-完整现场命令和已完成的一步实测证据见
-[`validation/week4/README.md`](../../../validation/week4/README.md)。
-
-### 优先厘米级、不可达时自适应回退的独立实验
-
-`large_workspace_experimental` 与上面的 1–5 mm 已验证配置完全分开。它最多执行八步，
-累计最多 60 cm / 90°，单步旋转≤30°，IK 最大关节变化≤0.35 rad。八步只是防止程序
-无限运行的硬上限；默认达到 20% coverage、连续两步新增不足 0.5 个百分点、下一位移进入
-1 mm 死区或没有正收益可达点时提前停止。监督器按
-10/7.5/5/2.5/1/0.5 cm 与固定18方向生成有限候选：Placo 先过滤可达性，NBV 再用当前地图
-只读打分；在收益增量达到最佳值90%的候选中，优先选择位移最大的一个。因此5 cm只是演示
-优先值，不是硬下限；真正没有可达且有正收益的候选时才停止。
-这项流程优先实验单独允许 5 mm / 2° 的 IK 与最终位置误差；默认小步科研配置仍保持
-2 mm 求解和 3 mm 监督门，二者不会相互覆盖。
-30° 也只属于该独立大空间 profile：2026-09-13 的现场只读预演发现草莓位于画面侧方，
-所有 IK 可达候选都需要约 15–27° 才能让光轴重新指向草莓；旧 15° 上限会把它们全部误删。
-相机适配器仍要求 HSV 目标区域至少 200 像素；大步配置只把其中“通过深度离群点剔除”的
-门槛设为 100（约一个 10×10 样本区域），以容忍小草莓轮廓上的深度缺失。原 1–5 mm
-配置继续使用 200。
-
-机械臂控制器必须显式加载配套 overlay：
-
-```bash
-ros2 launch strawberry_nero_control real.launch.py \
-  profile_config_file:=/home/yyt/strawberry_active_perception/nero_ws/install/strawberry_nero_control/share/strawberry_nero_control/config/large_nbv_experiment.yaml \
-  can_port:=can0 speed_percent:=10 startup_enable:=true \
-  precision_test_mode:=true first_motion_test_mode:=false \
-  allow_limit_recovery_execution:=false launch_rviz:=false
-```
-
-这条命令只应在现场清场、观察员就位后运行。它会使能电机以取得反馈，但两道运动门仍从
-关闭状态启动，不会自行发送目标。先启动 Gradient-NBV，再生成无运动 preview：
-
-```bash
-ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
-  --ros-args \
-  --params-file /home/yyt/strawberry_active_perception/perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor_large_step.yaml \
-  -p execute:=false
-sha256sum artifacts/week6/large_step_nbv_preview.json
-```
-
-preview 必须明确为 `passed_preview_only`，而且要查看实际相机距离、旋转、关节变化和画面
-边界。之后才允许使用同一配置执行；下面的 SHA 必须换成刚生成的完整 64 位值：
-
-```bash
-ros2 run strawberry_active_perception_bridge real_nbv_supervisor \
-  --ros-args \
-  --params-file /home/yyt/strawberry_active_perception/perception_ws/install/strawberry_active_perception_bridge/share/strawberry_active_perception_bridge/config/real_nbv_supervisor_large_step.yaml \
-  -p execute:=true \
-  -p execution_plan_path:=/home/yyt/strawberry_active_perception/artifacts/week6/large_step_nbv_preview.json \
-  -p execution_plan_sha256:=<刚生成的64位SHA> \
-  -p operator_workspace_clearance_confirmed:=true \
-  -p execution_authorization_token:=EXECUTE_REAL_NBV_LARGE_SESSION_8
-```
-
-这不是对历史小步授权的放宽：profile 名、距离范围、累计范围、控制器 joint gate、preview
-文件和新授权词都进入审计。默认小步配置及授权词不变。离线证据和 mask 候选见
-[`validation/week6/README.md`](../../../validation/week6/README.md)。
-
-2026-09-10 已按旧版“只缩短单一方向”的入口完成一次真实大步：计划 50.00 mm、实际
-48.95 mm，coverage 从
-2.0856% 增至 4.1400%，动作后两道门关闭。第二步约 10 cm 的原始建议在当时关节姿态下
-不可达，因此会话在 1 个高层运动后停止。多方向自适应候选是之后的软件改进，不能把旧
-实验冒充为新功能的真机验证；完整历史审计、地图快照和可视化见 Week 6 文档。
-
-## 重要安全边界
-
-控制器当前没有环境碰撞检查。软件只限制目标、IK、反馈和命令来源，不能识别桌面、支架、
-线缆或人员。真实执行仍要求人工清场、工作区外人员守住控制箱断电位置。关门无法确认时
-artifact 会标记 `onsite_stop_required=true` 并停止感知/后续动作。
+`calibration_report.py` 校验手眼报告，`transforms.py` 处理坐标变换，
+`real_nbv_contract.py` 检查观测、冻结计划和会话状态，
+`real_nbv_supervisor.py` 实现 ROS 闭环。包内 `test/` 及项目 `tests/nbv`、
+`tests/demo` 验证当前流程；项目根目录的 `./verify_software.sh` 运行离线检查。

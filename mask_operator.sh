@@ -7,9 +7,9 @@ set -eo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 PID_FILE="/tmp/strawberry_learned_mask_${UID}.pid"
-CHECKPOINT="$PROJECT_ROOT/artifacts/models/yolo11m_strawberry_best.pt"
+CHECKPOINT="$PROJECT_ROOT/config/models/yolo11m_strawberry_best.pt"
 EXPECTED_SHA="7bea8d97b68c8081f1949538ec8a6ef14324c1f9ab9ae1b75ddefd2889c49357"
-AUDIT_DIRECTORY="$PROJECT_ROOT/artifacts/learned_mask/runtime"
+AUDIT_DIRECTORY="$PROJECT_ROOT/results/mask_audit"
 
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-77}"
 export ROS_AUTOMATIC_DISCOVERY_RANGE="${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}"
@@ -19,7 +19,7 @@ source "$PROJECT_ROOT/perception_ws/install/setup.bash"
 
 require_runtime() {
   if [[ ! -x "$PROJECT_ROOT/.venv-mask/bin/python" ]]; then
-    echo "学习式 mask 环境还没有安装。请先看 validation/week9/README.md。"
+    echo "学习式 mask 环境还没有安装。请先按 README.md 安装 requirements-yolo11.txt。"
     exit 2
   fi
   if [[ ! -f "$CHECKPOINT" ]]; then

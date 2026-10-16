@@ -17,7 +17,6 @@ def test_flake8() -> None:
         argv=[
             "--config",
             str(PACKAGE_ROOT / "setup.cfg"),
-            str(PACKAGE_ROOT / "launch"),
             str(PACKAGE_ROOT / "setup.py"),
             str(PACKAGE_ROOT / "strawberry_active_perception_bridge"),
             str(PACKAGE_ROOT / "test"),

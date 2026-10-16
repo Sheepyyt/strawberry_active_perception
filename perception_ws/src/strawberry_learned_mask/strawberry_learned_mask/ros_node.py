@@ -46,7 +46,7 @@ class LearnedMaskNode(Node):
         super().__init__("strawberry_learned_mask")
         self.declare_parameter(
             "checkpoint_path",
-            "artifacts/models/yolo11m_strawberry_best.pt",
+            "config/models/yolo11m_strawberry_best.pt",
         )
         self.declare_parameter("checkpoint_sha256", DEFAULT_CHECKPOINT_SHA256)
         self.declare_parameter("accept_pickle_checkpoint", False)
@@ -66,7 +66,7 @@ class LearnedMaskNode(Node):
         self.declare_parameter("device", "cpu")
         self.declare_parameter("image_size", 640)
         self.declare_parameter(
-            "audit_directory", "artifacts/learned_mask/runtime"
+            "audit_directory", "results/mask_audit"
         )
 
         self.confidence_threshold = float(
@@ -142,6 +142,7 @@ class LearnedMaskNode(Node):
 
     def _on_observation(self, message: Observation) -> None:
         started = time.perf_counter()
+        published = False
         try:
             rgb = decode_rgb8(message.color)
             depth = decode_depth_32fc1(message.depth)
@@ -168,6 +169,17 @@ class LearnedMaskNode(Node):
                 mask_pixels >= self.minimum_mask_pixels
                 and valid_depth_pixels >= self.minimum_valid_depth_pixels
             )
+            rejection_reasons = []
+            if mask_pixels < self.minimum_mask_pixels:
+                rejection_reasons.append(
+                    f"mask_pixels={mask_pixels} below minimum_mask_pixels="
+                    f"{self.minimum_mask_pixels}"
+                )
+            if valid_depth_pixels < self.minimum_valid_depth_pixels:
+                rejection_reasons.append(
+                    f"valid_depth_pixels={valid_depth_pixels} below "
+                    f"minimum_valid_depth_pixels={self.minimum_valid_depth_pixels}"
+                )
             output_mask = (
                 decision.mask
                 if accepted_for_nbv
@@ -202,6 +214,7 @@ class LearnedMaskNode(Node):
                 "minimum_mask_pixels": self.minimum_mask_pixels,
                 "minimum_valid_depth_pixels": self.minimum_valid_depth_pixels,
                 "accepted_for_nbv": accepted_for_nbv,
+                "rejection_reasons": rejection_reasons,
                 "backend": backend_audit,
                 "total_callback_ms": (time.perf_counter() - started) * 1000.0,
                 "output_topic_published": True,
@@ -213,16 +226,25 @@ class LearnedMaskNode(Node):
             )
             _write_json_atomic(self.audit_directory / audit_name, report)
             self.publisher.publish(output)
-            log = self.get_logger().info if accepted_for_nbv else self.get_logger().warning
-            log(
+            published = True
+            log_message = (
                 f"learned mask {decision_label}: scene={message.scene_id}, "
                 f"id={message.observation_id}, mask={mask_pixels}, "
                 f"valid_depth={valid_depth_pixels}, "
                 f"instances={len(decision.accepted)}"
             )
+            # rclpy caches severity by callsite; switching a bound method at
+            # one line raises when an accepted frame is followed by rejection.
+            if accepted_for_nbv:
+                self.get_logger().info(log_message)
+            else:
+                self.get_logger().warning(
+                    log_message + "; " + "; ".join(rejection_reasons)
+                )
         except Exception as error:
+            phase = "after publishing" if published else "without publishing"
             self.get_logger().error(
-                f"learned mask rejected Observation without publishing: {error}"
+                f"learned mask processing failed {phase}: {error}"
             )
 
 

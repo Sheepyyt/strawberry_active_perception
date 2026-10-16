@@ -106,18 +106,18 @@ ros2 run strawberry_handeye_calibration handeye_calibrate \
 
 ## 把现场 NPZ 转为核心 JSON
 
-`validation/week3/capture_handeye_sample.py` 每次生成一个只读 NPZ。先把一组已经冻结的
+`tools/calibration/capture_handeye_sample.py` 每次生成一个只读 NPZ。先把一组已经冻结的
 样本转换成上面的核心 JSON，再运行求解器：
 
 ```bash
 ros2 run strawberry_handeye_calibration handeye_import_npz \
-  --input-directory artifacts/week3/handeye_session_001 \
-  --output artifacts/week3/handeye_session_001/session.json \
+  --input-directory results/calibration/session \
+  --output results/calibration/session/session.json \
   --sample-ids pose_001 pose_002 pose_003 pose_004 pose_005
 
 ros2 run strawberry_handeye_calibration handeye_calibrate \
-  --input artifacts/week3/handeye_session_001/session.json \
-  --output artifacts/week3/handeye_session_001/report.json
+  --input results/calibration/session/session.json \
+  --output results/calibration/session/report.json
 ```
 
 省略 `--sample-ids` 时会按文件名导入目录中全部 NPZ；现场仍在继续采集时应显式列出样本
@@ -130,8 +130,8 @@ Observation ID、关节位置和只读采集审计字段。这个命令只读文
 
 ```bash
 ros2 run strawberry_handeye_calibration handeye_validate_stability \
-  --input artifacts/week3/handeye_session_001/session.json \
-  --output artifacts/week3/handeye_session_001/stability_report.json
+  --input results/calibration/session/session.json \
+  --output results/calibration/session/stability_report.json
 ```
 
 默认重复 20 个确定性的训练/留出划分，要求 20 次全部通过，并要求各次求出的
@@ -173,9 +173,9 @@ JSON，再运行纯离线重处理：
 
 ```bash
 ros2 run strawberry_handeye_calibration handeye_reprocess_camera_model \
-  --input-directory artifacts/week3/handeye_session_001 \
-  --camera-model artifacts/week3/handeye_session_001/color_camera_model.json \
-  --output artifacts/week3/handeye_session_001/handeye_samples_corrected_D.json \
+  --input-directory results/calibration/session \
+  --camera-model results/calibration/session/color_camera_model.json \
+  --output results/calibration/session/handeye_samples_corrected_D.json \
   --sample-ids pose_001 pose_002 pose_003
 ```
 
@@ -210,8 +210,8 @@ ros2 run strawberry_handeye_calibration handeye_reprocess_camera_model \
 
 ```bash
 ros2 run strawberry_handeye_calibration handeye_validate_prospective \
-  --input artifacts/week3/handeye_session_001/handeye_samples_pose001_030_factory_raw_D.json \
-  --output artifacts/week3/handeye_session_001/prospective_pose026_030_factory_raw_D.json \
+  --input results/calibration/session/handeye_samples_pose001_030_factory_raw_D.json \
+  --output results/calibration/session/prospective_pose026_030_factory_raw_D.json \
   --train-ids pose_{001..025} \
   --test-ids pose_{026..030}
 ```
